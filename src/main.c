@@ -14,11 +14,11 @@
 
 int main(void)
 {
-    // Offset variables
-    int offset_x = 0, offset_y = 0;
+    // Player's absolute position in the world
+    int world_x = 0, world_y = 0;
 
     // returns zero on success else non-zero
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         printf("error initializing SDL: %s\n", SDL_GetError());
     }
     SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
@@ -34,7 +34,7 @@ int main(void)
     SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
     
     // Create the map texture
-    SDL_Texture* map_tex = create_map(rend);
+    SDL_Texture* map_tex = CreateGameMap(rend);
 
     // Get the actual size of the generated map for boundary checks
     int map_w, map_h;
@@ -44,14 +44,19 @@ int main(void)
     SDL_Surface* surface;
 
     // please provide a path for your image
-    surface = IMG_Load("test.jpeg");
+    surface = IMG_Load("./resources/test.jpeg");
     if (!surface) {
         printf("Error loading image: %s\n", IMG_GetError());
+        SDL_DestroyTexture(map_tex);
+        SDL_DestroyRenderer(rend);
+        SDL_DestroyWindow(win);
+        IMG_Quit();
+        SDL_Quit();
         return 1;
     }
 
     // loads image to our graphics hardware memory.
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(rend, surface);
+    SDL_Texture* player_texture = SDL_CreateTextureFromSurface(rend, surface);
 
     // clears main-memory
     SDL_FreeSurface(surface);
@@ -61,7 +66,7 @@ int main(void)
     SDL_Rect player_rect = {0, 0, 0, 0};
 
     // connects our texture with player_rect to control position
-    SDL_QueryTexture(tex, NULL, NULL, &player_rect.w, &player_rect.h);
+    SDL_QueryTexture(player_texture, NULL, NULL, &player_rect.w, &player_rect.h);
 
     // adjust height and width of our image box.
     player_rect.w /= 6;
@@ -71,42 +76,43 @@ int main(void)
     int screen_w, screen_h;
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
-    // sets initial x-position of object
-    player_rect.x = (screen_w - player_rect.w) / 2;
+    // sets initial position of object in the world (center of map)
+    world_x = (map_w - player_rect.w) / 2;
+    world_y = (map_h - player_rect.h) / 2;
 
-    // sets initial y-position of object
-    player_rect.y = (screen_h - player_rect.h) / 2;
-
-    while (1) {
+    int running = 1;
+    while (running) {
         SDL_Event event;
 
         // Events management
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
+            case SDL_QUIT:
+                running = 0;
+                break;
 
             case SDL_KEYDOWN:
                 // keyboard API for key pressed
                 switch (event.key.keysym.scancode) {
                 case SDL_SCANCODE_W:
                 case SDL_SCANCODE_UP:
-                    offset_y += CHARACTER_SPEED / 30;
+                    world_y -= CHARACTER_SPEED / 30;
                     break;
                 case SDL_SCANCODE_A:
                 case SDL_SCANCODE_LEFT:
-                    offset_x += CHARACTER_SPEED / 30;
+                    world_x -= CHARACTER_SPEED / 30;
                     break;
                 case SDL_SCANCODE_S:
                 case SDL_SCANCODE_DOWN:
-                    offset_y -= CHARACTER_SPEED / 30;
+                    world_y += CHARACTER_SPEED / 30;
                     break;
                 case SDL_SCANCODE_D:
                 case SDL_SCANCODE_RIGHT:
-                    offset_x -= CHARACTER_SPEED / 30;
+                    world_x += CHARACTER_SPEED / 30;
                     break;
                 case SDL_SCANCODE_ESCAPE:
-                    // Exit the program
-                    SDL_Quit();
-                    return EXIT_SUCCESS;
+                    // Clean Up
+                    running = 0;
                     break;
                 default:
                     break;
@@ -117,15 +123,25 @@ int main(void)
         // Update screen dimensions in case of window resize or resolution change
         SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
-        // Keep the player centered on the screen
-        player_rect.x = (screen_w - player_rect.w) / 2;
-        player_rect.y = (screen_h - player_rect.h) / 2;
+        // Clamp player to map boundaries
+        if (world_x < 0) world_x = 0;
+        if (world_x > map_w - player_rect.w) world_x = map_w - player_rect.w;
+        if (world_y < 0) world_y = 0;
+        if (world_y > map_h - player_rect.h) world_y = map_h - player_rect.h;
+
+        // Calculate camera offset to center the player
+        int offset_x = (screen_w / 2) - (player_rect.w / 2) - world_x;
+        int offset_y = (screen_h / 2) - (player_rect.h / 2) - world_y;
 
         // Set boundaries for the camera
         if (offset_x > 0) offset_x = 0;
         if (offset_x < screen_w - map_w) offset_x = screen_w - map_w;
         if (offset_y > 0) offset_y = 0;
         if (offset_y < screen_h - map_h) offset_y = screen_h - map_h;
+
+        // Calculate player screen position based on world position and camera offset
+        player_rect.x = world_x + offset_x;
+        player_rect.y = world_y + offset_y;
 
         // clears the screen
         SDL_RenderClear(rend);
@@ -135,7 +151,7 @@ int main(void)
         SDL_Rect map_dest = {offset_x, offset_y, map_w, map_h};
         // Copy the map's texture to the new map variable
         SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
-        SDL_RenderCopy(rend, tex, NULL, &player_rect);
+        SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
 
         // triggers the double buffers
         // for multiple rendering
@@ -147,7 +163,7 @@ int main(void)
 
     SDL_DestroyTexture(map_tex);
     // destroy texture
-    SDL_DestroyTexture(tex);
+    SDL_DestroyTexture(player_texture);
 
     // destroy renderer
     SDL_DestroyRenderer(rend);
@@ -156,6 +172,7 @@ int main(void)
     SDL_DestroyWindow(win);
     
     // close SDL
+    IMG_Quit();
     SDL_Quit();
 
     return 0;

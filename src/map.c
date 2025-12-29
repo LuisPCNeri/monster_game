@@ -10,7 +10,9 @@
 
 #include "map.h"
 
-SDL_Texture* create_map(SDL_Renderer* renderer){
+int tile_map[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
+
+SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
     // Set the map dimensions to acount for the number of tiles defined in the map.h file
     int w = TILE_MAP_MAX_X * 32;
     int h = TILE_MAP_MAX_Y * 32;
@@ -47,7 +49,7 @@ SDL_Texture* create_map(SDL_Renderer* renderer){
     srand(time(NULL));
     // 2D array with the tiles
     // TODO May be better off allocating the memory in the heap when populating the map
-    int tile_map[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
+    
     
     // Randomly assign the tiles
     for(int x=0; x < TILE_MAP_MAX_X; x++){
@@ -58,7 +60,6 @@ SDL_Texture* create_map(SDL_Renderer* renderer){
     }
 
     printf("TILE MAP INSTANCIALIZED\n");
-
     // Populate the actual screen with the tiles
     SDL_Rect tile[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
     for(int y=0; y < TILE_MAP_MAX_Y; y++){
@@ -92,4 +93,12 @@ SDL_Texture* create_map(SDL_Renderer* renderer){
 
     SDL_DestroyTexture(tile_texture);
     return map_texture;
+}
+
+int GetCurrentTileType(int x_pos, int y_pos){
+    // If somehow someway one of the positions is negative and we want to check the tile type
+    // return an error value 
+    if(x_pos < 0 || y_pos < 0) return -1;
+
+    return tile_map[x_pos][y_pos];
 }
