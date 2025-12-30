@@ -46,6 +46,7 @@ typedef enum{
 } SpecialTrait;
 
 typedef enum{
+    NONE_TYPE,
     FIRE_TYPE,
     WATER_TYPE,
     GRASS_TYPE,
@@ -55,8 +56,7 @@ typedef enum{
     NORMAL_TYPE,
     DRAGON_TYPE,
     METAL_TYPE,
-    DARK_TYPE,
-    NONE_TYPE
+    DARK_TYPE
 } MonsterTypes;
 
 // A list of all moves a single monster can learn

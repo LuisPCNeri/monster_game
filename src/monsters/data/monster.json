@@ -2,7 +2,86 @@
     {
         "id": 1,
         "name": "Ignisaur",
+        "description": "NONE",
+        "rarity": 0,
+        "level": 0,
+        "evo_1": 20,
+        "evo_2": 45,
+        "type_1": 1,
+        "type_2": 0,
         "stats": { "hp": 45, "atk": 49, "def": 49, "spd": 45 },
         "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 2,
+        "name": "Embersaur",
+        "description": "Made from the embers of forgotten dreams.",
+        "rarity": 1,
+        "level": 20,
+        "evo_1": 45,
+        "evo_2": 0,
+        "type_1": 1,
+        "type_2": 0,
+        "stats": { "hp": 70, "atk": 61, "def": 57, "spd": 53 },
+        "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 3,
+        "name": "Vulcansaur",
+        "description": "NONE",
+        "rarity": 2,
+        "level": 45,
+        "evo_1": 0,
+        "evo_2": 0,
+        "type_1": 1,
+        "type_2": 4,
+        "stats": { "hp": 120, "atk": 81, "def": 87, "spd": 49 },
+        "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 4,
+        "name": "bob",
+        "description": "NONE",
+        "rarity": 0,
+        "level": 45,
+        "evo_1": 0,
+        "evo_2": 0,
+        "type_1": 1,
+        "type_2": 4,
+        "stats": { "hp": 150, "atk": 101, "def": 67, "spd": 69 },
+        "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 5,
+        "name": "MR BEAST",
+        "description": "NONE",
+        "rarity": 1,
+        "level": 5,
+        "evo_1": 45,
+        "evo_2": 0,
+        "type_1": 2,
+        "type_2": 8,
+        "stats": { "hp": 120, "atk": 81, "def": 87, "spd": 49 },
+        "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 6,
+        "name": "SCP IWISHIKNEW",
+        "description": "NONE",
+        "rarity": 2,
+        "level": 5,
+        "evo_1": 45,
+        "evo_2": 0,
+        "type_1": 10,
+        "type_2": 9,
+        "stats": { "hp": 120, "atk": 81, "def": 87, "spd": 49 },
+        "starting_moves": [101, 102] 
     }
+
+
 ]
