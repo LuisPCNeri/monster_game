@@ -1,0 +1,220 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "libraries/cJSON.h"
+
+#include "map.h"
+#include "player/player.h"
+#include "monster.h"
+
+#define MAX_GAME_MOVES 500
+#define MAX_GAME_MONSTERS 150
+
+// GLOBAL array for this file that has IN MEMORY all the monsters (indexed by their order)
+monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
+int monster_count = 0;
+move_t ALL_MOVES[MAX_GAME_MOVES];
+int MoveLibraryCount = 0;
+
+move_t* GetMoveByID(int id) {
+    for(int i = 0; i < MoveLibraryCount; i++) {
+        if(ALL_MOVES[i].id == id) {
+            return &ALL_MOVES[i];
+        }
+    }
+    return NULL;
+}
+
+// Takes in the path to a file and reads it to a string
+// Returns a pointer to the string or NULL if it fails
+// The caller is responsible for freeing the string
+static char* LoadFileToString(char* file_path){
+    FILE* fptr;
+    if(!(fptr = fopen(file_path, "r"))){
+        perror("Open JSON Monster File: ");
+        return NULL;
+    }
+
+    // Count file size
+    fseek(fptr, 0 , SEEK_END);
+    long file_size = ftell(fptr);
+    fseek(fptr, 0, SEEK_SET);
+
+    char* buffer = (char*) malloc((size_t) file_size + 1);
+    fread(buffer, 1, file_size, fptr);
+
+    fclose(fptr);
+    return buffer;
+}
+
+void PrintMonster(monster_t* m){
+    printf(
+        "NAME: %s\r\n"
+        "DESCRIPTION: %s\r\n"
+        "RARITY: %d\r\n"
+        "LEVEL: %d\r\n"
+        "EVO 1: %d\r\n"
+        "EVO 2: %d\r\n"
+        "TYPE 1: %d\r\n"
+        "TYPE 2: %d\r\n"
+        "HP: %d\r\n"
+        "ATTACK: %d\r\n"
+        "DEFENSE: %d\r\n"
+        "SPEED: %d\r\n"
+        "MOVE 1: %s\r\n"
+        "MOVE 2: %s\r\n",
+        m->monster_name, m->monster_description, m->rarity, m->level, m->evo_1_level, m->evo_2_level, m->type_1, m->type_2,
+        m->current_hp, m->attack, m->defense, m->speed, m->usable_moves[0].move_name, m->usable_moves[1].move_name
+    );
+}
+
+void MonstersInit() {
+    // =========================================================
+    // LOAD ALL MOVES INTO THE LIBRARY
+    // =========================================================
+    char* moveData = LoadFileToString("src/monsters/data/moves.json");
+    if(moveData) {
+        cJSON* jsonMoves = cJSON_Parse(moveData);
+        cJSON* entry = NULL;
+
+        cJSON_ArrayForEach(entry, jsonMoves) {
+            if(MoveLibraryCount >= MAX_GAME_MOVES) break;
+            
+            move_t* m = &ALL_MOVES[MoveLibraryCount];
+            
+            // Load basic data
+            m->id = cJSON_GetObjectItem(entry, "id")->valueint;
+            strcpy(m->move_name, cJSON_GetObjectItem(entry, "name")->valuestring);
+            m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
+            m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
+            m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
+            m->attack_type = cJSON_GetObjectItem(entry, "type")->valueint; // Assumes int in JSON
+            
+            // Initialize current state
+            m->available_uses = m->max_uses; 
+
+            MoveLibraryCount++;
+        }
+        cJSON_Delete(jsonMoves);
+        free(moveData);
+        printf("Loaded %d moves.\n", MoveLibraryCount);
+    }
+
+    // =========================================================
+    // LOAD MONSTERS AND LINK MOVES
+    // =========================================================
+    char* monData = LoadFileToString("src/monsters/data/monster.json");
+    if(monData) {
+        cJSON* jsonMons = cJSON_Parse(monData);
+        cJSON* entry = NULL;
+
+        cJSON_ArrayForEach(entry, jsonMons) {
+            if(monster_count >= MAX_GAME_MONSTERS) break;
+
+            monster_t* mon = &ALL_MONSTERS[monster_count];
+
+            // Load Basic Info
+            mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
+            strcpy(mon->monster_name, cJSON_GetObjectItem(entry, "name")->valuestring);
+            
+            // Load Stats
+            cJSON* stats = cJSON_GetObjectItem(entry, "stats");
+            mon->max_hp = cJSON_GetObjectItem(stats, "hp")->valueint;
+            mon->current_hp = mon->max_hp;
+            mon->attack = cJSON_GetObjectItem(stats, "atk")->valueint;
+            mon->defense = cJSON_GetObjectItem(stats, "def")->valueint;
+            mon->speed = cJSON_GetObjectItem(stats, "spd")->valueint;
+            
+            // Load the USABLE MOVES for this monster
+            cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
+            cJSON* moveIdVal = NULL;
+            int slot = 0;
+
+            // Initialize slots to empty values first
+            for(int k=0; k<4; k++) {
+                // -1 FOR EMPTY SLOT
+                mon->usable_moves[k].id = -1;
+                mon->usable_moves[k].damage = 0;
+            }
+
+            // Loop through the JSON array
+            cJSON_ArrayForEach(moveIdVal, movesArray) {
+                if(slot >= 4) break; // Cannot have more than 4 moves
+
+                int idToFind = moveIdVal->valueint;
+                
+                // Find the move definition in our library
+                move_t* foundMove = GetMoveByID(idToFind);
+
+                if(foundMove != NULL) {
+                    // COPY the struct into the monster's slot
+                    mon->usable_moves[slot] = *foundMove; 
+                    
+                    // Reset dynamic variables for this specific monster
+                    mon->usable_moves[slot].available_uses = foundMove->max_uses;
+                    
+                    slot++;
+                } else {
+                    printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->monster_name, idToFind);
+                }
+            }
+
+            monster_count++;
+        }
+        cJSON_Delete(jsonMons);
+        free(monData);
+        printf("Loaded %d monsters.\n", monster_count);
+    }
+}
+
+// MONSTER SPAWNING LOGIC
+
+int CheckMonsterCanSpawn(int tile_type){
+    switch (tile_type)
+    {
+    case SPAWNABLE_TALL_GRASS:
+        return 1;
+        break;
+    
+    default:
+        return 0;
+        break;
+    }
+}
+
+monster_t SpawnMonster(int tile_type){
+    printf("MONSTER SPAWNED\n");
+    return ALL_MONSTERS[0];
+}
+
+void* TrySpawnMonster(void* arg){
+    // Convert the argument to a player pointer
+    player_t* player = (player_t*) arg;
+    
+    int current_tile_type = GetCurrentTileType(player->x_pos / 32, player->y_pos / 32);
+    // Always check
+    srand(time(NULL));
+    while(1){
+        
+        // Get the new tile
+        int new_tile_type = GetCurrentTileType(player->x_pos / 32, player->y_pos / 32);
+
+        if(new_tile_type != current_tile_type && CheckMonsterCanSpawn(new_tile_type)){
+            printf("NEW TILE TYPE: %d\n", new_tile_type);
+
+            // Every time player changes tile 40% chance to spawn
+            int spawn_num = rand() % (100 + 1);
+
+            if(spawn_num <= 40){
+                // The chance hit spawn monster now
+                SpawnMonster(new_tile_type);
+            }
+        }
+
+        // Set the current_tile value to the new one
+        current_tile_type = new_tile_type;
+        SDL_Delay(50);
+    }
+    return NULL;
+}

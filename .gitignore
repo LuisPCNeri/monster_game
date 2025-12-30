@@ -1,2 +1,5 @@
 # Compiled files
 *.o
+
+# The main executable file
+main

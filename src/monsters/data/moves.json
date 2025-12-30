@@ -1,0 +1,4 @@
+[
+    { "id": 101, "name": "Scratch", "power": 40, "max_pp": 35, "type": 6 , "req_level": 0},
+    { "id": 102, "name": "Ember", "power": 40, "max_pp": 25, "type": 0, "req_level": 0 }
+]
