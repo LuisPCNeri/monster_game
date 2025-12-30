@@ -1,0 +1,8 @@
+[
+    {
+        "id": 1,
+        "name": "Ignisaur",
+        "stats": { "hp": 45, "atk": 49, "def": 49, "spd": 45 },
+        "starting_moves": [101, 102] 
+    }
+]

@@ -98,7 +98,7 @@ SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
 int GetCurrentTileType(int x_pos, int y_pos){
     // If somehow someway one of the positions is negative and we want to check the tile type
     // return an error value 
-    if(x_pos < 0 || y_pos < 0) return -1;
+    if(x_pos < 0 || y_pos < 0 || x_pos >= TILE_MAP_MAX_X || y_pos >= TILE_MAP_MAX_Y) return -1;
 
     return tile_map[x_pos][y_pos];
 }

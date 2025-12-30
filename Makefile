@@ -1,12 +1,12 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 $(shell sdl2-config --cflags)
+CFLAGS = -Wall -Wextra -std=c99 -I$(SRC_DIR) $(shell sdl2-config --cflags)
 LDFLAGS = $(shell sdl2-config --libs) -lSDL2_image
 
 SRC_DIR = src
 BUILD_DIR = build
 TARGET = main
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
+SRCS = $(shell find $(SRC_DIR) -name '*.c')
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 
 all: $(TARGET)

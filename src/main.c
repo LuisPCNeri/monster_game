@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -8,12 +9,18 @@
 #include <SDL2/SDL_timer.h>
 
 #include "map.h"
+#include "player/player.h"
+#include "monsters/monster.h"
 
 #define WINDOW_TITLE "WINDOW"
 #define CHARACTER_SPEED 300
 
 int main(void)
 {
+    MonstersInit();
+    player_t* player = (player_t*) malloc(sizeof(player_t));
+    player->x_pos = 0;
+    player->y_pos = 0;
     // Player's absolute position in the world
     int world_x = 0, world_y = 0;
 
@@ -80,6 +87,10 @@ int main(void)
     world_x = (map_w - player_rect.w) / 2;
     world_y = (map_h - player_rect.h) / 2;
 
+    // CREATEAS a Thread to keep trying to spawn monsters in the background
+    pthread_t spawn_thread;
+    pthread_create(&spawn_thread, NULL, &TrySpawnMonster, player);
+
     int running = 1;
     while (running) {
         SDL_Event event;
@@ -143,6 +154,9 @@ int main(void)
         player_rect.x = world_x + offset_x;
         player_rect.y = world_y + offset_y;
 
+        player->x_pos = world_x;
+        player->y_pos = world_y;
+
         // clears the screen
         SDL_RenderClear(rend);
 
@@ -171,6 +185,10 @@ int main(void)
     // destroy window
     SDL_DestroyWindow(win);
     
+    pthread_cancel(spawn_thread);
+    pthread_join(spawn_thread, NULL);
+    free(player);
+
     // close SDL
     IMG_Quit();
     SDL_Quit();

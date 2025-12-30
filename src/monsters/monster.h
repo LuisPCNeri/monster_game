@@ -14,35 +14,114 @@ typedef enum{
 typedef enum {
     NONE,
     // Takes damage every turn
-    BURN,
+    SCORCHED,
     // Takes damage every turn
     POISON,
     // Has a chance to be unnable to move every turn
-    PARALYZED,
+    STUNNED,
     // Cannot move
-    SLEEP,
+    ASLEEP,
     // Cannot move
     FROZEN,
-    // Has chance to hit itself with move used
-    CONFUSED
+    // Speed Debuff, damage debuff
+    // Chance to happen when water interacts with metal
+    CORRODED
 } StatusEffects;
+
+// Each monster has a randomly assigned special trait
+// This trait will be assigned upon monster spawning and will affect the monster's base stats
+typedef enum{
+    // Sligthly higher attack
+    SERIOUS,
+    // Slightly lower speed
+    LAZY,
+    // Slightly higher catch-rate
+    FRIENDLY,
+    // Slightly higher chance to dodge attacks
+    CALM,
+    // Slightly higher speed
+    FAST,
+    // Slightly higher defence
+    HARDWORKING
+} SpecialTrait;
+
+typedef enum{
+    FIRE_TYPE,
+    WATER_TYPE,
+    GRASS_TYPE,
+    ROCK_TYPE,
+    POISON_TYPE,
+    ELECTRIC_TYPE,
+    NORMAL_TYPE,
+    DRAGON_TYPE,
+    METAL_TYPE,
+    DARK_TYPE,
+    NONE_TYPE
+} MonsterTypes;
+
+// A list of all moves a single monster can learn
+typedef struct{
+
+} learnable_moves_list_t;
+
+// A move that can be used by a monster
+typedef struct{
+    // id to lookup the move
+    int id;
+
+    // The level at which a monster can learn this move
+    // If it is 0 the monster can always learn it
+    int required_level;
+
+    char move_name[256];
+    char move_description[4096];
+
+    // Moves can only have one type
+    MonsterTypes attack_type;
+
+    // Max amount of times move can be use => PP
+    int max_uses;
+    // Amount of times move can still be used
+    int available_uses;
+
+    // Percentage of times move will hit enemy
+    int acc_percent;
+    // Amount of damage enemy will take (can be 0)
+    int damage;
+
+    // Status effect the move may apply on hit
+    StatusEffects status_effect;
+} move_t;
 
 // Monster with all it's data
 typedef struct 
-{   
+{      
+    // id to lookup the monster
+    int id;
+
     char monster_name[256];
     char monster_description[4096];
 
     // Monster's rarity affects only it's spawning chance
     // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, LEGENDARY
-    int rarity;
+    Rarities rarity;
+
+    // Current monster level
+    int level;
+
+    // Level at which monster will evolve for the first time
+    // If monster has no evolution set to -1
+    int evo_1_level;
+    // Level at which monster will evolve for the second time
+    // If monster has no second evolution set to -1
+    int evo_2_level;
 
     // A monster can have only 2 types
 
     // Monster's main type
-    int type_1;
+    MonsterTypes type_1;
     // Monster's secondary type
-    int type_2;
+    MonsterTypes type_2;
     
     // Max amount of hitpoints for monster
     int max_hp;
@@ -57,9 +136,9 @@ typedef struct
     int speed;
 
     // The current status (debuff) applied to the monster
-    // AVAILABLE VALUES DEFINED HERE AS BURN, POISON, ...
-    // To specify no status applied, set current_status_fx to 0
-    int current_status_fx;
+    // AVAILABLE VALUES DEFINED HERE AS SCORCHED, POISON, ...
+    // To specify no status applied, set current_status_fx to NONE
+    StatusEffects current_status_fx;
 
     // Just here to keep track of what moves the monster can use in battle
     // When a move is learned one of these 4 moves will be changed
@@ -71,39 +150,8 @@ typedef struct
 
 } monster_t;
 
-// A move that can be used by a monster
-typedef struct{
-    // The level at which a monster can learn this move
-    // If it is 0 the monster can always learn it
-    int required_level;
-
-    char move_name[256];
-    char move_description[4096];
-
-    // Moves can only have one type
-    int attack_type;
-
-    // Max amount of times move can be use => PP
-    int max_PP;
-    // Amount of times move can still be used
-    int current_PP;
-
-    // Percentage of times move will hit enemy
-    int acc_percent;
-    // Amount of damage enemy will take (can be 0)
-    int damage;
-
-    // The status effect IS a function that apllies x effect to the pokemon it was used on
-    void* status_effect;
-} move_t;
-
-// A list of all moves a single monster can learn
-typedef struct{
-
-} learnable_moves_list_t;
-
 // Initializes all the monster's data
-// Reads from files with monster's data and add's it to a universal array for the monsters
+// Reads from json file with monster's data and add's it to a universal array for the monsters
 // This array will contain ALL monsters and their information
 void MonstersInit();
 
@@ -114,16 +162,19 @@ int CheckMonsterCanSpawn(int tile_type);
 // "Spawns" a monster that immediatly tries to fight the player
 // Takes in an int representing the tile_type to choose the monster's type
 // Returns a pointer to the monster's data
-monster_t* SpawnMonster(int tile_type);
+monster_t SpawnMonster(int tile_type);
 
 // To be used in a separate thread, this function is always running
 // Every time the player changes tiles it checks the tile_type
 // If monsters can spawn in that tile it tries to spawn one
 // void* arg is passed when creating the thread that will run this code and should be a pointer to the player "object"
-void TrySpawnMonster(void* arg);
+void* TrySpawnMonster(void* arg);
 
 // Uses MOVE move on the enemy monster
 // Only to be used during a batle
 void UseMoveOn(move_t move, monster_t enemy_monster);
+
+// Prints a monsters data to the terminal
+void PrintMonster(monster_t* monster);
 
 #endif
