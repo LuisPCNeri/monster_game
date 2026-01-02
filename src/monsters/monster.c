@@ -6,10 +6,14 @@
 
 #include "map.h"
 #include "player/player.h"
+#include "items/item.h"
 #include "monster.h"
+#include "battle/battle.h"
 
 #define MAX_GAME_MOVES 500
 #define MAX_GAME_MONSTERS 150
+
+#define BASE_CATCH_RATE 25
 
 // GLOBAL array for this file that has IN MEMORY all the monsters (indexed by their order)
 monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
@@ -128,7 +132,8 @@ void MonstersInit() {
             // Load Basic Info
             mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
             strcpy(mon->monster_name, cJSON_GetObjectItem(entry, "name")->valuestring);
-            
+            strcpy(mon->monster_description, cJSON_GetObjectItem(entry, "description")->valuestring);
+
             // Load Stats
             cJSON* stats = cJSON_GetObjectItem(entry, "stats");
             mon->max_hp = cJSON_GetObjectItem(stats, "hp")->valueint;
@@ -146,6 +151,8 @@ void MonstersInit() {
             mon->attack = cJSON_GetObjectItem(stats, "atk")->valueint;
             mon->defense = cJSON_GetObjectItem(stats, "def")->valueint;
             mon->speed = cJSON_GetObjectItem(stats, "spd")->valueint;
+
+            mon->current_exp = 0;
             
             // Load the USABLE MOVES for this monster
             cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
@@ -375,6 +382,9 @@ void* TrySpawnMonster(void* arg){
                 // The chance hit spawn monster now
                 monster_t spawned_mons = SpawnMonster(new_tile_type);
                 PrintMonster(&spawned_mons);
+
+                // Monster has spawned so iniciate a battle
+                BattleInit(player ,&spawned_mons);
             }
         }
 
@@ -383,5 +393,78 @@ void* TrySpawnMonster(void* arg){
         old_y = current_y; 
         SDL_Delay(50);
     }
+    return NULL;
+}
+
+// Updates the monster's stats to reflect the level up
+static void MonsterLevelUpStats(monster_t* monster){
+    // Stats will increment higher in lower levels and start getting deminishing returns after
+    // Increment will be by a random amount between 5-10 with the level affecting it maybe
+
+    monster->max_hp = monster->max_hp + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
+    // At level up monster's hp will be refilled
+    monster->current_hp = monster->max_hp;
+
+    monster->attack = monster->attack + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
+    monster->defense = monster->defense + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
+    monster->speed = monster->speed + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
+}
+
+// TODO EVOLVE
+// Called when the monster's level coincides with it's evo1 level
+// Changes the monster to a new copy of it's evolution whilst increasing it's stats significantly
+// Keeps it's moves as well
+// Returns the new monster struct
+static monster_t MonsterEvolve(monster_t* monster){
+
+}
+
+void MonsterAddExp(monster_t* monster, int exp_amount){
+    // Update monster's current exp
+    monster->current_exp += exp_amount;
+
+    // While loop to keep leveling up whilst current_exp > exp to next level
+    while(monster->current_exp >= monster->exp_to_next_level){
+        // Updates the current exp and updates the monster's level
+        monster->current_exp -= monster->exp_to_next_level;
+        monster->level++;
+
+        // Update the monster's stats to reflect the level up
+        MonsterLevelUpStats(monster);
+
+        // Clear the status effects
+        monster->current_status_fx = NONE;
+
+        //TODO EVOLVE
+        if(monster->level >= monster->evo_1_level) MonsterEvolve(monster);
+
+        // FuckAss algorithm to set the exp for next level
+        monster->exp_to_next_level = (1 / monster->level) + 250 * (10 / monster->level);
+    }
+}
+
+monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device){
+
+    // Initially set the catch_rate to the default
+    float catch_rate = BASE_CATCH_RATE;
+
+    float level_debuff = catch_rate * monster->level/100;
+    float remaining_hp_buff = catch_rate * (monster->max_hp - monster->current_exp)/100;
+
+    // Catch chance will be affected by the monster's level and remaining hp
+    // Base chance will be 25%
+    // First the level debuff and remaining hp buff
+
+    catch_rate = catch_rate - level_debuff + remaining_hp_buff;
+    catch_rate *= device->catch_rate_mult;
+
+    // Guaranteed catch
+    if(catch_rate > 100) return monster;
+
+    int rnd_catch = rand() % (100 + 1);
+    // Random number was inside the catch rate so it was caught
+    if(rnd_catch <= catch_rate) return monster;
+
+    // Monster was not caught
     return NULL;
 }

@@ -7,13 +7,19 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_timer.h>
+#include <SDL2/SDL_ttf.h>
 
 #include "map.h"
 #include "player/player.h"
 #include "monsters/monster.h"
+#include "monsters/battle/battle.h"
 
 #define WINDOW_TITLE "WINDOW"
 #define CHARACTER_SPEED 300
+#define FONT_SIZE 32
+
+SDL_Renderer* rend;
+TTF_Font* game_font;
 
 int main(void)
 {
@@ -23,7 +29,8 @@ int main(void)
     player->y_pos = 0;
     // Player's absolute position in the world
     int world_x = 0, world_y = 0;
-
+    
+    if( TTF_Init() != 0 ) printf("Error initializing TTF: %s\n", TTF_GetError());
     // returns zero on success else non-zero
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         printf("error initializing SDL: %s\n", SDL_GetError());
@@ -33,13 +40,14 @@ int main(void)
                                        SDL_WINDOWPOS_CENTERED,
                                        1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
+    // Set up TTF
+    game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
+
     // triggers the program that controls
     // your graphics hardware and sets flags
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
-
     // creates a renderer to render our images
-    SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
-    
+    rend = SDL_CreateRenderer(win, -1, render_flags);
     // Create the map texture
     SDL_Texture* map_tex = CreateGameMap(rend);
 
@@ -64,14 +72,12 @@ int main(void)
 
     // loads image to our graphics hardware memory.
     SDL_Texture* player_texture = SDL_CreateTextureFromSurface(rend, surface);
-
     // clears main-memory
     SDL_FreeSurface(surface);
 
     // let us control our image position
     // so that we can move it with our keyboard.
     SDL_Rect player_rect = {0, 0, 0, 0};
-
     // connects our texture with player_rect to control position
     SDL_QueryTexture(player_texture, NULL, NULL, &player_rect.w, &player_rect.h);
 
@@ -91,6 +97,8 @@ int main(void)
     pthread_t spawn_thread;
     pthread_create(&spawn_thread, NULL, &TrySpawnMonster, player);
 
+    player->game_state = STATE_EXPLORING;
+
     int running = 1;
     while (running) {
         SDL_Event event;
@@ -101,33 +109,45 @@ int main(void)
             case SDL_QUIT:
                 running = 0;
                 break;
-
             case SDL_KEYDOWN:
-                // keyboard API for key pressed
-                switch (event.key.keysym.scancode) {
-                case SDL_SCANCODE_W:
-                case SDL_SCANCODE_UP:
-                    world_y -= CHARACTER_SPEED / 30;
-                    break;
-                case SDL_SCANCODE_A:
-                case SDL_SCANCODE_LEFT:
-                    world_x -= CHARACTER_SPEED / 30;
-                    break;
-                case SDL_SCANCODE_S:
-                case SDL_SCANCODE_DOWN:
-                    world_y += CHARACTER_SPEED / 30;
-                    break;
-                case SDL_SCANCODE_D:
-                case SDL_SCANCODE_RIGHT:
-                    world_x += CHARACTER_SPEED / 30;
-                    break;
-                case SDL_SCANCODE_ESCAPE:
-                    // Clean Up
-                    running = 0;
-                    break;
-                default:
-                    break;
-                }
+                switch(player->game_state){
+                    case STATE_EXPLORING:
+                    // keyboard API for key pressed
+                        switch (event.key.keysym.scancode) {
+                        case SDL_SCANCODE_UP:
+                            world_y -= CHARACTER_SPEED / 30;
+                            break;
+                        case SDL_SCANCODE_LEFT:
+                            world_x -= CHARACTER_SPEED / 30;
+                            break;
+                        case SDL_SCANCODE_DOWN:
+                            world_y += CHARACTER_SPEED / 30;
+                            break;
+                        case SDL_SCANCODE_RIGHT:
+                            world_x += CHARACTER_SPEED / 30;
+                            break;
+                        case SDL_SCANCODE_ESCAPE:
+                            // Clean Up
+                            running = 0;
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+                    case STATE_BATTLE:
+                        //TODO
+                        // IMPLEMENT BATTLE COMMANDS
+                        switch (event.key.keysym.scancode){
+                            case SDL_SCANCODE_ESCAPE:
+                                player->game_state = STATE_EXPLORING;
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                }   
+                
+                
             }
         }
 
@@ -160,12 +180,17 @@ int main(void)
         // clears the screen
         SDL_RenderClear(rend);
 
-        // Create new rectangle with same w and h as map
-        // But starts at the offset points
-        SDL_Rect map_dest = {offset_x, offset_y, map_w, map_h};
-        // Copy the map's texture to the new map variable
-        SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
-        SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
+        if(player->game_state == STATE_EXPLORING){
+            // Create new rectangle with same w and h as map
+            // But starts at the offset points
+            SDL_Rect map_dest = {offset_x, offset_y, map_w, map_h};
+            // Copy the map's texture to the new map variable
+            SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
+            SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
+        }
+        else if(player->game_state == STATE_BATTLE){
+            BattleDraw();
+        }
 
         // triggers the double buffers
         // for multiple rendering
@@ -178,10 +203,10 @@ int main(void)
     SDL_DestroyTexture(map_tex);
     // destroy texture
     SDL_DestroyTexture(player_texture);
-
     // destroy renderer
     SDL_DestroyRenderer(rend);
-
+    // Destroy font
+    TTF_CloseFont(game_font);
     // destroy window
     SDL_DestroyWindow(win);
     
