@@ -1,9 +1,11 @@
 #ifndef __MONSTER_H__
 #define __MONSTER_H__
 
+#include "items/item.h"
+
 // MONSTER RARITIES
 // These affect only the monster's spawning rate
-typedef enum{
+typedef enum Rarities{
     COMMON,
     UNCOMMON,
     RARE,
@@ -11,7 +13,7 @@ typedef enum{
 } Rarities;
 
 // STATUS EFFECTS
-typedef enum {
+typedef enum StatusEffects{
     NONE,
     // Takes damage every turn
     SCORCHED,
@@ -30,7 +32,7 @@ typedef enum {
 
 // Each monster has a randomly assigned special trait
 // This trait will be assigned upon monster spawning and will affect the monster's base stats
-typedef enum{
+typedef enum SpecialTrait{
     // Sligthly higher attack
     SERIOUS,
     // Slightly lower speed
@@ -45,7 +47,8 @@ typedef enum{
     HARDWORKING
 } SpecialTrait;
 
-typedef enum{
+typedef enum MonsterTypes{
+    NONE_TYPE,
     FIRE_TYPE,
     WATER_TYPE,
     GRASS_TYPE,
@@ -55,8 +58,7 @@ typedef enum{
     NORMAL_TYPE,
     DRAGON_TYPE,
     METAL_TYPE,
-    DARK_TYPE,
-    NONE_TYPE
+    DARK_TYPE
 } MonsterTypes;
 
 // A list of all moves a single monster can learn
@@ -65,7 +67,7 @@ typedef struct{
 } learnable_moves_list_t;
 
 // A move that can be used by a monster
-typedef struct{
+typedef struct move_t{
     // id to lookup the move
     int id;
 
@@ -94,13 +96,15 @@ typedef struct{
 } move_t;
 
 // Monster with all it's data
-typedef struct 
-{      
+typedef struct monster_t {      
     // id to lookup the monster
     int id;
 
     char monster_name[256];
     char monster_description[4096];
+
+    // Path to the monter's sprite
+    char sprite_path[256];
 
     // Monster's rarity affects only it's spawning chance
     // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, LEGENDARY
@@ -148,6 +152,9 @@ typedef struct
     // Moves the monster can learn
     learnable_moves_list_t learnable_moves;
 
+    int current_exp;
+    int exp_to_next_level;
+
 } monster_t;
 
 // Initializes all the monster's data
@@ -176,5 +183,24 @@ void UseMoveOn(move_t move, monster_t enemy_monster);
 
 // Prints a monsters data to the terminal
 void PrintMonster(monster_t* monster);
+
+// With a given id returns a pointer to the move on the global moves array
+// To use this please create a local copy of the struct
+move_t* GetMoveByID(int id); 
+
+// With a given id returns a pointer to the monster on the global monsters array
+// To use this please create a local copy of the struct
+monster_t* GetMonsterById(int id);
+
+// Adds increments the monster's current exp by exp_amount
+// If the amount is enough to level up this function also takes care of it
+// Also updates the stats for the next level
+void MonsterAddExp(monster_t* monster, int exp_amount);
+
+// Has the player try to catch a monster.
+// Uses the rarity modifiers to calculate the chance.
+// If it hits the monster will go to the player's party. If the party is full goes to the storage.
+// Returns a pointer to the caught monster or NULL if it was not caught
+monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device);
 
 #endif

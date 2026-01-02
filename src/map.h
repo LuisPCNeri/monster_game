@@ -14,6 +14,7 @@
 
 // Tile to spawn GRASS, BUG, POISON, FAIRY, NORMAL TYPES
 #define SPAWNABLE_TALL_GRASS 10
+#define SPAWNABLE_ROCK_GROUND 11
 
 // Loads the map texture to the screen
 // SDL_Window* window is the window in which the map will be rendered on
