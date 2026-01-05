@@ -19,6 +19,9 @@ typedef struct player_t{
     int x_pos;
     int y_pos;
 
+    // The index of the monster the player is currently using
+    int active_mon_index;
+
     // Pointers to the monsters the player keeps with him and can use for battles
     monster_t* monster_party[5];
     int selected_menu_itm;
@@ -31,9 +34,14 @@ typedef struct player_t{
 
 // This function is called once and used to have the player chose a starter
 // Returns the monster the player chooses
-monster_t* PlayerSetStarter(player_t* player);
+void PlayerSetStarters(player_t* player);
 
 // Function to draw the starter choosing menu
-void PlayerStarterMenuDraw(menu_t* menu);
+void PlayerStarterMenuDraw();
+
+// When the enter key is pressed if this is the current menu this function is called
+// Gets the monster at the index of the current selected item, takes care of it's stats
+// And puts it in the first slot of the player's party
+void PlayerMenuHandleSelect();
 
 #endif

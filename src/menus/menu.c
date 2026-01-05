@@ -11,7 +11,7 @@
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
 
-menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func){
+menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func, void* select_func){
     // Make space for the menu
     menu_t* menu = (menu_t*) malloc(sizeof(menu_t));
 
@@ -21,6 +21,7 @@ menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func)
     menu->has_columns = has_columns;
     menu->items_amount = item_num;
     menu->draw = draw_func;
+    menu->select_routine = select_func;
 
     return menu;
 }
@@ -79,8 +80,6 @@ void MenuItemKeyUp(player_t* player){
         menu->menu_items[player->selected_menu_itm].x -= 10;
         menu->menu_items[player->selected_menu_itm].y -= 10;
     }
-
-    printf("SELECTED ITEM: %d\n", player->selected_menu_itm);
 }
 
 void MenuItemKeyDown(player_t* player){
@@ -98,8 +97,6 @@ void MenuItemKeyDown(player_t* player){
         menu->menu_items[player->selected_menu_itm].x -= 10;
         menu->menu_items[player->selected_menu_itm].y -= 10;
     }
-
-    printf("SELECTED ITEM: %d\n", player->selected_menu_itm);
 }
 
 void MenuItemKeyLeft(player_t* player){
@@ -117,7 +114,6 @@ void MenuItemKeyLeft(player_t* player){
         menu->menu_items[player->selected_menu_itm].x -= 10;
         menu->menu_items[player->selected_menu_itm].y -= 10;
 
-        printf("SELECTED ITEM: %d\n", player->selected_menu_itm);
         return;
     }
 
@@ -152,7 +148,6 @@ void MenuItemKeyRight(player_t* player){
         menu->menu_items[player->selected_menu_itm].x -= 10;
         menu->menu_items[player->selected_menu_itm].y -= 10;
 
-        printf("SELECTED ITEM: %d\n", player->selected_menu_itm);
         return;
     }
 
@@ -172,4 +167,7 @@ void MenuItemKeyRight(player_t* player){
     }
 }
 
-//TODO void MenuSelectCurrentItem(menu_t* menu)
+void MenuSelectCurrentItem(player_t* player){
+    // Wrapper function that just runs the current menu's select function
+    player->current_menu->select_routine();
+}

@@ -60,7 +60,7 @@ static char* LoadFileToString(char* file_path){
     return buffer;
 }
 
-void PrintMonster(monster_t* m){
+void MonsterPrint(monster_t* m){
     printf(
         "ID: %d\r\n"
         "NAME: %s\r\n"
@@ -218,7 +218,7 @@ int CheckMonsterCanSpawn(int tile_type){
     }
 }
 
-static void SetMonsterStats(monster_t* monster){
+void MonsterSetStats(monster_t* monster){
     // Has no evolutions so level should be made according
     if(monster->evo_1_level == 0){
         // Level will be between lvl 45 and 100 (very unfair know)
@@ -227,7 +227,7 @@ static void SetMonsterStats(monster_t* monster){
 
     // Generate a random level based on evolution level and base level
     monster->level = rand() % (monster->evo_1_level - monster->level) + monster->level;
-    if(monster->level == 0) monster->level = 1;
+    if(monster->level == 0) monster->level = 5;
 
     // All base stats will fluctuate by 10 values from base
     monster->max_hp += rand() % (10 + 1);
@@ -236,6 +236,8 @@ static void SetMonsterStats(monster_t* monster){
     monster->attack += rand() % (10 + 1);
     monster->defense += rand() % (10 + 1);
     monster->speed += rand() % (10 + 1);
+
+    // TODO Set stats according to level
 }
 
 monster_t SpawnMonster(int tile_type){
@@ -305,7 +307,7 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
-                SetMonsterStats(&return_mons);
+                MonsterSetStats(&return_mons);
 
                 return return_mons;
             }
@@ -325,7 +327,7 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
-                SetMonsterStats(&return_mons);
+                MonsterSetStats(&return_mons);
 
                 return return_mons;
             }
@@ -345,7 +347,7 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
-                SetMonsterStats(&return_mons);
+                MonsterSetStats(&return_mons);
                 
                 return return_mons;
             }
@@ -384,7 +386,7 @@ void* TrySpawnMonster(void* arg){
             if(spawn_num <= 20){
                 // The chance hit spawn monster now
                 monster_t spawned_mons = SpawnMonster(new_tile_type);
-                PrintMonster(&spawned_mons);
+                MonsterPrint(&spawned_mons);
 
                 // Monster has spawned so iniciate a battle
                 BattleInit(player ,&spawned_mons);
@@ -418,8 +420,8 @@ static void MonsterLevelUpStats(monster_t* monster){
 // Changes the monster to a new copy of it's evolution whilst increasing it's stats significantly
 // Keeps it's moves as well
 // Returns the new monster struct
-static monster_t MonsterEvolve(monster_t* monster){
-
+static monster_t* MonsterEvolve(monster_t* monster){
+    return NULL;
 }
 
 void MonsterAddExp(monster_t* monster, int exp_amount){

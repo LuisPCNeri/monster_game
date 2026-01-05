@@ -101,7 +101,7 @@ int main(void)
 
     player->game_state = STATE_EXPLORING;
 
-    PlayerSetStarter(player);
+    PlayerSetStarters(player);
 
     int running = 1;
     while (running) {
@@ -155,8 +155,10 @@ int main(void)
                             case SDL_SCANCODE_ESCAPE:
                                 player->game_state = STATE_EXPLORING;
                                 break;
-                            case SDL_SCANCODE_KP_ENTER:
-                                //TODO MenuSelectCurrentItem logic
+                            case SDL_SCANCODE_RETURN:
+                                // Select player's current selected item
+                                MenuSelectCurrentItem(player);
+                                if(player->monster_party[0]) MonsterPrint(player->monster_party[0]);
                                 break;
                             default:
                                 break;
@@ -206,7 +208,7 @@ int main(void)
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
         }
         else if(player->game_state == STATE_IN_MENU){
-            player->current_menu->draw(player->current_menu);
+            player->current_menu->draw();
         }
 
         // triggers the double buffers

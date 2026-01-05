@@ -14,16 +14,19 @@ typedef struct menu_t{
     int has_columns;
 
     // Draw function that takes a menu_t menu as argument
-    void (*draw)(struct menu_t* menu);
+    void (*draw)();
 
-    // TODO Add a select current item generic function
+    // This is a pointer to the menu's specified select function
+    // Should handle the select input from the player
+    void (*select_routine)();
 } menu_t;
 
 // Creates a menu_items array with item_num elements literaly
 // If the menu has more than one row has_rows >= 1
 // If the menu has more than one column has_columns >= 1
 // void* draw will be used as the function to draw the menu on the screen
-menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func);
+// void* select_func will be the function called when the ENTER key is pressed and the menu is open 
+menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func, void* select_func);
 
 // Frees the space allocated for menu_t menu
 void MenuDestroy(menu_t* menu);
@@ -31,7 +34,8 @@ void MenuDestroy(menu_t* menu);
 // Renders the button's text and a rect for them
 void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect);
 
-//TODO MenuSelectCurrentItem
+// Wrapper function that just runs the current menu's select function
+void MenuSelectCurrentItem(player_t* player);
 
 void MenuItemKeyUp(player_t* player);
 void MenuItemKeyDown(player_t* player);

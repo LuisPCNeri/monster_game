@@ -16,12 +16,15 @@ extern TTF_Font* game_font;
 static monster_t enemy_mon_data;
 static monster_t* enemy_mon = NULL;
 static menu_t* battle_menu = NULL;
+static player_t* active_player = NULL;
+static TTF_Font* info_font = NULL;
 
 void BattleInit(player_t* player, monster_t* enemy_monster){
     printf("BATTLE STARTING\n");
+    active_player = player;
 
     if (battle_menu) MenuDestroy(battle_menu);
-    menu_t* battle_menu = MenuCreate(4, 1, 1, &BattleDraw);
+    battle_menu = MenuCreate(4, 1, 1, &BattleDraw, &BattleMenuHandleSelect);
 
     // SWITCH BTN
     SDL_Rect switch_btn = { 50, 950, 400, 100 };
@@ -37,14 +40,19 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     battle_menu->menu_items[INVENTORY] = inventory_btn;
     battle_menu->menu_items[RUN] = run_btn;
 
-    // Set player's game state to battle
-    player->game_state = STATE_IN_MENU;
-    player->selected_menu_itm = ATTACK;
-    player->current_menu = battle_menu;
-
     // Just to hep on BattleDraw function to prevent it running when it is not supposed to
     enemy_mon_data = *enemy_monster;
     enemy_mon = &enemy_mon_data;
+
+    // Set player's active monster to the first one in the party
+    player->active_mon_index = 0;
+
+    // Set player's game state to battle LAST to prevent race conditions
+    player->selected_menu_itm = ATTACK;
+    player->current_menu = battle_menu;
+    player->game_state = STATE_IN_MENU;
+
+    MonsterPrint(active_player->monster_party[active_player->active_mon_index]);
 }
 
 // Renders the button's text and a rect for them
@@ -82,8 +90,7 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect){
 }
 
 static void BattleRenderMonInfo(const char* btn_text, SDL_Rect* dst_rect, int x_offset, int y_offset){
-    // New font size for the info
-    TTF_Font* info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
+    if(!info_font) return;
 
     // Set color to render the rects
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
@@ -92,6 +99,7 @@ static void BattleRenderMonInfo(const char* btn_text, SDL_Rect* dst_rect, int x_
     // Set the text color
     SDL_Color text_color = {255, 255, 255, 255};
     SDL_Surface* text_surface = TTF_RenderText_Solid(info_font, btn_text, text_color);
+    if(!text_surface) return;
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
 
     // Free the surface as it won't be used again
@@ -113,12 +121,16 @@ static void BattleRenderMonInfo(const char* btn_text, SDL_Rect* dst_rect, int x_
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
     SDL_RenderDrawRect(rend, &text_rect);
 
-    TTF_CloseFont(info_font);
     SDL_DestroyTexture(text_texture);
 }
 
-void BattleDraw(menu_t* battle_menu){
-    if (!enemy_mon || !battle_menu) return;
+void BattleDraw(){
+    if (!enemy_mon || !battle_menu || !active_player) return;
+
+    if(!info_font) info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
+
+    // Safety check for player monster
+    if(!active_player->monster_party[active_player->active_mon_index]) return;
 
     // Container for the text (PLACEHOLDER)
 
@@ -130,23 +142,42 @@ void BattleDraw(menu_t* battle_menu){
 
     // Enemy moster health bar, name and lvl rect
     SDL_Rect enemy_rect = {1450, 50, 400, 100};
+    SDL_Rect player_rect = {50, 50, 400, 100};
     BattleRenderMonInfo(enemy_mon->monster_name, &enemy_rect, 20, 20);
+    BattleRenderMonInfo(active_player->monster_party[active_player->active_mon_index]->monster_name, &player_rect, 20, 20);
 
     // Is freed whenever the function stops running
-    char lvl_info[12];
-    sprintf(lvl_info, "lvl: %d", enemy_mon->level);
-    // Render the enemy monster's level
-    BattleRenderMonInfo(lvl_info, &enemy_rect, 300, 20);
+    char enemy_lvl_info[12];
+    sprintf(enemy_lvl_info, "lvl: %d", enemy_mon->level);
 
-    char hp_info[12];
-    sprintf(hp_info, "%d/%d", enemy_mon->current_hp, enemy_mon->max_hp);
+    char player_lvl_info[12];
+    sprintf(player_lvl_info, "lvl: %d", active_player->monster_party[active_player->active_mon_index]->level);
+    // Render the enemy monster's level
+    BattleRenderMonInfo(enemy_lvl_info, &enemy_rect, 300, 20);
+    BattleRenderMonInfo(player_lvl_info, &player_rect, 300, 20);
+
+    char enemy_hp_info[12];
+    sprintf(enemy_hp_info, "%d/%d", enemy_mon->current_hp, enemy_mon->max_hp);
+
+    char player_hp_info[12];
+    sprintf(player_hp_info, "%d/%d", active_player->monster_party[active_player->active_mon_index]->current_hp,
+        active_player->monster_party[active_player->active_mon_index]->max_hp);
     // Render the enemy monster's hp info
-    BattleRenderMonInfo(hp_info, &enemy_rect, 300, 70);
+    BattleRenderMonInfo(enemy_hp_info, &enemy_rect, 300, 70);
+    BattleRenderMonInfo(player_hp_info, &player_rect, 300, 70);
+}
+
+void BattleMenuHandleSelect(){
+
 }
 
 void BattleQuit(void){
     if (battle_menu) {
         MenuDestroy(battle_menu);
         battle_menu = NULL;
+    }
+    if (info_font) {
+        TTF_CloseFont(info_font);
+        info_font = NULL;
     }
 }

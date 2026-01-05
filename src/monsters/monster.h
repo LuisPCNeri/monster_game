@@ -182,7 +182,7 @@ void* TrySpawnMonster(void* arg);
 void UseMoveOn(move_t move, monster_t enemy_monster);
 
 // Prints a monsters data to the terminal
-void PrintMonster(monster_t* monster);
+void MonsterPrint(monster_t* monster);
 
 // With a given id returns a pointer to the move on the global moves array
 // To use this please create a local copy of the struct
@@ -202,5 +202,13 @@ void MonsterAddExp(monster_t* monster, int exp_amount);
 // If it hits the monster will go to the player's party. If the party is full goes to the storage.
 // Returns a pointer to the caught monster or NULL if it was not caught
 monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device);
+
+// Sets the stats of a monster to have some rng
+// Used when a monster spawns and when choosing a starter
+// All other stat increments are done with MonsterAddExp
+void MonsterSetStats(monster_t* monster);
+
+// Handles the enter key input for the battle menu
+void BattleMenuHandleSelect();
 
 #endif
