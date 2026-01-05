@@ -21,7 +21,7 @@ int monster_count = 0;
 move_t ALL_MOVES[MAX_GAME_MOVES];
 int MoveLibraryCount = 0;
 
-move_t* GetMoveByID(int id) {
+move_t* GetMoveById(int id) {
     for(int i = 0; i < MoveLibraryCount; i++) {
         if(ALL_MOVES[i].id == id) {
             return &ALL_MOVES[i];
@@ -54,6 +54,7 @@ static char* LoadFileToString(char* file_path){
 
     char* buffer = (char*) malloc((size_t) file_size + 1);
     fread(buffer, 1, file_size, fptr);
+    buffer[file_size] = '\0';
 
     fclose(fptr);
     return buffer;
@@ -127,6 +128,8 @@ void MonstersInit() {
         cJSON_ArrayForEach(entry, jsonMons) {
             if(monster_count >= MAX_GAME_MONSTERS) break;
 
+            // Monsters are to be indexed by ther id
+            // Makes the attributing them much easier and as the monster number is fixed it is relativelly safe
             monster_t* mon = &ALL_MONSTERS[monster_count];
 
             // Load Basic Info
@@ -173,7 +176,7 @@ void MonstersInit() {
                 int idToFind = moveIdVal->valueint;
                 
                 // Find the move definition in our library
-                move_t* foundMove = GetMoveByID(idToFind);
+                move_t* foundMove = GetMoveById(idToFind);
 
                 if(foundMove != NULL) {
                     // COPY the struct into the monster's slot
@@ -365,7 +368,7 @@ void* TrySpawnMonster(void* arg){
     int old_x = player->x_pos / 32;
     int old_y = player->y_pos / 32;
 
-    while(1){
+    while(player->running){
         
         int current_x = player->x_pos / 32;
         int current_y = player->y_pos / 32;

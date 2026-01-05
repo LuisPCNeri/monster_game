@@ -2,7 +2,7 @@
     {
         "tile_type": 10,
         "spawnable_monsters":
-            [1,2,3,4]
+            [1,2,3]
     },
 
     {

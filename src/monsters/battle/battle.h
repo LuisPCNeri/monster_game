@@ -4,6 +4,15 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include "player/player.h"
+
+typedef enum BattleMenuButtons{
+    ATTACK,
+    INVENTORY,
+    SWITCH,
+    RUN
+} BattleMenuButtons;
+
 // This function puts the player in the battle state
 // Renders a new texture on top of the existing one (the map)
 // Locks the player position and let's the player change selected buttons with arrow keys
@@ -11,6 +20,9 @@
 void BattleInit(player_t* player, monster_t* enemy_monster);
 
 // Renders the battle interface. Should be called every frame while in battle state.
-void BattleDraw(void);
+void BattleDraw(menu_t* menu);
+
+// Cleans up resources used by the battle system
+void BattleQuit(void);
 
 #endif

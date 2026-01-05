@@ -186,7 +186,7 @@ void PrintMonster(monster_t* monster);
 
 // With a given id returns a pointer to the move on the global moves array
 // To use this please create a local copy of the struct
-move_t* GetMoveByID(int id); 
+move_t* GetMoveById(int id); 
 
 // With a given id returns a pointer to the monster on the global monsters array
 // To use this please create a local copy of the struct

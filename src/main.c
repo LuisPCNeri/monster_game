@@ -11,6 +11,7 @@
 
 #include "map.h"
 #include "player/player.h"
+#include "menus/menu.h"
 #include "monsters/monster.h"
 #include "monsters/battle/battle.h"
 
@@ -30,11 +31,11 @@ int main(void)
     // Player's absolute position in the world
     int world_x = 0, world_y = 0;
     
-    if( TTF_Init() != 0 ) printf("Error initializing TTF: %s\n", TTF_GetError());
     // returns zero on success else non-zero
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         printf("error initializing SDL: %s\n", SDL_GetError());
     }
+    if( TTF_Init() != 0 ) printf("Error initializing TTF: %s\n", TTF_GetError());
     SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
                                        SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOWPOS_CENTERED,
@@ -94,10 +95,13 @@ int main(void)
     world_y = (map_h - player_rect.h) / 2;
 
     // CREATEAS a Thread to keep trying to spawn monsters in the background
+    player->running = 1;
     pthread_t spawn_thread;
     pthread_create(&spawn_thread, NULL, &TrySpawnMonster, player);
 
     player->game_state = STATE_EXPLORING;
+
+    PlayerSetStarter(player);
 
     int running = 1;
     while (running) {
@@ -134,12 +138,25 @@ int main(void)
                             break;
                         }
                         break;
-                    case STATE_BATTLE:
-                        //TODO
-                        // IMPLEMENT BATTLE COMMANDS
+                    case STATE_IN_MENU:
                         switch (event.key.keysym.scancode){
+                            case SDL_SCANCODE_UP:
+                                MenuItemKeyUp(player);
+                                break;
+                            case SDL_SCANCODE_LEFT:
+                                MenuItemKeyLeft(player);
+                                break;
+                            case SDL_SCANCODE_DOWN:
+                                MenuItemKeyDown(player);
+                                break;
+                            case SDL_SCANCODE_RIGHT:
+                                MenuItemKeyRight(player);
+                                break;
                             case SDL_SCANCODE_ESCAPE:
                                 player->game_state = STATE_EXPLORING;
+                                break;
+                            case SDL_SCANCODE_KP_ENTER:
+                                //TODO MenuSelectCurrentItem logic
                                 break;
                             default:
                                 break;
@@ -188,8 +205,8 @@ int main(void)
             SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
         }
-        else if(player->game_state == STATE_BATTLE){
-            BattleDraw();
+        else if(player->game_state == STATE_IN_MENU){
+            player->current_menu->draw(player->current_menu);
         }
 
         // triggers the double buffers
@@ -210,11 +227,13 @@ int main(void)
     // destroy window
     SDL_DestroyWindow(win);
     
-    pthread_cancel(spawn_thread);
+    player->running = 0;
     pthread_join(spawn_thread, NULL);
     free(player);
 
     // close SDL
+    BattleQuit();
+    TTF_Quit();
     IMG_Quit();
     SDL_Quit();
 

@@ -6,29 +6,45 @@
 
 #include "monsters/monster.h"
 #include "player/player.h"
+#include "menus/menu.h"
 #include "battle.h"
 
 // Renderer created in main
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
 
+static monster_t enemy_mon_data;
 static monster_t* enemy_mon = NULL;
-
-typedef enum MenuItems{
-    ATTACK,
-    SWITCH,
-    INVENTORY,
-    RUN
-} MenuItems;
+static menu_t* battle_menu = NULL;
 
 void BattleInit(player_t* player, monster_t* enemy_monster){
     printf("BATTLE STARTING\n");
 
+    if (battle_menu) MenuDestroy(battle_menu);
+    menu_t* battle_menu = MenuCreate(4, 1, 1, &BattleDraw);
+
+    // SWITCH BTN
+    SDL_Rect switch_btn = { 50, 950, 400, 100 };
+    // ATTACK
+    SDL_Rect attack_btn = { 40, 790, 420, 120};
+    // INVENTORY BTN
+    SDL_Rect inventory_btn = {500, 800, 400, 100};
+    // RUN BTN
+    SDL_Rect run_btn = {500, 950, 400, 100};
+
+    battle_menu->menu_items[ATTACK] = attack_btn;
+    battle_menu->menu_items[SWITCH] = switch_btn;
+    battle_menu->menu_items[INVENTORY] = inventory_btn;
+    battle_menu->menu_items[RUN] = run_btn;
+
     // Set player's game state to battle
-    player->game_state = STATE_BATTLE;
+    player->game_state = STATE_IN_MENU;
+    player->selected_menu_itm = ATTACK;
+    player->current_menu = battle_menu;
 
     // Just to hep on BattleDraw function to prevent it running when it is not supposed to
-    enemy_mon = enemy_monster;
+    enemy_mon_data = *enemy_monster;
+    enemy_mon = &enemy_mon_data;
 }
 
 // Renders the button's text and a rect for them
@@ -101,24 +117,16 @@ static void BattleRenderMonInfo(const char* btn_text, SDL_Rect* dst_rect, int x_
     SDL_DestroyTexture(text_texture);
 }
 
-void BattleDraw(void){
-    if (!enemy_mon) return;
+void BattleDraw(menu_t* battle_menu){
+    if (!enemy_mon || !battle_menu) return;
 
     // Container for the text (PLACEHOLDER)
-    // SWITCH BTN
-    SDL_Rect switch_btn = { 50, 950, 400, 100 };
-    // ATTACK
-    SDL_Rect attack_btn = { 50, 800, 400, 100};
-    // INVENTORY BTN
-    SDL_Rect inventory_btn = {500, 800, 400, 100};
-    // RUN BTN
-    SDL_Rect run_btn = {500, 950, 400, 100};
 
     // Render all of the button's textures (mostly text texture)
-    BattleRenderMenuItem("SWITCH", &switch_btn);
-    BattleRenderMenuItem("ATTACK", &attack_btn);
-    BattleRenderMenuItem("INVENTORY", &inventory_btn);
-    BattleRenderMenuItem("RUN", &run_btn);
+    BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH]);
+    BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK]);
+    BattleRenderMenuItem("INVENTORY", &battle_menu->menu_items[INVENTORY]);
+    BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN]);
 
     // Enemy moster health bar, name and lvl rect
     SDL_Rect enemy_rect = {1450, 50, 400, 100};
@@ -134,4 +142,11 @@ void BattleDraw(void){
     sprintf(hp_info, "%d/%d", enemy_mon->current_hp, enemy_mon->max_hp);
     // Render the enemy monster's hp info
     BattleRenderMonInfo(hp_info, &enemy_rect, 300, 70);
+}
+
+void BattleQuit(void){
+    if (battle_menu) {
+        MenuDestroy(battle_menu);
+        battle_menu = NULL;
+    }
 }
