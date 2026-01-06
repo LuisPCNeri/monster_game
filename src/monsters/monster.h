@@ -179,7 +179,8 @@ void* TrySpawnMonster(void* arg);
 
 // Uses MOVE move on the enemy monster
 // Only to be used during a batle
-void UseMoveOn(move_t move, monster_t enemy_monster);
+// attacker uses move on attacked
+void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked);
 
 // Prints a monsters data to the terminal
 void MonsterPrint(monster_t* monster);

@@ -105,7 +105,10 @@ void MonstersInit() {
             m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
             m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
             m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
-            m->attack_type = cJSON_GetObjectItem(entry, "type")->valueint; // Assumes int in JSON
+            m->attack_type = cJSON_GetObjectItem(entry, "type")->valueint;
+
+            cJSON* acc_item = cJSON_GetObjectItem(entry, "accuracy");
+            m->acc_percent = acc_item ? acc_item->valueint : 100;
             
             // Initialize current state
             m->available_uses = m->max_uses; 
@@ -440,7 +443,6 @@ void MonsterAddExp(monster_t* monster, int exp_amount){
         // Clear the status effects
         monster->current_status_fx = NONE;
 
-        //TODO EVOLVE
         if(monster->level >= monster->evo_1_level) MonsterEvolve(monster);
 
         // FuckAss algorithm to set the exp for next level
@@ -473,3 +475,36 @@ monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device){
     // Monster was not caught
     return NULL;
 }
+
+// This next one will be a biggie
+// Right now it's 11:52 PM not much time to do this so
+// TODO Add type advantages
+
+// For now it will just stay a simple move power/damage * monster attack / 100 (if it was 100 it'd be way too much damage)
+
+void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
+    // Multiply first to avoid integer division resulting in 0
+    int move_damage = (move->damage * attacker->attack) / 100;
+
+    // TODO maybe make better logic for attack damage with maybe a function to calculate it if it's complicated
+
+    // Take into account enemy's defense
+    move_damage = move_damage - ((move_damage * attacked->defense) / 300); 
+
+    // Update attacker's move uses for that move
+    // The move variable is a pointer to the monster's copy of the move
+    // So we can decrement it here
+    move->available_uses--;
+
+    // Take into account the move accuracy
+    int move_hit = rand() % 100;
+    // Move has hit, decrement enemy's hp
+    if(move_hit <= move->acc_percent || move->acc_percent == 100){
+        if(move_damage < 1) move_damage = 1;
+        attacked->current_hp -= move_damage;
+        if(attacked->current_hp < 0) attacked->current_hp = 0;
+        // TODO take into account the status effect move can inflict
+    }
+}
+
+// TODO Create the enemy monster attacking logic

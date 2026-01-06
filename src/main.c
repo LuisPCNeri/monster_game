@@ -90,7 +90,7 @@ int main(void)
     int screen_w, screen_h;
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
-    // sets initial position of object in the world (center of map)
+    // sets initial position of object in the world
     world_x = (map_w - player_rect.w) / 2;
     world_y = (map_h - player_rect.h) / 2;
 
@@ -193,8 +193,9 @@ int main(void)
         player_rect.x = world_x + offset_x;
         player_rect.y = world_y + offset_y;
 
-        player->x_pos = world_x;
-        player->y_pos = world_y;
+        // The player's position should be the center of it's sprite
+        player->x_pos = world_x + (player_rect.w / 2);
+        player->y_pos = world_y + (player_rect.h / 2);
 
         // clears the screen
         SDL_RenderClear(rend);
