@@ -1,5 +1,8 @@
 # Compiled files
 *.o
 
+# Resources
+*.png
+
 # The main executable file
 main

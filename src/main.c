@@ -153,7 +153,8 @@ int main(void)
                                 MenuItemKeyRight(player);
                                 break;
                             case SDL_SCANCODE_ESCAPE:
-                                player->game_state = STATE_EXPLORING;
+                                if(!player->current_menu->back) break;
+                                player->current_menu->back();
                                 break;
                             case SDL_SCANCODE_RETURN:
                                 // Select player's current selected item
@@ -232,10 +233,10 @@ int main(void)
     
     player->running = 0;
     pthread_join(spawn_thread, NULL);
-    free(player);
 
     // close SDL
     BattleQuit();
+    free(player);
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();

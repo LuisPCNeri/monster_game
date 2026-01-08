@@ -2,12 +2,12 @@
     {
         "tile_type": 10,
         "spawnable_monsters":
-            [1,2,3]
+            [1,2,3,4,5,6]
     },
 
     {
         "tile_type": 11,
         "spawnable_monsters":
-            [4,5,6]
+            [1,2,3,4,5,6]
     }
 ]

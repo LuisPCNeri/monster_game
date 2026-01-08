@@ -22,6 +22,8 @@ void BattleInit(player_t* player, monster_t* enemy_monster);
 // Renders the battle interface. Should be called every frame while in battle state.
 void BattleDraw();
 
+void BattleMenuBack();
+
 // Cleans up resources used by the battle system
 void BattleQuit(void);
 

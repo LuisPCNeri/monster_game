@@ -9,6 +9,7 @@ typedef enum Rarities{
     COMMON,
     UNCOMMON,
     RARE,
+    VERY_RARE,
     LEGENDARY
 } Rarities;
 

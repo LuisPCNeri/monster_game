@@ -63,6 +63,7 @@ static char* LoadFileToString(char* file_path){
 void MonsterPrint(monster_t* m){
     printf(
         "ID: %d\r\n"
+        "SPRITE PATH: %s\r\n"
         "NAME: %s\r\n"
         "DESCRIPTION: %s\r\n"
         "RARITY: %d\r\n"
@@ -77,7 +78,7 @@ void MonsterPrint(monster_t* m){
         "SPEED: %d\r\n"
         "MOVE 1: %s\r\n"
         "MOVE 2: %s\r\n\n\n",
-        m->id, m->monster_name, m->monster_description, m->rarity, m->level, m->evo_1_level, m->evo_2_level, m->type_1, m->type_2,
+        m->id, m->sprite_path, m->monster_name, m->monster_description, m->rarity, m->level, m->evo_1_level, m->evo_2_level, m->type_1, m->type_2,
         m->current_hp, m->attack, m->defense, m->speed, m->usable_moves[0].move_name, m->usable_moves[1].move_name
     );
 }
@@ -137,6 +138,7 @@ void MonstersInit() {
 
             // Load Basic Info
             mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
+            strcpy(mon->sprite_path, cJSON_GetObjectItem(entry, "sprite")->valuestring);
             strcpy(mon->monster_name, cJSON_GetObjectItem(entry, "name")->valuestring);
             strcpy(mon->monster_description, cJSON_GetObjectItem(entry, "description")->valuestring);
 
@@ -296,7 +298,7 @@ monster_t SpawnMonster(int tile_type){
     // This number will represent the rarity of the spawned monster
     int spawned_rarity = rand() % (100 + 1);
     printf("RARITY: %d\n", spawned_rarity);
-    if(spawned_rarity < 50){
+    if(spawned_rarity < 70){
         // COMMON SPAWN
         // Infinite loop to try to keep spawning
         while(1){
@@ -316,7 +318,7 @@ monster_t SpawnMonster(int tile_type){
             }
         }
     }
-    else if(spawned_rarity < 85){
+    else if(spawned_rarity < 90){
         // UNCOMMON SPAWN
         // Infinite loop to try to keep spawning
         while(1){
@@ -336,7 +338,7 @@ monster_t SpawnMonster(int tile_type){
             }
         }
     }
-    else{
+    else if (spawned_rarity < 98){
         // RARE SPAWN
         // Infinite loop to try to keep spawning
         while(1){
@@ -345,6 +347,26 @@ monster_t SpawnMonster(int tile_type){
 
             monster_t* monster = GetMonsterById(rndm_m_id);
             if(monster && monster->rarity == RARE){
+                count = 0;
+                free(tiles_file_data);
+                cJSON_Delete(tiles_json);
+
+                monster_t return_mons = *monster;
+                MonsterSetStats(&return_mons);
+                
+                return return_mons;
+            }
+        }
+    }
+    else {
+        // VERY RARE SPAWN (Mostly evolutions of starters or starters themselves)
+        // Infinite loop to try to keep spawning
+        while(1){
+            int random_id = rand() % (count + 1);
+            int rndm_m_id = spawnable_mons_ids[random_id];
+
+            monster_t* monster = GetMonsterById(rndm_m_id);
+            if(monster && monster->rarity == VERY_RARE){
                 count = 0;
                 free(tiles_file_data);
                 cJSON_Delete(tiles_json);

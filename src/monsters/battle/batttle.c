@@ -33,6 +33,7 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
 
     if (battle_menu) MenuDestroy(battle_menu);
     battle_menu = MenuCreate(4, 1, 1, &BattleDraw, &BattleMenuHandleSelect);
+    battle_menu->back = BattleMenuBack;
 
     // SWITCH BTN
     SDL_Rect switch_btn = { 50, 950, 400, 100 };
@@ -190,6 +191,13 @@ void BattleDraw(){
     // Enemy moster health bar, name and lvl rect
     SDL_Rect enemy_rect = {1450, 50, 400, 100};
     SDL_Rect player_rect = {50, 50, 400, 100};
+    SDL_Rect enemy_mon_sprite = {1500, 300, 300, 300};
+
+    SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
+    SDL_Texture* enemy_mon_tex = SDL_CreateTextureFromSurface(rend, enemy_mon_surf);
+    SDL_FreeSurface(enemy_mon_surf);
+    SDL_RenderCopy(rend, enemy_mon_tex, NULL, &enemy_mon_sprite);
+
     BattleRenderInfo(enemy_mon->monster_name, &enemy_rect, 20, 20);
     BattleRenderInfo(active_player->monster_party[active_player->active_mon_index]->monster_name, &player_rect, 20, 20);
 
@@ -212,6 +220,8 @@ void BattleDraw(){
     // Render the enemy monster's hp info
     BattleRenderInfo(enemy_hp_info, &enemy_rect, 300, 70);
     BattleRenderInfo(player_hp_info, &player_rect, 300, 70);
+
+    SDL_DestroyTexture(enemy_mon_tex);
 }
 
 void BattleMenuHandleSelect(){
@@ -221,6 +231,7 @@ void BattleMenuHandleSelect(){
             battle_state = MOVES_MENU;
             active_player->selected_menu_itm = 0;
         }
+        else if(selected_btn == RUN) BattleQuit();
     }
     else if(battle_state == MOVES_MENU){
         monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
@@ -232,6 +243,10 @@ void BattleMenuHandleSelect(){
     }
 }
 
+void BattleMenuBack(){
+    battle_state = MAIN_MENU;
+}
+
 void BattleQuit(void){
     if (battle_menu) {
         MenuDestroy(battle_menu);
@@ -241,4 +256,6 @@ void BattleQuit(void){
         TTF_CloseFont(info_font);
         info_font = NULL;
     }
+
+    if(active_player) active_player->game_state = STATE_EXPLORING;
 }

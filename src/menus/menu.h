@@ -19,6 +19,9 @@ typedef struct menu_t{
     // This is a pointer to the menu's specified select function
     // Should handle the select input from the player
     void (*select_routine)();
+
+    // Generic function that goes back in the given menu
+    void (*back)();
 } menu_t;
 
 // Creates a menu_items array with item_num elements literaly

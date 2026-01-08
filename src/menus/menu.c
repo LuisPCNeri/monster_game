@@ -22,6 +22,7 @@ menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func,
     menu->items_amount = item_num;
     menu->draw = draw_func;
     menu->select_routine = select_func;
+    menu->back = NULL;
 
     return menu;
 }

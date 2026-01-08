@@ -1,6 +1,7 @@
 [
     {
         "id": 1,
+        "sprite": "",
         "name": "Ignisaur",
         "description": "NONE",
         "rarity": 0,
@@ -15,6 +16,7 @@
 
     {
         "id": 2,
+        "sprite": "",
         "name": "Embersaur",
         "description": "Made from the embers of forgotten dreams.",
         "rarity": 1,
@@ -29,9 +31,10 @@
 
     {
         "id": 3,
+        "sprite": "",
         "name": "Vulcansaur",
         "description": "NONE",
-        "rarity": 2,
+        "rarity": 3,
         "level": 45,
         "evo_1": 0,
         "evo_2": 0,
@@ -42,44 +45,47 @@
     },
 
     {
-        "id": 4,
-        "name": "bob",
-        "description": "NONE",
-        "rarity": 0,
-        "level": 45,
-        "evo_1": 0,
-        "evo_2": 0,
-        "type_1": 1,
-        "type_2": 4,
-        "stats": { "hp": 150, "atk": 101, "def": 67, "spd": 69 },
-        "starting_moves": [101, 102] 
-    },
-
-    {
-        "id": 5,
-        "name": "MR BEAST",
-        "description": "NONE",
-        "rarity": 1,
-        "level": 5,
-        "evo_1": 45,
-        "evo_2": 0,
-        "type_1": 2,
-        "type_2": 8,
-        "stats": { "hp": 120, "atk": 81, "def": 87, "spd": 49 },
-        "starting_moves": [101, 102] 
-    },
-
-    {
-        "id": 6,
-        "name": "SCP IWISHIKNEW",
-        "description": "NONE",
+        "id": 4 ,
+        "sprite": "resources/monster_sprites/Squeakskulk.png",
+        "name": "Squeakskulk",
+        "description": "The Fruitbat Pokemon: \n Ancient legends claimed that a Squeakskulk feeding in one's berrys ensured a bountiful harvest for the rest of the garden's crops. We now know this 'luck' is simply the result of this Pokémon driving off all other pests to protect its food source.",
         "rarity": 2,
-        "level": 5,
-        "evo_1": 45,
+        "level": 0,
+        "evo_1": 16,
+        "evo_2": 32,
+        "type_1": 10,
+        "type_2": 0,
+        "stats": { "hp": 45, "atk": 60, "def": 30, "spd": 80 },
+        "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 5 ,
+        "sprite": "",
+        "name": "Wingbolt",
+        "description": "The Storm Chaser Pokemon: \n During Wingbolt's evolution process a dormant gene related to the electric typing is awakened, replacing need for berries with high-voltage energy. While it traditionally hid in hollowed trees, as of recent it is drawn to man-made power sources in an attempt to feed on it. It is known as the 'Storm Chaser' for its habit of pursuing active thunderstorms to feed on.",
+        "rarity": 3,
+        "level": 18,
+        "evo_1": 32,
         "evo_2": 0,
         "type_1": 10,
-        "type_2": 9,
-        "stats": { "hp": 120, "atk": 81, "def": 87, "spd": 49 },
+        "type_2": 6,
+        "stats": { "hp": 60, "atk": 85, "def": 45, "spd": 105 },
+        "starting_moves": [101, 102] 
+    },
+
+    {
+        "id": 6 ,
+        "sprite": "",
+        "name": "Camaztrike",
+        "description": "The Electric Death pokemon: \n Once a Wingbolt consumes enough power it may become a Camaztrike. Camaztrike's hungry and speedy nature brought onto him the 'Electric Death' title, as it has been shown capable of draining an entyre city's power supply in 6.7 seconds. In the modern era powercables, outlets, and any electric conduction device have been 'Camaztriked profed'.",
+        "rarity": 3,
+        "level": 32,
+        "evo_1": 0,
+        "evo_2": 0,
+        "type_1": 10,
+        "type_2": 6,
+        "stats": { "hp": 75, "atk": 105, "def": 60, "spd": 130 },
         "starting_moves": [101, 102] 
     }
 
