@@ -16,10 +16,11 @@
 #define BASE_CATCH_RATE 25
 
 // GLOBAL array for this file that has IN MEMORY all the monsters (indexed by their order)
-monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
-int monster_count = 0;
-move_t ALL_MOVES[MAX_GAME_MOVES];
-int MoveLibraryCount = 0;
+static monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
+static int monster_count = 0;
+static move_t ALL_MOVES[MAX_GAME_MOVES];
+static int MoveLibraryCount = 0;
+static float TypeChart[TYPE_COUNT][TYPE_COUNT];
 
 move_t* GetMoveById(int id) {
     for(int i = 0; i < MoveLibraryCount; i++) {
@@ -83,10 +84,60 @@ void MonsterPrint(monster_t* m){
     );
 }
 
+MonsterTypes MonsterGetTypeFromString(const char* type_name){
+    if (strcmp(type_name, "FIRE") == 0)     return FIRE_TYPE;
+    if (strcmp(type_name, "WATER") == 0)    return WATER_TYPE;
+    if (strcmp(type_name, "GRASS") == 0)    return GRASS_TYPE;
+    if (strcmp(type_name, "ROCK") == 0)     return ROCK_TYPE;
+    if (strcmp(type_name, "POISON") == 0)   return POISON_TYPE;
+    if (strcmp(type_name, "ELECTRIC") == 0) return ELECTRIC_TYPE;
+    if (strcmp(type_name, "NORMAL") == 0)   return NORMAL_TYPE;
+    if (strcmp(type_name, "DRAGON") == 0)   return DRAGON_TYPE;
+    if (strcmp(type_name, "METAL") == 0)    return METAL_TYPE;
+    if (strcmp(type_name, "DARK") == 0)     return DARK_TYPE;
+    if (strcmp(type_name, "FLYING") == 0)   return FLYING_TYPE;
+    if (strcmp(type_name, "FIGHTING") == 0) return FIGHTING_TYPE;
+    if (strcmp(type_name, "BUG") == 0)      return BUG_TYPE;
+    return NONE_TYPE;
+}
+
 void MonstersInit() {
 
     // Set srand once only
     srand(time(NULL));
+
+    // =========================================================
+    // LOAD ALL TYPE ADVANTAGES INTO THE LIBRARY
+    // =========================================================
+
+    // Initialize all values to 1 as the default mult
+    for(unsigned int i = 0; i < TYPE_COUNT; i++){
+        for(unsigned int k = 0; k < TYPE_COUNT; k++){
+            TypeChart[i][k] = 1.0f;
+        }
+    }
+
+    char* type_data = LoadFileToString("src/monsters/data/type_chart.json");
+    if(type_data) {
+        cJSON* json_types = cJSON_Parse(type_data);
+        cJSON* entry = NULL;
+
+        cJSON_ArrayForEach(entry, json_types){
+            char* atck = cJSON_GetObjectItem(entry, "attacker")->valuestring;
+            char* def  = cJSON_GetObjectItem(entry, "defender")->valuestring;
+            double mult = cJSON_GetObjectItem(entry, "mult")->valuedouble;
+            
+            MonsterTypes atck_type = MonsterGetTypeFromString(atck);
+            MonsterTypes def_type  = MonsterGetTypeFromString(def);
+
+            if(atck_type != NONE_TYPE && def_type != NONE_TYPE) 
+                TypeChart[atck_type][def_type] = (float) mult;
+        }
+
+        cJSON_Delete(json_types);
+        free(type_data);
+    }
+
     // =========================================================
     // LOAD ALL MOVES INTO THE LIBRARY
     // =========================================================
@@ -226,23 +277,30 @@ int CheckMonsterCanSpawn(int tile_type){
 void MonsterSetStats(monster_t* monster){
     // Has no evolutions so level should be made according
     if(monster->evo_1_level == 0){
-        // Level will be between lvl 45 and 100 (very unfair know)
+        // Level will be between lvl 45 and 100 (very unfair I know)
         monster->level = rand() % (100 + 1 - 45) + 45;
+    } else {
+        // Generate a random level based on evolution level and base level
+        monster->level = rand() % (monster->evo_1_level - monster->level) + monster->level;
     }
-
-    // Generate a random level based on evolution level and base level
-    monster->level = rand() % (monster->evo_1_level - monster->level) + monster->level;
     if(monster->level == 0) monster->level = 5;
 
-    // All base stats will fluctuate by 10 values from base
-    monster->max_hp += rand() % (10 + 1);
+    // Retrieve base stats to calculate initial stats based on level
+    monster_t* base = GetMonsterById(monster->id);
+    if (!base) return;
+
+    // Formula: Base * (1 + Level/50) + Random Variance (IV simulation)
+    float level_mult = 1.0f + ((float)monster->level / 50.0f);
+
+    monster->max_hp = (int)(base->max_hp * level_mult) + (rand() % 15);
     monster->current_hp = monster->max_hp;
 
-    monster->attack += rand() % (10 + 1);
-    monster->defense += rand() % (10 + 1);
-    monster->speed += rand() % (10 + 1);
+    monster->attack = (int)(base->attack * level_mult) + (rand() % 10);
+    monster->defense = (int)(base->defense * level_mult) + (rand() % 10);
+    monster->speed = (int)(base->speed * level_mult) + (rand() % 10);
 
-    // TODO Set stats according to level
+    // Quadratic growth: 10 * Level^2 + 50 * Level
+    monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
 }
 
 monster_t SpawnMonster(int tile_type){
@@ -428,33 +486,92 @@ void* TrySpawnMonster(void* arg){
 
 // Updates the monster's stats to reflect the level up
 static void MonsterLevelUpStats(monster_t* monster){
-    // Stats will increment higher in lower levels and start getting deminishing returns after
-    // Increment will be by a random amount between 5-10 with the level affecting it maybe
+    // Retrieve base stats to calculate growth
+    monster_t* base = GetMonsterById(monster->id);
+    if (!base) return;
 
-    monster->max_hp = monster->max_hp + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
-    // At level up monster's hp will be refilled
+    // Growth formula: (Base Stat / 50) + 1 + Random Variance
+    // This ensures monsters with higher base stats grow faster
+
+    // TODO Learn new moves based on level
+    
+    int hp_gain = (base->max_hp / 50) + 1 + (rand() % 3);
+    monster->max_hp += hp_gain;
     monster->current_hp = monster->max_hp;
 
-    monster->attack = monster->attack + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
-    monster->defense = monster->defense + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
-    monster->speed = monster->speed + (rand() % (10 + 1 - 5) + 5) - monster->level / 15;
+    int atk_gain = (base->attack / 50) + 1 + (rand() % 2);
+    monster->attack += atk_gain;
+
+    int def_gain = (base->defense / 50) + 1 + (rand() % 2);
+    monster->defense += def_gain;
+
+    int spd_gain = (base->speed / 50) + 1 + (rand() % 2);
+    monster->speed += spd_gain;
+
+    printf("%s leveled up to %d! (+%d HP, +%d Atk, +%d Def, +%d Spd)\n", 
+           monster->monster_name, monster->level, hp_gain, atk_gain, def_gain, spd_gain);
 }
 
-// TODO EVOLVE
 // Called when the monster's level coincides with it's evo1 level
 // Changes the monster to a new copy of it's evolution whilst increasing it's stats significantly
 // Keeps it's moves as well
 // Returns the new monster struct
 static monster_t* MonsterEvolve(monster_t* monster){
-    return NULL;
+    
+    // The next monster in the evolution line should be the one with monster->id + 1
+    monster_t* evo_monster = GetMonsterById(monster->id + 1);
+
+    // monster's applicable stats will be replaced by the evo monster's
+    monster->id = evo_monster->id;
+
+    strcpy(monster->monster_name, evo_monster->monster_name);
+    strcpy(monster->monster_description, evo_monster->monster_description);
+    strcpy(monster->sprite_path, evo_monster->sprite_path);
+
+    monster->rarity = evo_monster->rarity;
+    monster->type_1 = evo_monster->type_1;
+    monster->type_2 = evo_monster->type_2;
+
+    monster->evo_1_level = evo_monster->evo_1_level;
+    monster->evo_2_level = evo_monster->evo_2_level;
+
+    // TODO Check for evolution unlocked moves
+
+    return monster;
 }
 
-void MonsterAddExp(monster_t* monster, int exp_amount){
+static int MonsterGetExpYield(monster_t* monster, float multiplier){
+    if(multiplier <= 0) multiplier = 1.0;
+    // Quadratic formula to scale with the XP requirement curve
+    // (Level^2 / 2) + 10*Level + 10
+    int base_yield = (monster->level * monster->level / 2) + (monster->level * 10) + 10;
+    
+    // Bonus for rarity (Common=0, Uncommon=1, etc.)
+    // Adds 20% per rarity tier
+    int rarity_bonus = (base_yield * monster->rarity) / 5;
+    
+    return (int)((base_yield + rarity_bonus) * multiplier);
+}
+
+
+void MonsterAddExp(monster_t* monster, monster_t* defeated_monster){
+    float xp_mult = 1.0f;
+
+    // Underdog bonus: 25% extra XP per level difference if enemy is higher level
+    if(defeated_monster->level > monster->level){
+        xp_mult += (defeated_monster->level - monster->level) * 0.25f;
+    }
+
     // Update monster's current exp
-    monster->current_exp += exp_amount;
+    monster->current_exp += MonsterGetExpYield(defeated_monster, xp_mult);
 
     // While loop to keep leveling up whilst current_exp > exp to next level
     while(monster->current_exp >= monster->exp_to_next_level){
+        if(monster->level >= 100){
+            monster->current_exp = 0;
+            break;
+        }
+
         // Updates the current exp and updates the monster's level
         monster->current_exp -= monster->exp_to_next_level;
         monster->level++;
@@ -465,10 +582,10 @@ void MonsterAddExp(monster_t* monster, int exp_amount){
         // Clear the status effects
         monster->current_status_fx = NONE;
 
-        if(monster->level >= monster->evo_1_level) MonsterEvolve(monster);
+        if(monster->level >= monster->evo_1_level) monster = MonsterEvolve(monster);
 
-        // FuckAss algorithm to set the exp for next level
-        monster->exp_to_next_level = (1 / monster->level) + 250 * (10 / monster->level);
+        // Quadratic growth: 10 * Level^2 + 50 * Level
+        monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
     }
 }
 
@@ -498,35 +615,74 @@ monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device){
     return NULL;
 }
 
-// This next one will be a biggie
-// Right now it's 11:52 PM not much time to do this so
-// TODO Add type advantages
+float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender){
+    if(attacker >= TYPE_COUNT || defender >= TYPE_COUNT) return 1.0f;
+    return TypeChart[attacker][defender];
+}
 
 // For now it will just stay a simple move power/damage * monster attack / 100 (if it was 100 it'd be way too much damage)
 
 void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
-    // Multiply first to avoid integer division resulting in 0
-    int move_damage = (move->damage * attacker->attack) / 100;
-
-    // TODO maybe make better logic for attack damage with maybe a function to calculate it if it's complicated
-
-    // Take into account enemy's defense
-    move_damage = move_damage - ((move_damage * attacked->defense) / 300); 
-
-    // Update attacker's move uses for that move
-    // The move variable is a pointer to the monster's copy of the move
-    // So we can decrement it here
+    // Decrement available uses
     move->available_uses--;
 
-    // Take into account the move accuracy
+    // Check Accuracy
     int move_hit = rand() % 100;
-    // Move has hit, decrement enemy's hp
-    if(move_hit <= move->acc_percent || move->acc_percent == 100){
-        if(move_damage < 1) move_damage = 1;
-        attacked->current_hp -= move_damage;
-        if(attacked->current_hp < 0) attacked->current_hp = 0;
-        // TODO take into account the status effect move can inflict
+    if(move->acc_percent != 100 && move_hit >= move->acc_percent){
+        printf("%s used %s but missed!\n", attacker->monster_name, move->move_name);
+        return;
     }
+
+    // Calculate Damage
+    // Formula: ((((2 * Level / 5 + 2) * Power * Attack / Defense) / 20) + 2) * Modifier
+    float level = (float)attacker->level;
+    float power = (float)move->damage;
+    float attack = (float)attacker->attack;
+    float defense = (float)attacked->defense;
+    
+    // Prevent division by zero
+    if (defense == 0) defense = 1.0f;
+
+    float base_damage = ((((2.0f * level / 5.0f + 2.0f) * power * (attack / defense)) / 20.0f) + 2.0f);
+
+    // Modifiers
+    float modifier = 1.0f;
+
+    // Get type effectiveness mult
+    float type_effectiveness = MonsterGetTypeEffectiveness(move->attack_type, attacked->type_1);
+    if (attacked->type_2 != NONE_TYPE) {
+        type_effectiveness *= MonsterGetTypeEffectiveness(move->attack_type, attacked->type_2);
+    }
+    modifier *= type_effectiveness;
+
+    // If attack and monster are of the same type apply a bonus
+    if (move->attack_type == attacker->type_1 || move->attack_type == attacker->type_2) {
+        modifier *= 1.5f;
+    }
+
+    // RNG on attack as to not have just static attack values
+    float random_var = (float)((rand() % 16) + 85) / 100.0f;
+    modifier *= random_var;
+
+    // Chance to crit 
+    if ((rand() % 16) == 0) {
+        modifier *= 1.5f;
+        printf("Critical Hit!\n");
+    }
+
+    int final_damage = (int)(base_damage * modifier);
+    if (final_damage < 1) final_damage = 1;
+
+    // Apply Damage
+    attacked->current_hp -= final_damage;
+        if(attacked->current_hp < 0) attacked->current_hp = 0;
+
+    printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->monster_name, move->move_name, final_damage, type_effectiveness);
+
+    // TODO take into account the status effect move can inflict
 }
 
 // TODO Create the enemy monster attacking logic
+void MonsterEnemyAttack(monster_t* player_monster, monster_t* enemy){
+
+}

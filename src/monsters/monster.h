@@ -59,7 +59,11 @@ typedef enum MonsterTypes{
     NORMAL_TYPE,
     DRAGON_TYPE,
     METAL_TYPE,
-    DARK_TYPE
+    DARK_TYPE,
+    FLYING_TYPE,
+    FIGHTING_TYPE,
+    BUG_TYPE,
+    TYPE_COUNT
 } MonsterTypes;
 
 // A list of all moves a single monster can learn
@@ -108,7 +112,7 @@ typedef struct monster_t {
     char sprite_path[256];
 
     // Monster's rarity affects only it's spawning chance
-    // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, LEGENDARY
+    // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, VERY_RARE, LEGENDARY
     Rarities rarity;
 
     // Current monster level
@@ -178,10 +182,16 @@ monster_t SpawnMonster(int tile_type);
 // void* arg is passed when creating the thread that will run this code and should be a pointer to the player "object"
 void* TrySpawnMonster(void* arg);
 
+// Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
+float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
+
 // Uses MOVE move on the enemy monster
 // Only to be used during a batle
 // attacker uses move on attacked
 void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked);
+
+// Has the enemy monster choose a move to use on the player monster and then attack the player's monster
+void MonsterEnemyAttack(monster_t* player_monster, monster_t* enemy);
 
 // Prints a monsters data to the terminal
 void MonsterPrint(monster_t* monster);
@@ -194,10 +204,9 @@ move_t* GetMoveById(int id);
 // To use this please create a local copy of the struct
 monster_t* GetMonsterById(int id);
 
-// Adds increments the monster's current exp by exp_amount
-// If the amount is enough to level up this function also takes care of it
-// Also updates the stats for the next level
-void MonsterAddExp(monster_t* monster, int exp_amount);
+// Increments monster_t monster's exp by an amount calculated in another helper function
+// This amount has a linear realtion to the enemy_monster's level
+void MonsterAddExp(monster_t* monster, monster_t* enemy_monster);
 
 // Has the player try to catch a monster.
 // Uses the rarity modifiers to calculate the chance.

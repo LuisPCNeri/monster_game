@@ -70,7 +70,7 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
 // TODO EXP ADDING LOGIC
 static int BattleCheckIsOver(){
     if(enemy_mon->current_hp <= 0){
-        // EXP LOGIC
+        MonsterAddExp(active_player->monster_party[active_player->active_mon_index], enemy_mon);
         return 1;
     }
 
@@ -236,8 +236,16 @@ void BattleMenuHandleSelect(){
     else if(battle_state == MOVES_MENU){
         monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
         if(active_mon->usable_moves[active_player->selected_menu_itm].available_uses > 0){
-            MonsterUseMoveOn(active_mon, &active_mon->usable_moves[active_player->selected_menu_itm], enemy_mon);
-
+            // Whoevers speed is higher should go first
+            if(active_mon->speed < enemy_mon->speed){
+                MonsterEnemyAttack(active_mon, enemy_mon);
+                MonsterUseMoveOn(active_mon, &active_mon->usable_moves[active_player->selected_menu_itm], enemy_mon);
+            }
+            else{
+                MonsterUseMoveOn(active_mon, &active_mon->usable_moves[active_player->selected_menu_itm], enemy_mon);
+                MonsterEnemyAttack(active_mon, enemy_mon);
+            }
+            
             // TODO After player takes his turn give turn to enemy monster (LOCK THE KEYS)
         }
     }

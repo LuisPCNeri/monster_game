@@ -159,11 +159,13 @@ int main(void)
                             case SDL_SCANCODE_RETURN:
                                 // Select player's current selected item
                                 MenuSelectCurrentItem(player);
-                                if(player->monster_party[0]) MonsterPrint(player->monster_party[0]);
                                 break;
                             default:
                                 break;
                         }
+                        break;
+                        case STATE_LOCKED:
+                        // In this case the player's inputs should not matter
                         break;
                 }   
                 

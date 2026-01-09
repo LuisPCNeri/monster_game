@@ -1,0 +1,49 @@
+[
+    { "attacker": "FIRE",       "defender": "WATER",    "mult": 0.5},
+    { "attacker": "FIRE",       "defender": "GRASS",    "mult": 2},
+    { "attacker": "FIRE",       "defender": "ROCK",     "mult": 2},
+
+    { "attacker": "WATER",      "defender": "FIRE",     "mult": 2},
+    { "attacker": "WATER",      "defender": "GRASS",    "mult": 0.5},
+    { "attacker": "WATER",      "defender": "ROCK",     "mult": 1.5},
+    { "attacker": "WATER",      "defender": "FIRE",     "mult": 2},
+    { "attacker": "WATER",      "defender": "METAL",    "mult": 1.2},
+
+    { "attacker": "GRASS",      "defender": "FIRE",     "mult": 0.5},
+    { "attacker": "GRASS",      "defender": "WATER",    "mult": 2},
+    
+    { "attacker": "ROCK",       "defender": "FLYING",   "mult": 1.5},
+    { "attacker": "ROCK",       "defender": "GRASS",    "mult": 1.5},
+
+    { "attacker": "POISON",     "defender": "GRASS",    "mult": 2},
+    { "attacker": "POISON",     "defender": "NORMAL",   "mult": 1.5},
+    { "attacker": "POISON",     "defender": "METAL",    "mult": 0.5},
+
+    { "attacker": "ELECTRIC",   "defender": "WATER",    "mult": 2},
+    { "attacker": "ELECTRIC",   "defender": "ROCK",     "mult": 0.5},
+    { "attacker": "ELECTRIC",   "defender": "METAL",    "mult": 1.5},
+
+    { "attacker": "NORMAL",     "defender": "GRASS",    "mult": 1.2},
+
+    { "attacker": "DRAGON",     "defender": "DARK",     "mult": 1.5},
+    { "attacker": "DRAGON",     "defender": "METAL",    "mult": 0.75},
+    { "attacker": "DRAGON",     "defender": "DRAGON",   "mult": 0.75},
+
+    { "attacker": "METAL",      "defender": "DRAGON",   "mult": 1.5},
+    { "attacker": "METAL",      "defender": "NORMAL",   "mult": 1.5},
+    { "attacker": "METAL",      "defender": "ROCK",     "mult": 1.5},
+    { "attacker": "METAL",      "defender": "WATER",    "mult": 0.5},
+
+    { "attacker": "DARK",       "defender": "METAL",    "mult": 1.5},
+    { "attacker": "DARK",       "defender": "FIRE",     "mult": 0.5},
+
+    { "attacker": "FLYING",     "defender": "NORMAL",   "mult": 1.5},
+    { "attacker": "FLYING",     "defender": "BUG",      "mult": 2},
+
+    { "attacker": "FIGHTING",   "defender": "ROCK",     "mult": 0.5},
+    { "attacker": "FIGHTING",   "defender": "FLYING",   "mult": 1.5},
+    { "attacker": "FIGHTING",   "defender": "METAL",    "mult": 0.5},
+
+    { "attacker": "BUG",        "defender": "GRASS",    "mult": 2},
+    { "attacker": "BUG",        "defender": "ROCK",     "mult": 0.5}
+]

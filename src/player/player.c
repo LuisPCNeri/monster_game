@@ -61,7 +61,7 @@ void PlayerSetStarters(player_t* player){
     }
 
     starter_mons[0] = GetMonsterById(1);
-    starter_mons[1] = GetMonsterById(2);
+    starter_mons[1] = GetMonsterById(4);
     starter_mons[2] = GetMonsterById(3);
 
     player->current_menu = starter_select_menu;

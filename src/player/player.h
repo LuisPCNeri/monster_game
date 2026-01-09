@@ -7,7 +7,10 @@ typedef struct menu_t menu_t;
 
 typedef enum GameState{
     STATE_EXPLORING,
-    STATE_IN_MENU
+    STATE_IN_MENU,
+    // State for when the player's movement is locked
+    // Or for when the player is not supposed to move in between menus
+    STATE_LOCKED
 } GameState;
 
 // Struct to keep track of the items the player has
@@ -21,6 +24,9 @@ typedef struct player_t{
 
     // The index of the monster the player is currently using
     int active_mon_index;
+
+    // Supposed to help see if in a battle it is the player's turn or not
+    int is_player_turn;
 
     // Pointers to the monsters the player keeps with him and can use for battles
     monster_t* monster_party[5];

@@ -10,7 +10,7 @@
         "evo_2": 45,
         "type_1": 1,
         "type_2": 0,
-        "stats": { "hp": 45, "atk": 49, "def": 49, "spd": 45 },
+        "stats": { "hp": 35, "atk": 29, "def": 29, "spd": 62 },
         "starting_moves": [101, 102] 
     },
 
@@ -25,7 +25,7 @@
         "evo_2": 0,
         "type_1": 1,
         "type_2": 0,
-        "stats": { "hp": 70, "atk": 61, "def": 57, "spd": 53 },
+        "stats": { "hp": 50, "atk": 41, "def": 43, "spd": 53 },
         "starting_moves": [101, 102] 
     },
 
@@ -40,7 +40,7 @@
         "evo_2": 0,
         "type_1": 1,
         "type_2": 4,
-        "stats": { "hp": 120, "atk": 81, "def": 87, "spd": 49 },
+        "stats": { "hp": 110, "atk": 61, "def": 77, "spd": 49 },
         "starting_moves": [101, 102] 
     },
 
@@ -55,7 +55,7 @@
         "evo_2": 32,
         "type_1": 10,
         "type_2": 0,
-        "stats": { "hp": 45, "atk": 60, "def": 30, "spd": 80 },
+        "stats": { "hp": 30, "atk": 36, "def": 32, "spd": 70 },
         "starting_moves": [101, 102] 
     },
 
@@ -70,7 +70,7 @@
         "evo_2": 0,
         "type_1": 10,
         "type_2": 6,
-        "stats": { "hp": 60, "atk": 85, "def": 45, "spd": 105 },
+        "stats": { "hp": 65, "atk": 48, "def": 45, "spd": 78 },
         "starting_moves": [101, 102] 
     },
 
@@ -85,7 +85,7 @@
         "evo_2": 0,
         "type_1": 10,
         "type_2": 6,
-        "stats": { "hp": 75, "atk": 105, "def": 60, "spd": 130 },
+        "stats": { "hp": 75, "atk": 83, "def": 50, "spd": 95 },
         "starting_moves": [101, 102] 
     }
 
