@@ -43,12 +43,12 @@ SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
     SDL_FreeSurface(tile_map_surface);
 
     // PLACEHOLDER
-    // TODO In theory I will have a file with the map's tile information (the tile type number)
+    // TODO : In theory I will have a file with the map's tile information (the tile type number)
     // And will load the tiles based on what is in that file
 
     srand(time(NULL));
     // 2D array with the tiles
-    // TODO May be better off allocating the memory in the heap when populating the map
+    // TODO : May be better off allocating the memory in the heap when populating the map
     
     
     // Randomly assign the tiles

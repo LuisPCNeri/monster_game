@@ -96,12 +96,11 @@ int main(void)
 
     // CREATEAS a Thread to keep trying to spawn monsters in the background
     player->running = 1;
-    pthread_t spawn_thread;
-    pthread_create(&spawn_thread, NULL, &TrySpawnMonster, player);
-
-    player->game_state = STATE_EXPLORING;
 
     PlayerSetStarters(player);
+
+    pthread_t spawn_thread;
+    pthread_create(&spawn_thread, NULL, &TrySpawnMonster, player);
 
     int running = 1;
     while (running) {
@@ -211,8 +210,8 @@ int main(void)
             SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
         }
-        else if(player->game_state == STATE_IN_MENU){
-            player->current_menu->draw();
+        else if(player->game_state == STATE_IN_MENU || player->game_state == STATE_LOCKED){
+            if(player->current_menu) player->current_menu->draw();
         }
 
         // triggers the double buffers

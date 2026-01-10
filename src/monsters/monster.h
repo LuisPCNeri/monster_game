@@ -174,7 +174,7 @@ int CheckMonsterCanSpawn(int tile_type);
 // "Spawns" a monster that immediatly tries to fight the player
 // Takes in an int representing the tile_type to choose the monster's type
 // Returns a pointer to the monster's data
-monster_t SpawnMonster(int tile_type);
+monster_t SpawnMonster(int tile_type, int avg_player_level);
 
 // To be used in a separate thread, this function is always running
 // Every time the player changes tiles it checks the tile_type

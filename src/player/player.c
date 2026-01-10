@@ -71,15 +71,18 @@ void PlayerSetStarters(player_t* player){
 }
 
 void PlayerMenuHandleSelect(){
+    for(int i = 0; i < 5; i++){
+        // INITIALIZEALL PLAYER PARTY VALUES TO NULL
+        active_player->monster_party[i] = NULL;
+    }
 
     // Makes a copy of the generic monster in the arry
     // This copy corresponds to the monster the player chose
     monster_t* selected_mon = (monster_t*) malloc(sizeof(monster_t));
     *selected_mon = *(starter_mons[active_player->selected_menu_itm]);
+    selected_mon->level = 5;
 
     MonsterSetStats(selected_mon);
-    // Hard code the starter's level to 5
-    selected_mon->level = 5;
 
     // Adds the chosen starter to the player's party at the first position
     active_player->monster_party[0] = selected_mon;

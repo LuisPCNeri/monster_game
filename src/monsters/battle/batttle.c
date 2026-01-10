@@ -9,6 +9,8 @@
 #include "menus/menu.h"
 #include "battle.h"
 
+#define TURN_LENGTH 1000
+
 // Renderer created in main
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
@@ -18,10 +20,20 @@ static monster_t* enemy_mon = NULL;
 static menu_t* battle_menu = NULL;
 static player_t* active_player = NULL;
 static TTF_Font* info_font = NULL;
+static move_t* last_used_move = NULL;
+
+static int turn_stage = 0;
+static Uint32 turn_timer = 0;
+static monster_t* first_attacker = NULL;
+static monster_t* second_attacker = NULL;
+static move_t* player_move_ptr = NULL;
+static move_t* fst_atck_move = NULL;
+static move_t* scnd_atck_move = NULL;
 
 typedef enum BattleState{
     MAIN_MENU,
-    MOVES_MENU
+    MOVES_MENU,
+    EXECUTING_TURN
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
@@ -67,10 +79,12 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
 // Checks if battle is over (enemy monster is dead)
 // If so calls other functions such as increase exp
 // Returns >1 if battle is over and 0 if not
-// TODO EXP ADDING LOGIC
 static int BattleCheckIsOver(){
     if(enemy_mon->current_hp <= 0){
         MonsterAddExp(active_player->monster_party[active_player->active_mon_index], enemy_mon);
+        return 1;
+    }
+    else if(active_player->monster_party[active_player->active_mon_index]->current_hp <= 0){
         return 1;
     }
 
@@ -78,7 +92,7 @@ static int BattleCheckIsOver(){
 }
 
 // Renders the button's text and a rect for them
-// TODO Change from the draw rect to a custom texture
+// TODO : Change from the draw rect to a custom texture
 static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect){
     // Set color to render the rects
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
@@ -110,7 +124,7 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect){
 
     SDL_DestroyTexture(text_texture);
 
-    // TODO Indicate player victory with a rect (in the middle of the screen showing the exp gained or something and if monster leveled up (WITH SOUNDS *GASP*))
+    // TODO : Indicate player victory with a rect (in the middle of the screen showing the exp gained or something and if monster leveled up (WITH SOUNDS *GASP*))
     if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
 }
 
@@ -186,6 +200,62 @@ void BattleDraw(){
                 BattleRenderMenuItem("-", &battle_menu->menu_items[i]);
             }
         }
+    } else if(battle_state == EXECUTING_TURN){
+        monster_t* player_mon = active_player->monster_party[active_player->active_mon_index];
+        if(turn_stage == 0){
+            // Execute First Attack
+            monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
+            MonsterUseMoveOn(first_attacker, fst_atck_move, target);
+            last_used_move = fst_atck_move;
+
+            turn_stage = 1;
+        }
+        else if(turn_stage == 1){
+            // Wait
+            SDL_Rect status_rect = {50, 850, 800, 200};
+
+            // Check if second attacker has fainted to display it
+            if(second_attacker->current_hp <= 0){
+                char info[269];
+                sprintf(info, "%s has fainted!", second_attacker->monster_name);
+                BattleRenderInfo(info, &status_rect, 20, 20);
+            }else{
+                // Print normal attack info
+                char atck_info[520];
+                snprintf(atck_info, 520, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
+                BattleRenderInfo(atck_info, &status_rect, 20, 20);
+            }
+            
+            // Render "Press Enter" indicator
+            BattleRenderInfo("->", &status_rect, 750, 150);
+        }
+        else if(turn_stage == 2){
+            // Execute Second Attack
+            monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
+            MonsterUseMoveOn(second_attacker, scnd_atck_move, target);
+            last_used_move = scnd_atck_move;
+
+            turn_stage = 3;
+        }
+        else if(turn_stage == 3){
+            // Wait
+            SDL_Rect status_rect = {50, 850, 800, 200};
+
+            // Check if first attacker has fainted to display it
+            if(first_attacker->current_hp <= 0){
+                char info[269];
+                sprintf(info, "%s has fainted!", first_attacker->monster_name);
+                BattleRenderInfo(info, &status_rect, 20, 20);
+            }else{
+                // Print normal attack info
+                char atck_info[520];
+                snprintf(atck_info, 520, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
+                BattleRenderInfo(atck_info, &status_rect, 20, 20);
+            }
+
+            // Render "Press Enter" indicator
+            BattleRenderInfo("->", &status_rect, 750, 150);
+        }
     }
 
     // Enemy moster health bar, name and lvl rect
@@ -225,6 +295,24 @@ void BattleDraw(){
 }
 
 void BattleMenuHandleSelect(){
+    if(battle_state == EXECUTING_TURN) {
+        if (turn_stage == 1) {
+             if(BattleCheckIsOver()){
+                active_player->game_state = STATE_EXPLORING;
+             } else {
+                turn_stage = 2;
+             }
+        } else if (turn_stage == 3) {
+             if(BattleCheckIsOver()){
+                active_player->game_state = STATE_EXPLORING;
+             } else {
+                battle_state = MAIN_MENU;
+                active_player->is_player_turn = 1;
+             }
+        }
+        return;
+    }
+
     if(battle_state == MAIN_MENU){
         BattleMenuButtons selected_btn = active_player->selected_menu_itm;
         if(selected_btn == ATTACK){
@@ -234,24 +322,35 @@ void BattleMenuHandleSelect(){
         else if(selected_btn == RUN) BattleQuit();
     }
     else if(battle_state == MOVES_MENU){
+        // Make it so it is not the player's turn anymore
+        active_player->is_player_turn = 0;
+
         monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
-        if(active_mon->usable_moves[active_player->selected_menu_itm].available_uses > 0){
-            // Whoevers speed is higher should go first
-            if(active_mon->speed < enemy_mon->speed){
-                MonsterEnemyAttack(active_mon, enemy_mon);
-                MonsterUseMoveOn(active_mon, &active_mon->usable_moves[active_player->selected_menu_itm], enemy_mon);
+        player_move_ptr = &active_mon->usable_moves[active_player->selected_menu_itm];
+
+        if(player_move_ptr->available_uses > 0){
+            if(active_mon->speed >= enemy_mon->speed){
+                first_attacker = active_mon;
+                second_attacker = enemy_mon;
+
+                fst_atck_move = player_move_ptr;
+                // IMPORTANT Get monster attack
+                scnd_atck_move = &enemy_mon->usable_moves[0];
+            } else {
+                first_attacker = enemy_mon;
+                second_attacker = active_mon;
+
+                fst_atck_move = &enemy_mon->usable_moves[0];;
+                scnd_atck_move = player_move_ptr;
             }
-            else{
-                MonsterUseMoveOn(active_mon, &active_mon->usable_moves[active_player->selected_menu_itm], enemy_mon);
-                MonsterEnemyAttack(active_mon, enemy_mon);
-            }
-            
-            // TODO After player takes his turn give turn to enemy monster (LOCK THE KEYS)
+            battle_state = EXECUTING_TURN;
+            turn_stage = 0;
         }
     }
 }
 
 void BattleMenuBack(){
+    if(battle_state == EXECUTING_TURN) return;
     battle_state = MAIN_MENU;
 }
 

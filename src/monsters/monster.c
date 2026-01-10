@@ -117,7 +117,7 @@ void MonstersInit() {
         }
     }
 
-    char* type_data = LoadFileToString("src/monsters/data/type_chart.json");
+    char* type_data = LoadFileToString("data/type_chart.json");
     if(type_data) {
         cJSON* json_types = cJSON_Parse(type_data);
         cJSON* entry = NULL;
@@ -141,7 +141,7 @@ void MonstersInit() {
     // =========================================================
     // LOAD ALL MOVES INTO THE LIBRARY
     // =========================================================
-    char* moveData = LoadFileToString("src/monsters/data/moves.json");
+    char* moveData = LoadFileToString("data/moves.json");
     if(moveData) {
         cJSON* jsonMoves = cJSON_Parse(moveData);
         cJSON* entry = NULL;
@@ -175,7 +175,7 @@ void MonstersInit() {
     // =========================================================
     // LOAD MONSTERS AND LINK MOVES
     // =========================================================
-    char* monData = LoadFileToString("src/monsters/data/monster.json");
+    char* monData = LoadFileToString("data/monster.json");
     if(monData) {
         cJSON* jsonMons = cJSON_Parse(monData);
         cJSON* entry = NULL;
@@ -275,14 +275,6 @@ int CheckMonsterCanSpawn(int tile_type){
 }
 
 void MonsterSetStats(monster_t* monster){
-    // Has no evolutions so level should be made according
-    if(monster->evo_1_level == 0){
-        // Level will be between lvl 45 and 100 (very unfair I know)
-        monster->level = rand() % (100 + 1 - 45) + 45;
-    } else {
-        // Generate a random level based on evolution level and base level
-        monster->level = rand() % (monster->evo_1_level - monster->level) + monster->level;
-    }
     if(monster->level == 0) monster->level = 5;
 
     // Retrieve base stats to calculate initial stats based on level
@@ -292,21 +284,38 @@ void MonsterSetStats(monster_t* monster){
     // Formula: Base * (1 + Level/50) + Random Variance (IV simulation)
     float level_mult = 1.0f + ((float)monster->level / 50.0f);
 
-    monster->max_hp = (int)(base->max_hp * level_mult) + (rand() % 15);
+    monster->max_hp = (int)(base->max_hp * level_mult) + (rand() % 3);
     monster->current_hp = monster->max_hp;
 
-    monster->attack = (int)(base->attack * level_mult) + (rand() % 10);
-    monster->defense = (int)(base->defense * level_mult) + (rand() % 10);
-    monster->speed = (int)(base->speed * level_mult) + (rand() % 10);
+    monster->attack = (int)(base->attack * level_mult) + (rand() % 2);
+    monster->defense = (int)(base->defense * level_mult) + (rand() % 2);
+    monster->speed = (int)(base->speed * level_mult) + (rand() % 2);
 
     // Quadratic growth: 10 * Level^2 + 50 * Level
     monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
 }
 
-monster_t SpawnMonster(int tile_type){
+// Takes in a template monster and sets the spawned monster similar to the player's average level
+static int MonsterSetSpawnLevel(int avg_player_level){
+    int spawn_level = avg_player_level;
+    int rng = rand() % 100;
+    if(rng < 60){
+        spawn_level += (rand() % 5) - 2; // -2 to +2 levels
+    } else if(rng < 90){
+        spawn_level += (rand() % 4) + 2; // +2 to +5 levels
+    } else {
+        spawn_level += (rand() % 6) + 5; // +5 to +10 levels
+    }
+    if(spawn_level < 1) spawn_level = 1;
+    if(spawn_level > 100) spawn_level = 100;
+
+    return spawn_level;
+}
+
+monster_t SpawnMonster(int tile_type, int avg_player_level){
     printf("MONSTER SPAWNED\n");
     
-    char* tiles_file_data = LoadFileToString("src/monsters/data/tile_data.json");
+    char* tiles_file_data = LoadFileToString("data/tile_data.json");
     if (!tiles_file_data) return ALL_MONSTERS[0];
 
     // Array to store the id of all the spawnable monsters on this tile
@@ -370,6 +379,8 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
+                
+                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
                 MonsterSetStats(&return_mons);
 
                 return return_mons;
@@ -390,6 +401,8 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
+                
+                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
                 MonsterSetStats(&return_mons);
 
                 return return_mons;
@@ -410,8 +423,9 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
-                MonsterSetStats(&return_mons);
                 
+                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
+                MonsterSetStats(&return_mons);
                 return return_mons;
             }
         }
@@ -430,8 +444,9 @@ monster_t SpawnMonster(int tile_type){
                 cJSON_Delete(tiles_json);
 
                 monster_t return_mons = *monster;
-                MonsterSetStats(&return_mons);
                 
+                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
+                MonsterSetStats(&return_mons);
                 return return_mons;
             }
         }
@@ -468,7 +483,19 @@ void* TrySpawnMonster(void* arg){
 
             if(spawn_num <= 20){
                 // The chance hit spawn monster now
-                monster_t spawned_mons = SpawnMonster(new_tile_type);
+                int total_level = 0;
+                int count = 0;
+                for(int i = 0; i < 5; i++){
+                    if(player->monster_party[i]){
+                        total_level += player->monster_party[i]->level;
+                        count++;
+                    }
+                }
+                int avg_level = (count > 0) ? total_level / count : 5;
+
+                printf("AVG LEVEL DONE\n");
+
+                monster_t spawned_mons = SpawnMonster(new_tile_type, avg_level);
                 MonsterPrint(&spawned_mons);
 
                 // Monster has spawned so iniciate a battle
@@ -493,7 +520,7 @@ static void MonsterLevelUpStats(monster_t* monster){
     // Growth formula: (Base Stat / 50) + 1 + Random Variance
     // This ensures monsters with higher base stats grow faster
 
-    // TODO Learn new moves based on level
+    // TODO : Learn new moves based on level
     
     int hp_gain = (base->max_hp / 50) + 1 + (rand() % 3);
     monster->max_hp += hp_gain;
@@ -535,7 +562,7 @@ static monster_t* MonsterEvolve(monster_t* monster){
     monster->evo_1_level = evo_monster->evo_1_level;
     monster->evo_2_level = evo_monster->evo_2_level;
 
-    // TODO Check for evolution unlocked moves
+    // TODO : Check for evolution unlocked moves
 
     return monster;
 }
@@ -679,10 +706,10 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
 
     printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->monster_name, move->move_name, final_damage, type_effectiveness);
 
-    // TODO take into account the status effect move can inflict
+    // TODO : take into account the status effect move can inflict
 }
 
-// TODO Create the enemy monster attacking logic
+// IMPORTANT : Create the enemy monster attacking logic
 void MonsterEnemyAttack(monster_t* player_monster, monster_t* enemy){
 
 }

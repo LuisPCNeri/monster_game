@@ -2,6 +2,8 @@
 #define __PLAYER_H__
 
 #include "monsters/monster.h"
+#include "inventory.h"
+
 // Forward declaration to allow pointer usage without circular dependency
 typedef struct menu_t menu_t;
 
@@ -12,11 +14,6 @@ typedef enum GameState{
     // Or for when the player is not supposed to move in between menus
     STATE_LOCKED
 } GameState;
-
-// Struct to keep track of the items the player has
-typedef struct{
-
-} player_inventory_t;
 
 typedef struct player_t{
     int x_pos;
@@ -36,6 +33,8 @@ typedef struct player_t{
 
     GameState game_state;
     int running;
+
+    inventory_t* player_inv;
 } player_t;
 
 // This function is called once and used to have the player chose a starter
