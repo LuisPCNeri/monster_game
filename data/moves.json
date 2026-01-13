@@ -2,18 +2,90 @@
     { 
         "id": 101, 
         "name": "Scratch", 
-        "power": 40, 
+        "power": 20, 
         "max_pp": 35, 
-        "type": 6 , 
+        "type": "NORMAL" , 
+        "req_level": 0,
+        "accuracy": 100
+    },
+    {
+        "id": 102,
+        "name": "Tackle",
+        "power": 20,
+        "max_pp": 40,
+        "type": "NORMAL",
+        "req_level": 0,
+        "accuracy": 100
+    },
+    {
+        "id": 103,
+        "name": "Tail Whip",
+        "power": 0,
+        "max_pp": 20,
+        "type": "NORMAL",
+        "req_level": 0,
+        "accuracy": 100
+    },
+    {
+        "id": 104,
+        "name": "Leer",
+        "power": 0,
+        "max_pp": 20,
+        "type": "NORMAL",
         "req_level": 0,
         "accuracy": 100
     },
     { 
-        "id": 102, 
+        "id": 201, 
         "name": "Ember", 
         "power": 40, 
         "max_pp": 25, 
-        "type": 0, 
+        "type": "FIRE", 
+        "req_level": 0,
+        "accuracy": 95
+    },
+    {
+        "id": 301,
+        "name": "Bubble",
+        "power": 40,
+        "max_pp": 25,
+        "type": "WATER",
+        "req_level": 0,
+        "accuracy": 95
+    },
+    {
+        "id": 401,
+        "name": "Leaf Cutter",
+        "power": 40,
+        "max_pp": 25,
+        "type": "GRASS",
+        "req_level": 0,
+        "accuracy": 95
+    },
+    {
+        "id": 501,
+        "name": "Rock Throw",
+        "power": 40,
+        "max_pp": 25,
+        "type": "ROCK",
+        "req_level": 0,
+        "accuracy": 95
+    },
+    {
+        "id": 601,
+        "name": "Poison Sting",
+        "power": 40,
+        "max_pp": 25,
+        "type": "POISON",
+        "req_level": 0,
+        "accuracy": 95
+    },
+    {
+        "id": 701,
+        "name": "Shock",
+        "power": 40,
+        "max_pp": 25,
+        "type": "ELECTRIC",
         "req_level": 0,
         "accuracy": 95
     }

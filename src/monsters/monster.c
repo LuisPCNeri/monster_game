@@ -157,7 +157,9 @@ void MonstersInit() {
             m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
             m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
             m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
-            m->attack_type = cJSON_GetObjectItem(entry, "type")->valueint;
+
+            char* type = cJSON_GetObjectItem(entry, "type")->valuestring;
+            m->attack_type = MonsterGetTypeFromString(type);
 
             cJSON* acc_item = cJSON_GetObjectItem(entry, "accuracy");
             m->acc_percent = acc_item ? acc_item->valueint : 100;
