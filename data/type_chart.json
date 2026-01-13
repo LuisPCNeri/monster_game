@@ -20,7 +20,7 @@
     { "attacker": "POISON",     "defender": "METAL",    "mult": 0.5},
 
     { "attacker": "ELECTRIC",   "defender": "WATER",    "mult": 2},
-    { "attacker": "ELECTRIC",   "defender": "ROCK",     "mult": 0.5},
+    { "attacker": "ELECTRIC",   "defender": "ROCK",     "mult": 0},
     { "attacker": "ELECTRIC",   "defender": "METAL",    "mult": 1.5},
 
     { "attacker": "NORMAL",     "defender": "GRASS",    "mult": 1.2},
