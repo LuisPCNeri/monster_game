@@ -23,7 +23,6 @@ static TTF_Font* info_font = NULL;
 static move_t* last_used_move = NULL;
 
 static int turn_stage = 0;
-static Uint32 turn_timer = 0;
 static monster_t* first_attacker = NULL;
 static monster_t* second_attacker = NULL;
 static move_t* player_move_ptr = NULL;
@@ -83,6 +82,9 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
 static int BattleCheckIsOver(){
     if(enemy_mon->current_hp <= 0){
         MonsterAddExp(active_player->monster_party[active_player->active_mon_index], enemy_mon);
+        printf("Battle Won! Current Exp: %d/%d\n", 
+            active_player->monster_party[active_player->active_mon_index]->current_exp,
+            active_player->monster_party[active_player->active_mon_index]->exp_to_next_level);
         return 1;
     }
     else if(active_player->monster_party[active_player->active_mon_index]->current_hp <= 0){
@@ -262,7 +264,7 @@ void BattleDraw(){
     // Enemy moster health bar, name and lvl rect
     SDL_Rect enemy_rect = {1450, 50, 400, 100};
     SDL_Rect player_rect = {50, 50, 400, 100};
-    SDL_Rect enemy_mon_sprite = {1500, 300, 300, 300};
+    SDL_Rect enemy_mon_sprite = {1500, 250, 300, 300};
 
     SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
     SDL_Texture* enemy_mon_tex = SDL_CreateTextureFromSurface(rend, enemy_mon_surf);
@@ -343,24 +345,29 @@ void BattleMenuHandleSelect(){
                 second_attacker = enemy_mon;
 
                 fst_atck_move = player_move_ptr;
-                // IMPORTANT Get monster attack
-                scnd_atck_move = &enemy_mon->usable_moves[0];
+                scnd_atck_move = MonsterChooseEnemyAttack(active_mon, enemy_mon);
             } else {
                 first_attacker = enemy_mon;
                 second_attacker = active_mon;
 
-                fst_atck_move = &enemy_mon->usable_moves[0];;
+                fst_atck_move = MonsterChooseEnemyAttack(active_mon, enemy_mon);
                 scnd_atck_move = player_move_ptr;
             }
             battle_state = EXECUTING_TURN;
             turn_stage = 0;
         }
     }
+    // IMPORTANT : Handle Inventory to test catching
 }
 
 void BattleMenuBack(){
     if(battle_state == EXECUTING_TURN) return;
+
+    if(battle_state == MOVES_MENU)  active_player->selected_menu_itm = ATTACK;
+    if(battle_state == INV_OPEN)    active_player->selected_menu_itm = INVENTORY;
+
     battle_state = MAIN_MENU;
+    active_player->current_menu = battle_menu;
 }
 
 void BattleQuit(void){

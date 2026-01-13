@@ -18,9 +18,13 @@
 // GLOBAL array for this file that has IN MEMORY all the monsters (indexed by their order)
 static monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
 static int monster_count = 0;
+
 static move_t ALL_MOVES[MAX_GAME_MOVES];
 static int MoveLibraryCount = 0;
+
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
+
+static move_t* enemy_last_move = NULL;
 
 move_t* GetMoveById(int id) {
     for(int i = 0; i < MoveLibraryCount; i++) {
@@ -137,6 +141,8 @@ void MonstersInit() {
         cJSON_Delete(json_types);
         free(type_data);
     }
+
+    printf("Loaded TYPE CHART\n");
 
     // =========================================================
     // LOAD ALL MOVES INTO THE LIBRARY
@@ -285,10 +291,10 @@ void MonsterSetStats(monster_t* monster){
     monster_t* base = GetMonsterById(monster->id);
     if (!base) return;
 
-    // Formula: Base * (1 + Level/50) + Random Variance (IV simulation)
-    float level_mult = 1.0f + ((float)monster->level / 50.0f);
+    // Formula: Base * ((Level + 10) / 30) + Random Variance (IV simulation)
+    float level_mult = ((float)monster->level + 10.0f) / 30.0f;
 
-    monster->max_hp = (int)(base->max_hp * level_mult) + (rand() % 3);
+    monster->max_hp = (int)(base->max_hp * level_mult) + 10 + (rand() % 3);
     monster->current_hp = monster->max_hp;
 
     monster->attack = (int)(base->attack * level_mult) + (rand() % 2);
@@ -303,12 +309,21 @@ void MonsterSetStats(monster_t* monster){
 static int MonsterSetSpawnLevel(int avg_player_level){
     int spawn_level = avg_player_level;
     int rng = rand() % 100;
-    if(rng < 60){
-        spawn_level += (rand() % 5) - 2; // -2 to +2 levels
-    } else if(rng < 90){
-        spawn_level += (rand() % 4) + 2; // +2 to +5 levels
+
+    if(avg_player_level < 10){
+        if(rng < 80){
+            spawn_level += (rand() % 3) - 1; // -1 to +1 levels
+        } else {
+            spawn_level += (rand() % 3) + 1; // +1 to +3 levels
+        }
     } else {
-        spawn_level += (rand() % 6) + 5; // +5 to +10 levels
+        if(rng < 60){
+            spawn_level += (rand() % 5) - 2; // -2 to +2 levels
+        } else if(rng < 90){
+            spawn_level += (rand() % 4) + 2; // +2 to +5 levels
+        } else {
+            spawn_level += (rand() % 6) + 5; // +5 to +10 levels
+        }
     }
     if(spawn_level < 1) spawn_level = 1;
     if(spawn_level > 100) spawn_level = 100;
@@ -575,13 +590,19 @@ static int MonsterGetExpYield(monster_t* monster, float multiplier){
     if(multiplier <= 0) multiplier = 1.0;
     // Quadratic formula to scale with the XP requirement curve
     // (Level^2 / 2) + 10*Level + 10
-    int base_yield = (monster->level * monster->level / 2) + (monster->level * 10) + 10;
+    int base_yield = (monster->level * monster->level / 2) + (monster->level * 10) + 100;
     
     // Bonus for rarity (Common=0, Uncommon=1, etc.)
     // Adds 20% per rarity tier
     int rarity_bonus = (base_yield * monster->rarity) / 5;
     
     return (int)((base_yield + rarity_bonus) * multiplier);
+}
+
+static void MonsterRestoreMoves(monster_t* monster){
+    for(unsigned int i = 0; i < 4; i++){
+        monster->usable_moves[i].available_uses = monster->usable_moves[i].max_uses;
+    }
 }
 
 
@@ -609,6 +630,7 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster){
 
         // Update the monster's stats to reflect the level up
         MonsterLevelUpStats(monster);
+        MonsterRestoreMoves(monster);
 
         // Clear the status effects
         monster->current_status_fx = NONE;
@@ -625,8 +647,8 @@ monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device){
     // Initially set the catch_rate to the default
     float catch_rate = BASE_CATCH_RATE;
 
-    float level_debuff = catch_rate * monster->level/100;
-    float remaining_hp_buff = catch_rate * (monster->max_hp - monster->current_exp)/100;
+    float level_debuff = catch_rate * monster->level/25;
+    float remaining_hp_buff = catch_rate * (monster->max_hp - monster->current_hp)/100;
 
     // Catch chance will be affected by the monster's level and remaining hp
     // Base chance will be 25%
@@ -664,6 +686,11 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
         return;
     }
 
+    if(move->damage == 0){
+        // TODO : Damage is 0 So most likely has some debuff/buff associated
+        return;
+    }
+
     // Calculate Damage
     // Formula: ((((2 * Level / 5 + 2) * Power * Attack / Defense) / 20) + 2) * Modifier
     float level = (float)attacker->level;
@@ -674,7 +701,7 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
     // Prevent division by zero
     if (defense == 0) defense = 1.0f;
 
-    float base_damage = ((((2.0f * level / 5.0f + 2.0f) * power * (attack / defense)) / 20.0f) + 2.0f);
+    float base_damage = ((((2.0f * level / 5.0f + 2.0f) * power * (attack / defense)) / 50.0f) + 2.0f);
 
     // Modifiers
     float modifier = 1.0f;
@@ -697,7 +724,7 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
 
     // Chance to crit 
     if ((rand() % 16) == 0) {
-        modifier *= 1.5f;
+        modifier *= 2.0f;
         printf("Critical Hit!\n");
     }
 
@@ -713,7 +740,16 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
     // TODO : take into account the status effect move can inflict
 }
 
-// IMPORTANT : Create the enemy monster attacking logic
-void MonsterEnemyAttack(monster_t* player_monster, monster_t* enemy){
+move_t* MonsterChooseEnemyAttack(monster_t* player_monster, monster_t* enemy){
+    // TODO : Use a score based system for the AI
+    // Different enemies have different AI as to be expected
+    // TODO : Trainer's monster AI will be on a different script
 
+    // Wild monsters have no notion of type advantages
+    // What I think is more plausible for them is to choose the attack that does the highest damage
+    // If they attacked once and the other monster was immune THEY LEARN
+    // and so they will not use that attack again agains that monster
+    
+    int rnd = rand() % 4;
+    return &enemy->usable_moves[rnd];
 }

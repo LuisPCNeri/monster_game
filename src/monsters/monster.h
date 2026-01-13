@@ -191,7 +191,7 @@ float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
 void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked);
 
 // Has the enemy monster choose a move to use on the player monster and then attack the player's monster
-void MonsterEnemyAttack(monster_t* player_monster, monster_t* enemy);
+move_t* MonsterChooseEnemyAttack(monster_t* player_monster, monster_t* enemy);
 
 // Prints a monsters data to the terminal
 void MonsterPrint(monster_t* monster);
