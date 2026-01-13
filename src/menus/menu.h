@@ -4,6 +4,8 @@
 #include <SDL2/SDL.h>
 #include "player/player.h"
 
+typedef struct player_t player_t;
+
 typedef struct menu_t{
     SDL_Rect* menu_items;
     int items_amount;

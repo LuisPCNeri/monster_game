@@ -4,6 +4,8 @@
 // Struct to keep all of the catching device properties
 // These will be loaded/created when reading the items.json file
 typedef struct catch_device_t{
+    int id;
+    int type;
     // Name of the catching device
     char name[128];
 
@@ -15,6 +17,8 @@ typedef struct catch_device_t{
 } catch_device_t;
 
 typedef struct restore_item_t{
+    int id;
+    int type;
     // Name of the catching device
     char name[128];
 

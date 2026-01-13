@@ -44,6 +44,10 @@ int main(void)
     // Set up TTF
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
 
+    player->player_inv = InventoryCreateEmpty(15);
+    catch_device_t ball = { 1, 0, "Ball", "", 1 };
+    InventoryAddItem(player->player_inv, &ball, 5);
+
     // triggers the program that controls
     // your graphics hardware and sets flags
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;

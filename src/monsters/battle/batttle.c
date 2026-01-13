@@ -33,7 +33,8 @@ static move_t* scnd_atck_move = NULL;
 typedef enum BattleState{
     MAIN_MENU,
     MOVES_MENU,
-    EXECUTING_TURN
+    EXECUTING_TURN,
+    INV_OPEN
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
@@ -172,7 +173,7 @@ void BattleDraw(){
     if(!active_player->monster_party[active_player->active_mon_index]) return;
 
     // Logic to decide which menu to render
-    if(battle_state == MAIN_MENU){
+    if(battle_state == MAIN_MENU || battle_state == INV_OPEN){
         // Render normal menu items
         BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH]);
         BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK]);
@@ -291,6 +292,8 @@ void BattleDraw(){
     BattleRenderInfo(enemy_hp_info, &enemy_rect, 300, 70);
     BattleRenderInfo(player_hp_info, &player_rect, 300, 70);
 
+    if(battle_state == INV_OPEN) InventoryDraw(active_player->player_inv);
+
     SDL_DestroyTexture(enemy_mon_tex);
 }
 
@@ -320,6 +323,12 @@ void BattleMenuHandleSelect(){
             active_player->selected_menu_itm = 0;
         }
         else if(selected_btn == RUN) BattleQuit();
+        else if(selected_btn == INVENTORY){
+            battle_state = INV_OPEN;
+            active_player->current_menu = active_player->player_inv->menu;
+            active_player->current_menu->draw = BattleDraw;
+            active_player->current_menu->back = BattleMenuBack;
+        }
     }
     else if(battle_state == MOVES_MENU){
         // Make it so it is not the player's turn anymore
