@@ -85,19 +85,19 @@ void MonsterPrint(monster_t* m){
 }
 
 MonsterTypes MonsterGetTypeFromString(const char* type_name){
-    if (strcmp(type_name, "FIRE") == 0)     return FIRE_TYPE;
-    if (strcmp(type_name, "WATER") == 0)    return WATER_TYPE;
-    if (strcmp(type_name, "GRASS") == 0)    return GRASS_TYPE;
-    if (strcmp(type_name, "ROCK") == 0)     return ROCK_TYPE;
-    if (strcmp(type_name, "POISON") == 0)   return POISON_TYPE;
-    if (strcmp(type_name, "ELECTRIC") == 0) return ELECTRIC_TYPE;
-    if (strcmp(type_name, "NORMAL") == 0)   return NORMAL_TYPE;
-    if (strcmp(type_name, "DRAGON") == 0)   return DRAGON_TYPE;
-    if (strcmp(type_name, "METAL") == 0)    return METAL_TYPE;
-    if (strcmp(type_name, "DARK") == 0)     return DARK_TYPE;
-    if (strcmp(type_name, "FLYING") == 0)   return FLYING_TYPE;
-    if (strcmp(type_name, "FIGHTING") == 0) return FIGHTING_TYPE;
-    if (strcmp(type_name, "BUG") == 0)      return BUG_TYPE;
+    if      (strcmp(type_name, "FIRE") == 0)     return FIRE_TYPE;
+    else if (strcmp(type_name, "WATER") == 0)    return WATER_TYPE;
+    else if (strcmp(type_name, "GRASS") == 0)    return GRASS_TYPE;
+    else if (strcmp(type_name, "ROCK") == 0)     return ROCK_TYPE;
+    else if (strcmp(type_name, "POISON") == 0)   return POISON_TYPE;
+    else if (strcmp(type_name, "ELECTRIC") == 0) return ELECTRIC_TYPE;
+    else if (strcmp(type_name, "NORMAL") == 0)   return NORMAL_TYPE;
+    else if (strcmp(type_name, "DRAGON") == 0)   return DRAGON_TYPE;
+    else if (strcmp(type_name, "METAL") == 0)    return METAL_TYPE;
+    else if (strcmp(type_name, "DARK") == 0)     return DARK_TYPE;
+    else if (strcmp(type_name, "FLYING") == 0)   return FLYING_TYPE;
+    else if (strcmp(type_name, "FIGHTING") == 0) return FIGHTING_TYPE;
+    else if (strcmp(type_name, "BUG") == 0)      return BUG_TYPE;
     return NONE_TYPE;
 }
 
@@ -204,8 +204,10 @@ void MonstersInit() {
             mon->evo_1_level = cJSON_GetObjectItem(entry, "evo_1")->valueint;
             mon->evo_2_level = cJSON_GetObjectItem(entry, "evo_2")->valueint;
 
-            mon->type_1 = cJSON_GetObjectItem(entry, "type_1")->valueint;
-            mon->type_2 = cJSON_GetObjectItem(entry, "type_2")->valueint;
+            char* type_1 = cJSON_GetObjectItem(entry, "type_1")->valuestring;
+            mon->type_1 = MonsterGetTypeFromString(type_1);
+            char* type_2 = cJSON_GetObjectItem(entry, "type_2")->valuestring;;
+            mon->type_2 = MonsterGetTypeFromString(type_2);
 
             mon->attack = cJSON_GetObjectItem(stats, "atk")->valueint;
             mon->defense = cJSON_GetObjectItem(stats, "def")->valueint;

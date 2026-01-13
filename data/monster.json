@@ -8,12 +8,11 @@
         "level": 0,
         "evo_1": 20,
         "evo_2": 45,
-        "type_1": 1,
-        "type_2": 0,
-        "stats": { "hp": 35, "atk": 29, "def": 29, "spd": 62 },
-        "starting_moves": [101, 102] 
+        "type_1": "FIRE",
+        "type_2": "NULL",
+        "stats": { "hp": 33, "atk": 29, "def": 29, "spd": 62 },
+        "starting_moves": [101, 102, 201] 
     },
-
     {
         "id": 2,
         "sprite": "",
@@ -23,12 +22,11 @@
         "level": 20,
         "evo_1": 45,
         "evo_2": 0,
-        "type_1": 1,
-        "type_2": 0,
+        "type_1": "FIRE",
+        "type_2": "NULL",
         "stats": { "hp": 50, "atk": 41, "def": 43, "spd": 53 },
-        "starting_moves": [101, 102] 
+        "starting_moves": [101, 102, 201] 
     },
-
     {
         "id": 3,
         "sprite": "",
@@ -38,12 +36,11 @@
         "level": 45,
         "evo_1": 0,
         "evo_2": 0,
-        "type_1": 1,
-        "type_2": 4,
+        "type_1": "FIRE",
+        "type_2": "ROCK",
         "stats": { "hp": 110, "atk": 61, "def": 77, "spd": 49 },
-        "starting_moves": [101, 102] 
+        "starting_moves": [101, 102, 201] 
     },
-
     {
         "id": 4 ,
         "sprite": "resources/monster_sprites/Squeakskulk.png",
@@ -53,12 +50,11 @@
         "level": 0,
         "evo_1": 16,
         "evo_2": 32,
-        "type_1": 10,
-        "type_2": 0,
+        "type_1": "DARK",
+        "type_2": "NULL",
         "stats": { "hp": 30, "atk": 36, "def": 32, "spd": 70 },
-        "starting_moves": [101, 102] 
+        "starting_moves": [101, 102, 103] 
     },
-
     {
         "id": 5 ,
         "sprite": "",
@@ -68,12 +64,11 @@
         "level": 18,
         "evo_1": 32,
         "evo_2": 0,
-        "type_1": 10,
-        "type_2": 6,
+        "type_1": "DARK",
+        "type_2": "ELECTRIC",
         "stats": { "hp": 65, "atk": 48, "def": 45, "spd": 78 },
-        "starting_moves": [101, 102] 
+        "starting_moves": [101, 102, 103] 
     },
-
     {
         "id": 6 ,
         "sprite": "",
@@ -83,10 +78,38 @@
         "level": 32,
         "evo_1": 0,
         "evo_2": 0,
-        "type_1": 10,
-        "type_2": 6,
+        "type_1": "DARK",
+        "type_2": "ELECTRIC",
         "stats": { "hp": 75, "atk": 83, "def": 50, "spd": 95 },
-        "starting_moves": [101, 102] 
+        "starting_moves": [101, 102, 103] 
+    },
+    {
+        "id": 10,
+        "sprite": "",
+        "name": "Tazil",
+        "description": "Tazil, the devil dog monster: Unlike many other monsters, Tazil shows no intention of befriending most humans, only really accepting those who prove themselves worthy.",
+        "rarity": 0,
+        "level": 0,
+        "evo_1": 20,
+        "evo_2": 0,
+        "type_1": "NORMAL",
+        "type_2": "NULL",
+        "stats": { "hp": 25, "atk": 40, "def": 23, "spd": 50},
+        "starting_moves": [101, 102, 103, 104]
+    },
+    {
+        "id": 11,
+        "sprite": "",
+        "name": "Tazdite",
+        "description": "Tazdite, the Devil dog monster: Their aversion to people, their incredbly powerful bite and their ability to produce a devilish roar sound earned them title of devil dog. Despit this when Tazdite respects a trainer they make very good partners.",
+        "rarity": 1,
+        "level": 20,
+        "evo_1": 0,
+        "evo_2": 0,
+        "type_1": "NORMAL",
+        "type_2": "NULL",
+        "stats": { "hp": 45, "atk": 60, "def": 3, "spd": 60},
+        "starting_moves": [101, 102, 103, 104]
     }
 
 
