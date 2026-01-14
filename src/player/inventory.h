@@ -10,8 +10,6 @@ typedef struct inventory_item_t{
     // it shall be considered a void*
     void* item;
     unsigned int count;
-    // Function associated to the use of the item
-    void (*item_use)();
 
     struct inventory_item_t* next_item;
     struct inventory_item_t* prev_item;
@@ -23,6 +21,7 @@ typedef struct inventory_item_t{
 // So a Doubly Linked Set or something like that
 typedef struct{
     int item_count;
+    void* current;
 
     struct menu_t* menu;
     // Array for all the items the player has
@@ -43,6 +42,11 @@ void InventoryRemoveItem(inventory_t* inv, void* item, int count);
 // Searches the inventory struct for an item that matches void* item
 // Returns a pointer to the found item or NULL if it finds nothing
 inventory_item_t* InventorySearch(inventory_t* inv, void* item);
+
+// IMPORTANT : Implement these 3 funcs
+void InventoryMoveForward(inventory_t* inv);
+void InventoryMoveBack(inventory_t* inv);
+void* InventoryGetCurrent(inventory_t* inv);
 
 void InventoryDestroy(inventory_t* inv);
 

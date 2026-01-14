@@ -10,8 +10,6 @@
 
 #define MAX_ITEM_TYPE_AMOUNT 15
 
-// IMPORTANT : Add function logic here
-
 // Helper struct to safely check item ID and Type
 // Assumes all item structs in the game start with 'int id' and 'int type'
 typedef struct {
@@ -40,6 +38,14 @@ inventory_t* InventoryCreateEmpty(int size){
 
     info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
     inv->menu = MenuCreate(MAX_ITEM_TYPE_AMOUNT, 1, 0, InventoryDraw, NULL);
+
+    // Initialize the menu rects so the generic menu logic can animate them
+    for(int i = 0; i < MAX_ITEM_TYPE_AMOUNT; i++){
+        inv->menu->menu_items[i].x = 1450;
+        inv->menu->menu_items[i].y = 200 + (i*50);
+        inv->menu->menu_items[i].w = 400;
+        inv->menu->menu_items[i].h = 50;
+    }
 
     return inv;
 }
@@ -134,7 +140,7 @@ void InventoryDraw(inventory_t* inv){
         // Don't render items that do not exist
         if(inv->items[i].id == -1 || inv->items[i].count == 0) continue;
 
-        SDL_Rect item_box = {1450, 200 + (i*50), 400, 50};
+        SDL_Rect item_box = inv->menu->menu_items[i];
         
         
         char* item_name = "Unknown";
@@ -161,7 +167,7 @@ void InventoryDraw(inventory_t* inv){
         
         int w, h;
         SDL_QueryTexture(text_texture, NULL, NULL, &w, &h);
-        SDL_Rect text_rect = {item_box.x + 10, item_box.y + 18, w, h};
+        SDL_Rect text_rect = {item_box.x + 20, item_box.y + 18, w, h};
 
         int count_w, count_h;
         SDL_QueryTexture(count_texture, NULL, NULL, &count_w, &count_h);

@@ -357,7 +357,9 @@ void BattleMenuHandleSelect(){
             turn_stage = 0;
         }
     }
-    // IMPORTANT : Handle Inventory to test catching
+    else if(battle_state == INV_OPEN){
+        // IMPORTANT : Handle Inventory to test catching
+    }
 }
 
 void BattleMenuBack(){

@@ -743,7 +743,6 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
 move_t* MonsterChooseEnemyAttack(monster_t* player_monster, monster_t* enemy){
     // TODO : Use a score based system for the AI
     // Different enemies have different AI as to be expected
-    // TODO : Trainer's monster AI will be on a different script
 
     // Wild monsters have no notion of type advantages
     // What I think is more plausible for them is to choose the attack that does the highest damage

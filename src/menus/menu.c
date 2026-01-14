@@ -68,13 +68,15 @@ void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect){
 
 void MenuItemKeyUp(player_t* player){
     menu_t* menu = player->current_menu;
-    if(player->selected_menu_itm >= 2 && menu->has_rows){
+    int stride = (menu->has_columns) ? 2 : 1;
+
+    if(player->selected_menu_itm >= stride && menu->has_rows){
         menu->menu_items[player->selected_menu_itm].w -= 20;
         menu->menu_items[player->selected_menu_itm].h -= 20;
         menu->menu_items[player->selected_menu_itm].x += 10;
         menu->menu_items[player->selected_menu_itm].y += 10;
 
-        player->selected_menu_itm -= 2;
+        player->selected_menu_itm -= stride;
 
         menu->menu_items[player->selected_menu_itm].w += 20;
         menu->menu_items[player->selected_menu_itm].h += 20;
@@ -85,13 +87,15 @@ void MenuItemKeyUp(player_t* player){
 
 void MenuItemKeyDown(player_t* player){
     menu_t* menu = player->current_menu;
-    if(player->selected_menu_itm <= 1 && menu->has_rows) {
+    int stride = (menu->has_columns) ? 2 : 1;
+
+    if(player->selected_menu_itm + stride < menu->items_amount && menu->has_rows) {
         menu->menu_items[player->selected_menu_itm].w -= 20;
         menu->menu_items[player->selected_menu_itm].h -= 20;
         menu->menu_items[player->selected_menu_itm].x += 10;
         menu->menu_items[player->selected_menu_itm].y += 10;
 
-        player->selected_menu_itm += 2;
+        player->selected_menu_itm += stride;
 
         menu->menu_items[player->selected_menu_itm].w += 20;
         menu->menu_items[player->selected_menu_itm].h += 20;
@@ -118,7 +122,7 @@ void MenuItemKeyLeft(player_t* player){
         return;
     }
 
-    if(player->selected_menu_itm % 2 != 0 && menu->has_rows) {
+    if(player->selected_menu_itm % 2 != 0 && menu->has_rows && menu->has_columns) {
         menu->menu_items[player->selected_menu_itm].w -= 20;
         menu->menu_items[player->selected_menu_itm].h -= 20;
         menu->menu_items[player->selected_menu_itm].x += 10;
@@ -152,7 +156,7 @@ void MenuItemKeyRight(player_t* player){
         return;
     }
 
-    if(player->selected_menu_itm % 2 == 0 && menu->has_rows) {
+    if(player->selected_menu_itm % 2 == 0 && menu->has_rows && menu->has_columns) {
         menu->menu_items[player->selected_menu_itm].w -= 20;
         menu->menu_items[player->selected_menu_itm].h -= 20;
         menu->menu_items[player->selected_menu_itm].x += 10;
