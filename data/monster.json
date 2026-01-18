@@ -1,9 +1,9 @@
 [
     {
         "id": 1,
-        "sprite": "",
+        "sprite": "resources/monster_sprites/Ignisaur.png",
         "name": "Ignisaur",
-        "description": "NONE",
+        "description": "Ignisaur are said to be born every time a volcano erupts. However this belief is said to be wrong by most experts, who refuse to comment on other possible origins.",
         "rarity": 0,
         "level": 0,
         "evo_1": 20,

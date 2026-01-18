@@ -525,7 +525,7 @@ int TrySpawnMonster(void* arg){
         old_y = current_y; 
         SDL_Delay(50);
     }
-    return NULL;
+    return -1;
 }
 
 // Updates the monster's stats to reflect the level up
