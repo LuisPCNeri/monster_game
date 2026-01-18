@@ -34,7 +34,7 @@ typedef struct player_t{
     GameState game_state;
     int running;
 
-    inventory_t* player_inv;
+    inventory_t* inv;
 } player_t;
 
 // This function is called once and used to have the player chose a starter
@@ -48,5 +48,7 @@ void PlayerStarterMenuDraw();
 // Gets the monster at the index of the current selected item, takes care of it's stats
 // And puts it in the first slot of the player's party
 void PlayerMenuHandleSelect();
+
+void PlayerDestroy(player_t* p);
 
 #endif

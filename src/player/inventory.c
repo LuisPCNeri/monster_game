@@ -36,7 +36,7 @@ inventory_t* InventoryCreateEmpty(int size){
         if(i < size - 1) inv->items[i].next_item = &inv->items[i + 1];
     }
 
-    info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
+    if(!info_font) info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
     inv->menu = MenuCreate(MAX_ITEM_TYPE_AMOUNT, 1, 0, InventoryDraw, NULL);
 
     // Initialize the menu rects so the generic menu logic can animate them
@@ -120,6 +120,10 @@ void InventoryDestroy(inventory_t* inv){
     MenuDestroy(inv->menu);
     free(inv->items);
     free(inv);
+    if(info_font) {
+        TTF_CloseFont(info_font);
+        info_font = NULL;
+    }
 }
 
 void InventoryDraw(inventory_t* inv){

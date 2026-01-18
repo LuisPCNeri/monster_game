@@ -88,5 +88,17 @@ void PlayerMenuHandleSelect(){
     active_player->monster_party[0] = selected_mon;
 
     active_player->game_state = STATE_EXPLORING;
-    MenuDestroy(active_player->current_menu);
+    
+    MenuDestroy(starter_select_menu);
+    active_player->current_menu = NULL;
+}
+
+void PlayerDestroy(player_t* p){
+    for(unsigned int i = 0; i < 5; i++){
+        if(p->monster_party[i]) free(p->monster_party[i]);
+    }
+
+    if(p->current_menu) MenuDestroy(p->current_menu);
+    InventoryDestroy(p->inv);
+    free(p);
 }

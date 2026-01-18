@@ -180,7 +180,7 @@ monster_t SpawnMonster(int tile_type, int avg_player_level);
 // Every time the player changes tiles it checks the tile_type
 // If monsters can spawn in that tile it tries to spawn one
 // void* arg is passed when creating the thread that will run this code and should be a pointer to the player "object"
-void* TrySpawnMonster(void* arg);
+int TrySpawnMonster(void* arg);
 
 // Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
 float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);

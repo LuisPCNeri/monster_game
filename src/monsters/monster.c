@@ -479,7 +479,7 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
     return ALL_MONSTERS[0];
 }
 
-void* TrySpawnMonster(void* arg){
+int TrySpawnMonster(void* arg){
     // Convert the argument to a player pointer
     player_t* player = (player_t*) arg;
     

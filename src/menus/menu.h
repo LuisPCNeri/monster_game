@@ -42,6 +42,9 @@ void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect);
 // Wrapper function that just runs the current menu's select function
 void MenuSelectCurrentItem(player_t* player);
 
+void MenuHighlightBox(SDL_Rect* rect);
+void MenuDeHighlightBox(SDL_Rect* rect);
+
 void MenuItemKeyUp(player_t* player);
 void MenuItemKeyDown(player_t* player);
 void MenuItemKeyLeft(player_t* player);

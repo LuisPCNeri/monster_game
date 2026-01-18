@@ -66,22 +66,28 @@ void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect){
     SDL_DestroyTexture(text_texture);
 }
 
+void MenuHighlightBox(SDL_Rect* rect){
+    rect->w += 20;
+    rect->h += 20;
+    rect->x -= 10;
+    rect->y -= 10;
+}
+
+void MenuDeHighlightBox(SDL_Rect* rect){
+    rect->w -= 20;
+    rect->h -= 20;
+    rect->x += 10;
+    rect->y += 10;
+}
+
 void MenuItemKeyUp(player_t* player){
     menu_t* menu = player->current_menu;
     int stride = (menu->has_columns) ? 2 : 1;
 
     if(player->selected_menu_itm >= stride && menu->has_rows){
-        menu->menu_items[player->selected_menu_itm].w -= 20;
-        menu->menu_items[player->selected_menu_itm].h -= 20;
-        menu->menu_items[player->selected_menu_itm].x += 10;
-        menu->menu_items[player->selected_menu_itm].y += 10;
-
+        MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm -= stride;
-
-        menu->menu_items[player->selected_menu_itm].w += 20;
-        menu->menu_items[player->selected_menu_itm].h += 20;
-        menu->menu_items[player->selected_menu_itm].x -= 10;
-        menu->menu_items[player->selected_menu_itm].y -= 10;
+        MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
     }
 }
 
@@ -90,50 +96,26 @@ void MenuItemKeyDown(player_t* player){
     int stride = (menu->has_columns) ? 2 : 1;
 
     if(player->selected_menu_itm + stride < menu->items_amount && menu->has_rows) {
-        menu->menu_items[player->selected_menu_itm].w -= 20;
-        menu->menu_items[player->selected_menu_itm].h -= 20;
-        menu->menu_items[player->selected_menu_itm].x += 10;
-        menu->menu_items[player->selected_menu_itm].y += 10;
-
+        MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm += stride;
-
-        menu->menu_items[player->selected_menu_itm].w += 20;
-        menu->menu_items[player->selected_menu_itm].h += 20;
-        menu->menu_items[player->selected_menu_itm].x -= 10;
-        menu->menu_items[player->selected_menu_itm].y -= 10;
+        MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
     }
 }
 
 void MenuItemKeyLeft(player_t* player){
     menu_t* menu = player->current_menu;
     if( menu->has_rows == 0 && player->selected_menu_itm > 0){
-        menu->menu_items[player->selected_menu_itm].w -= 20;
-        menu->menu_items[player->selected_menu_itm].h -= 20;
-        menu->menu_items[player->selected_menu_itm].x += 10;
-        menu->menu_items[player->selected_menu_itm].y += 10;
-
+        MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm--;
-
-        menu->menu_items[player->selected_menu_itm].w += 20;
-        menu->menu_items[player->selected_menu_itm].h += 20;
-        menu->menu_items[player->selected_menu_itm].x -= 10;
-        menu->menu_items[player->selected_menu_itm].y -= 10;
+        MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
 
         return;
     }
 
-    if(player->selected_menu_itm % 2 != 0 && menu->has_rows && menu->has_columns) {
-        menu->menu_items[player->selected_menu_itm].w -= 20;
-        menu->menu_items[player->selected_menu_itm].h -= 20;
-        menu->menu_items[player->selected_menu_itm].x += 10;
-        menu->menu_items[player->selected_menu_itm].y += 10;
-
+    if( (player->selected_menu_itm & 1) == 1 && menu->has_rows && menu->has_columns) {
+        MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm--;
-
-        menu->menu_items[player->selected_menu_itm].w += 20;
-        menu->menu_items[player->selected_menu_itm].h += 20;
-        menu->menu_items[player->selected_menu_itm].x -= 10;
-        menu->menu_items[player->selected_menu_itm].y -= 10;
+        MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
     }
 }
 
@@ -141,33 +123,18 @@ void MenuItemKeyRight(player_t* player){
     menu_t* menu = player->current_menu;
 
     if( menu->has_rows == 0 && player->selected_menu_itm < menu->items_amount - 1){
-        menu->menu_items[player->selected_menu_itm].w -= 20;
-        menu->menu_items[player->selected_menu_itm].h -= 20;
-        menu->menu_items[player->selected_menu_itm].x += 10;
-        menu->menu_items[player->selected_menu_itm].y += 10;
-
+        MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm++;
-
-        menu->menu_items[player->selected_menu_itm].w += 20;
-        menu->menu_items[player->selected_menu_itm].h += 20;
-        menu->menu_items[player->selected_menu_itm].x -= 10;
-        menu->menu_items[player->selected_menu_itm].y -= 10;
+        MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
 
         return;
     }
 
-    if(player->selected_menu_itm % 2 == 0 && menu->has_rows && menu->has_columns) {
-        menu->menu_items[player->selected_menu_itm].w -= 20;
-        menu->menu_items[player->selected_menu_itm].h -= 20;
-        menu->menu_items[player->selected_menu_itm].x += 10;
-        menu->menu_items[player->selected_menu_itm].y += 10;
-
+    if( (player->selected_menu_itm & 1) == 0 && menu->has_rows && menu->has_columns) {
+        MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm++;
-
-        menu->menu_items[player->selected_menu_itm].w += 20;
-        menu->menu_items[player->selected_menu_itm].h += 20;
-        menu->menu_items[player->selected_menu_itm].x -= 10;
-        menu->menu_items[player->selected_menu_itm].y -= 10;
+        MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
+        
         return;
     }
 }

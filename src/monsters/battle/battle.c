@@ -20,6 +20,7 @@ static monster_t* enemy_mon = NULL;
 static menu_t* battle_menu = NULL;
 static player_t* active_player = NULL;
 static TTF_Font* info_font = NULL;
+static SDL_Texture* enemy_mon_tex = NULL;
 static move_t* last_used_move = NULL;
 
 static int turn_stage = 0;
@@ -44,6 +45,10 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     battle_state = MAIN_MENU;
 
     if (battle_menu) MenuDestroy(battle_menu);
+    if (enemy_mon_tex) {
+        SDL_DestroyTexture(enemy_mon_tex);
+        enemy_mon_tex = NULL;
+    }
     battle_menu = MenuCreate(4, 1, 1, &BattleDraw, &BattleMenuHandleSelect);
     battle_menu->back = BattleMenuBack;
 
@@ -127,8 +132,7 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect){
 
     SDL_DestroyTexture(text_texture);
 
-    // TODO : Indicate player victory with a rect (in the middle of the screen showing the exp gained or something and if monster leveled up (WITH SOUNDS *GASP*))
-    if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
+    // TODO : Indicate player victory with a rect (in the middle of the screen showing the exp gained or something and if monster leveled up (WITH SOUNDS *GASP*)
 }
 
 static void BattleRenderInfo(const char* btn_text, SDL_Rect* dst_rect, int x_offset, int y_offset){
@@ -266,9 +270,11 @@ void BattleDraw(){
     SDL_Rect player_rect = {50, 50, 400, 100};
     SDL_Rect enemy_mon_sprite = {1500, 250, 300, 300};
 
-    SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
-    SDL_Texture* enemy_mon_tex = SDL_CreateTextureFromSurface(rend, enemy_mon_surf);
-    SDL_FreeSurface(enemy_mon_surf);
+    if (!enemy_mon_tex) {
+        SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
+        enemy_mon_tex = SDL_CreateTextureFromSurface(rend, enemy_mon_surf);
+        SDL_FreeSurface(enemy_mon_surf);
+    }
     SDL_RenderCopy(rend, enemy_mon_tex, NULL, &enemy_mon_sprite);
 
     BattleRenderInfo(enemy_mon->monster_name, &enemy_rect, 20, 20);
@@ -294,9 +300,7 @@ void BattleDraw(){
     BattleRenderInfo(enemy_hp_info, &enemy_rect, 300, 70);
     BattleRenderInfo(player_hp_info, &player_rect, 300, 70);
 
-    if(battle_state == INV_OPEN) InventoryDraw(active_player->player_inv);
-
-    SDL_DestroyTexture(enemy_mon_tex);
+    if(battle_state == INV_OPEN) InventoryDraw(active_player->inv);
 }
 
 void BattleMenuHandleSelect(){
@@ -327,7 +331,7 @@ void BattleMenuHandleSelect(){
         else if(selected_btn == RUN) BattleQuit();
         else if(selected_btn == INVENTORY){
             battle_state = INV_OPEN;
-            active_player->current_menu = active_player->player_inv->menu;
+            active_player->current_menu = active_player->inv->menu;
             active_player->current_menu->draw = BattleDraw;
             active_player->current_menu->back = BattleMenuBack;
         }
@@ -363,10 +367,15 @@ void BattleMenuHandleSelect(){
 }
 
 void BattleMenuBack(){
+    if(battle_state == MAIN_MENU) return;
     if(battle_state == EXECUTING_TURN) return;
-
-    if(battle_state == MOVES_MENU)  active_player->selected_menu_itm = ATTACK;
-    if(battle_state == INV_OPEN)    active_player->selected_menu_itm = INVENTORY;
+    
+    MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
+    if(battle_state == MOVES_MENU){
+        active_player->selected_menu_itm = ATTACK;
+        MenuHighlightBox(&battle_menu->menu_items[ATTACK]);
+    }
+    if(battle_state == INV_OPEN) active_player->selected_menu_itm = INVENTORY;
 
     battle_state = MAIN_MENU;
     active_player->current_menu = battle_menu;
@@ -374,12 +383,20 @@ void BattleMenuBack(){
 
 void BattleQuit(void){
     if (battle_menu) {
+        // Prevents double frees
+        if(active_player) active_player->current_menu = NULL;
+        
         MenuDestroy(battle_menu);
         battle_menu = NULL;
     }
     if (info_font) {
         TTF_CloseFont(info_font);
         info_font = NULL;
+    }
+
+    if (enemy_mon_tex) {
+        SDL_DestroyTexture(enemy_mon_tex);
+        enemy_mon_tex = NULL;
     }
 
     if(active_player) active_player->game_state = STATE_EXPLORING;

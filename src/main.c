@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <pthread.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -44,9 +42,9 @@ int main(void)
     // Set up TTF
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
 
-    player->player_inv = InventoryCreateEmpty(15);
+    player->inv = InventoryCreateEmpty(15);
     catch_device_t ball = { 1, 0, 1, NULL, "Ball", "" };
-    InventoryAddItem(player->player_inv, &ball, 5);
+    InventoryAddItem(player->inv, &ball, 5);
 
     // triggers the program that controls
     // your graphics hardware and sets flags
@@ -103,8 +101,8 @@ int main(void)
 
     PlayerSetStarters(player);
 
-    pthread_t spawn_thread;
-    pthread_create(&spawn_thread, NULL, &TrySpawnMonster, player);
+    SDL_Thread* spawn_thread = SDL_CreateThread(TrySpawnMonster, "spawn_thread", player);
+    printf("Spawn Thread Created\n");
 
     int running = 1;
     while (running) {
@@ -226,6 +224,14 @@ int main(void)
         SDL_Delay(1000 / 60);
     }
 
+    player->running = 0;
+    int thread_return;
+    SDL_WaitThread(spawn_thread, &thread_return);
+
+    // close SDL
+    BattleQuit();
+    PlayerDestroy(player);
+
     SDL_DestroyTexture(map_tex);
     // destroy texture
     SDL_DestroyTexture(player_texture);
@@ -235,13 +241,6 @@ int main(void)
     TTF_CloseFont(game_font);
     // destroy window
     SDL_DestroyWindow(win);
-    
-    player->running = 0;
-    pthread_join(spawn_thread, NULL);
-
-    // close SDL
-    BattleQuit();
-    free(player);
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
