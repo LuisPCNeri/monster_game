@@ -24,8 +24,6 @@ static int MoveLibraryCount = 0;
 
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
 
-static move_t* enemy_last_move = NULL;
-
 move_t* GetMoveById(int id) {
     for(int i = 0; i < MoveLibraryCount; i++) {
         if(ALL_MOVES[i].id == id) {
@@ -740,7 +738,7 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
     // TODO : take into account the status effect move can inflict
 }
 
-move_t* MonsterChooseEnemyAttack(monster_t* player_monster, monster_t* enemy){
+move_t* MonsterChooseEnemyAttack(monster_t* enemy){
     // TODO : Use a score based system for the AI
     // Different enemies have different AI as to be expected
 

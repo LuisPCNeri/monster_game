@@ -67,8 +67,7 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     battle_menu->menu_items[RUN] = run_btn;
 
     // Just to hep on BattleDraw function to prevent it running when it is not supposed to
-    enemy_mon_data = *enemy_monster;
-    enemy_mon = &enemy_mon_data;
+    enemy_mon = enemy_monster;
 
     // Set player's active monster to the first one in the party
     player->active_mon_index = 0;
@@ -213,7 +212,6 @@ void BattleDraw(){
             // Execute First Attack
             monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
             MonsterUseMoveOn(first_attacker, fst_atck_move, target);
-            last_used_move = fst_atck_move;
 
             turn_stage = 1;
         }
@@ -240,7 +238,6 @@ void BattleDraw(){
             // Execute Second Attack
             monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
             MonsterUseMoveOn(second_attacker, scnd_atck_move, target);
-            last_used_move = scnd_atck_move;
 
             turn_stage = 3;
         }
@@ -349,12 +346,12 @@ void BattleMenuHandleSelect(){
                 second_attacker = enemy_mon;
 
                 fst_atck_move = player_move_ptr;
-                scnd_atck_move = MonsterChooseEnemyAttack(active_mon, enemy_mon);
+                scnd_atck_move = MonsterChooseEnemyAttack(enemy_mon);
             } else {
                 first_attacker = enemy_mon;
                 second_attacker = active_mon;
 
-                fst_atck_move = MonsterChooseEnemyAttack(active_mon, enemy_mon);
+                fst_atck_move = MonsterChooseEnemyAttack(enemy_mon);
                 scnd_atck_move = player_move_ptr;
             }
             battle_state = EXECUTING_TURN;
