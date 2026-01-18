@@ -23,17 +23,10 @@ ifeq ($(detected_OS),Windows)
 else
 	LIBS_DIR = libs
 	TARGET = main
-	# Check for sdl2-config, fallback to pkg-config, then default
-  ifneq ($(shell command -v sdl2-config 2> /dev/null),)
-	SDL_CFLAGS := -I$(LIBS_DIR)/include $(shell sdl2-config --cflags)
-	SDL_LDFLAGS := -L$(LIBS_DIR)/lib $(shell sdl2-config --libs) -Wl,-rpath,'$$ORIGIN/$(LIBS_DIR)/lib'
-  else ifneq ($(shell command -v pkg-config 2> /dev/null),)
-	SDL_CFLAGS := -I$(LIBS_DIR)/include $(shell pkg-config --cflags sdl2)
-	SDL_LDFLAGS := -L$(LIBS_DIR)/lib $(shell pkg-config --libs sdl2) -Wl,-rpath,'$$ORIGIN/$(LIBS_DIR)/lib'
-  else
+	# Use local libraries explicitly for clean installation compatibility
 	SDL_CFLAGS := -I$(LIBS_DIR)/include -D_REENTRANT
-	SDL_LDFLAGS := -L$(LIBS_DIR)/lib -lSDL2 -Wl,-rpath,'$$ORIGIN/$(LIBS_DIR)/lib'
-  endif
+	# Link math library (-lm) and other system dependencies explicitly
+	SDL_LDFLAGS := -L$(LIBS_DIR)/lib -lSDL2 -lm -ldl -lpthread -Wl,-rpath,'$$ORIGIN/$(LIBS_DIR)/lib'
 	MKDIR_P = mkdir -p $(@D)
 	CLEAN_CMD = rm -rf $(BUILD_DIR) $(TARGET)
 endif
@@ -47,6 +40,9 @@ OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(filter $(SRC_DIR)/%, $(SRC
 
 CFLAGS = -Wall -Wextra -std=c99 -I$(SRC_DIR) -I$(LIBS_DIR) $(SDL_CFLAGS)
 LDFLAGS = $(SDL_LDFLAGS) -lSDL2_image -lSDL2_ttf
+
+release: CFLAGS += -O3
+release: all
 
 all: $(TARGET)
 
@@ -64,4 +60,4 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 clean:
 	$(CLEAN_CMD)
 
-.PHONY: all clean
+.PHONY: all clean release
