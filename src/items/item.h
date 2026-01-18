@@ -11,7 +11,7 @@ typedef struct catch_device_t{
     // Multiplier for the catch rate associated with this device.
     int catch_rate_mult;
 
-    void* (*use)(monster_t* monster, struct catch_device_t device);
+    void (*use)(monster_t* monster, struct catch_device_t device);
 
     // Name of the catching device
     char name[128];
@@ -26,7 +26,7 @@ typedef struct restore_item_t{
 
     int restore_amount;
 
-    void* (*use)(monster_t* monster, struct restore_item_t* r_item);
+    void (*use)(monster_t* monster, struct restore_item_t* r_item);
     // Name of the catching device
     char name[128];
 
