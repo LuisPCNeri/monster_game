@@ -32,6 +32,10 @@ inventory_t* InventoryCreateEmpty(int size){
         inv->items[i].id = -1;
         inv->items[i].type = -1;
         inv->items[i].count = 0;
+
+        if(i == 0) inv->items[i].prev_item = NULL;
+        if(i == size - 1) inv->items[i].next_item = NULL;
+
         if(i > 0) inv->items[i].prev_item = &inv->items[i - 1];
         if(i < size - 1) inv->items[i].next_item = &inv->items[i + 1];
     }
@@ -46,6 +50,9 @@ inventory_t* InventoryCreateEmpty(int size){
         inv->menu->menu_items[i].w = 400;
         inv->menu->menu_items[i].h = 50;
     }
+
+    inv->head = &inv->items[0];
+    inv->current = inv->head;
 
     return inv;
 }
@@ -63,7 +70,7 @@ inventory_item_t* InventorySearch(inventory_t* inv, void* item){
     return NULL;
 }
 
-void InventoryAddItem(inventory_t* inv, void* item, int count){
+void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
     if (!inv || !item) return;
 
     item_header_t* header = (item_header_t*)item;
@@ -88,11 +95,11 @@ void InventoryAddItem(inventory_t* inv, void* item, int count){
     printf("Inventory is full!\n");
 }
 
-void InventoryRemoveItem(inventory_t* inv, void* item, int count){
+void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
     if (!inv || !item) return;
-
-    item_header_t* header = (item_header_t*)item;
     
+    item_header_t* header = (item_header_t*)item;
+
     // Check if item already exists to stack it
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){
@@ -186,4 +193,40 @@ void InventoryDraw(inventory_t* inv){
 
     // Set Render color back to black PLEASE FFS DO NOT LET THIS BE CHANGED ME :pray:
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+}
+
+// Sets the use function of the Inventory menu to the use func of the current item
+static void InventorySetUse(inventory_t* inv){
+    switch(inv->current->type){
+        case 0:
+            catch_device_t* device = (catch_device_t*) inv->current->item;
+            // Set Inventory menu item select to the function to use the item
+            inv->menu->select_routine = device->use;
+            break;
+        default:
+            return;
+    }
+}
+
+void InventoryMoveForward(inventory_t* inv){
+    if(inv->current->next_item){
+        inv->current = inv->current->next_item;
+        InventorySetUse(inv);
+    }
+    // Wrap around to the head
+    else{
+        inv->current = inv->head;
+        InventorySetUse(inv);
+    }
+}
+
+void InventoryMoveBack(inventory_t* inv){
+    if(inv->current->prev_item){
+        inv->current = inv->current->prev_item;
+        InventorySetUse(inv);
+    }
+}
+
+void* InventoryGetCurrent(inventory_t* inv){
+    return inv->current;
 }

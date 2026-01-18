@@ -21,7 +21,8 @@ typedef struct inventory_item_t{
 // So a Doubly Linked Set or something like that
 typedef struct{
     int item_count;
-    void* current;
+    inventory_item_t* current;
+    inventory_item_t* head;
 
     struct menu_t* menu;
     // Array for all the items the player has
@@ -34,10 +35,10 @@ typedef struct{
 inventory_t* InventoryCreateEmpty(int size);
 // Adds an item to the inventory
 // If the item already exists in the inventory increases it's count
-void InventoryAddItem(inventory_t* inv, void* item, int count);
+void InventoryAddItem(inventory_t* inv, void* item, unsigned int count);
 // Removes an item of the inventory
 // If the item already exists decreases it's count
-void InventoryRemoveItem(inventory_t* inv, void* item, int count);
+void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count);
 
 // Searches the inventory struct for an item that matches void* item
 // Returns a pointer to the found item or NULL if it finds nothing
