@@ -14,18 +14,20 @@
 // Renderer created in main
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
-
-static monster_t enemy_mon_data;
-static monster_t* enemy_mon = NULL;
-static menu_t* battle_menu = NULL;
-static player_t* active_player = NULL;
 static TTF_Font* info_font = NULL;
+
+static monster_t* enemy_mon = NULL;
 static SDL_Texture* enemy_mon_tex = NULL;
-static move_t* last_used_move = NULL;
+
+static menu_t* battle_menu = NULL;
+
+static player_t* active_player = NULL;
+static SDL_Texture* player_mon_tex = NULL;
 
 static int turn_stage = 0;
 static monster_t* first_attacker = NULL;
 static monster_t* second_attacker = NULL;
+
 static move_t* player_move_ptr = NULL;
 static move_t* fst_atck_move = NULL;
 static move_t* scnd_atck_move = NULL;
@@ -264,14 +266,27 @@ void BattleDraw(){
 
     // Enemy moster health bar, name and lvl rect
     SDL_Rect enemy_rect = {1450, 50, 400, 100};
-    SDL_Rect player_rect = {50, 50, 400, 100};
-    SDL_Rect enemy_mon_sprite = {1500, 250, 300, 300};
+    SDL_Rect player_rect = {50, 550, 400, 100};
+    SDL_Rect enemy_mon_sprite = {1500, 150, 300, 300};
+    SDL_Rect player_mon_sprite = {50, 250, 300, 300};
 
     if (!enemy_mon_tex) {
         SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
         enemy_mon_tex = SDL_CreateTextureFromSurface(rend, enemy_mon_surf);
         SDL_FreeSurface(enemy_mon_surf);
     }
+    if (!player_mon_tex) {
+        char tex_name[512];
+        sprintf(tex_name, "resources/monster_sprites/PLAYER_%s.png",
+            active_player->monster_party[active_player->active_mon_index]->monster_name);
+
+        printf("%s\n", tex_name);
+
+        SDL_Surface* player_mon_surf = IMG_Load(tex_name);
+        player_mon_tex = SDL_CreateTextureFromSurface(rend, player_mon_surf);
+        SDL_FreeSurface(player_mon_surf);
+    }
+    SDL_RenderCopy(rend, player_mon_tex, NULL, &player_mon_sprite);
     SDL_RenderCopy(rend, enemy_mon_tex, NULL, &enemy_mon_sprite);
 
     BattleRenderInfo(enemy_mon->monster_name, &enemy_rect, 20, 20);
@@ -379,19 +394,23 @@ void BattleMenuBack(){
 }
 
 void BattleQuit(void){
-    if (battle_menu) {
+    if (battle_menu){
         // Prevents double frees
         if(active_player) active_player->current_menu = NULL;
         
         MenuDestroy(battle_menu);
         battle_menu = NULL;
     }
-    if (info_font) {
+    if (info_font){
         TTF_CloseFont(info_font);
         info_font = NULL;
     }
 
-    if (enemy_mon_tex) {
+    if(player_mon_tex){
+        SDL_DestroyTexture(player_mon_tex);
+        player_mon_tex = NULL;
+    }
+    if (enemy_mon_tex){
         SDL_DestroyTexture(enemy_mon_tex);
         enemy_mon_tex = NULL;
     }
