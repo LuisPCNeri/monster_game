@@ -47,7 +47,7 @@ inventory_item_t* InventorySearch(inventory_t* inv, void* item);
 // IMPORTANT : Implement these 3 funcs
 void InventoryMoveForward(inventory_t* inv);
 void InventoryMoveBack(inventory_t* inv);
-void* InventoryGetCurrent(inventory_t* inv);
+inventory_item_t* InventoryGetCurrent(inventory_t* inv);
 
 void InventoryDestroy(inventory_t* inv);
 

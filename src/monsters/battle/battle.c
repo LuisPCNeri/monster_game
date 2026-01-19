@@ -36,7 +36,8 @@ typedef enum BattleState{
     MAIN_MENU,
     MOVES_MENU,
     EXECUTING_TURN,
-    INV_OPEN
+    INV_OPEN,
+    MESSAGE_DISPLAYED
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
@@ -263,6 +264,16 @@ void BattleDraw(){
             BattleRenderInfo("->", &status_rect, 750, 150);
         }
     }
+    else if(battle_state == MESSAGE_DISPLAYED){
+        SDL_Rect status_rect = {50, 850, 800, 200};
+
+        char message[520];
+        sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
+        BattleRenderInfo(message, &status_rect, 20, 20);
+
+        // Render "Press Enter" indicator
+        BattleRenderInfo("->", &status_rect, 750, 150);
+    }
 
     // Enemy moster health bar, name and lvl rect
     SDL_Rect enemy_rect = {1450, 50, 400, 100};
@@ -279,8 +290,6 @@ void BattleDraw(){
         char tex_name[512];
         sprintf(tex_name, "resources/monster_sprites/PLAYER_%s.png",
             active_player->monster_party[active_player->active_mon_index]->monster_name);
-
-        printf("%s\n", tex_name);
 
         SDL_Surface* player_mon_surf = IMG_Load(tex_name);
         player_mon_tex = SDL_CreateTextureFromSurface(rend, player_mon_surf);
@@ -344,6 +353,7 @@ void BattleMenuHandleSelect(){
         else if(selected_btn == INVENTORY){
             battle_state = INV_OPEN;
             active_player->current_menu = active_player->inv->menu;
+            active_player->current_menu->select_routine = BattleMenuHandleSelect;
             active_player->current_menu->draw = BattleDraw;
             active_player->current_menu->back = BattleMenuBack;
         }
@@ -375,6 +385,30 @@ void BattleMenuHandleSelect(){
     }
     else if(battle_state == INV_OPEN){
         // IMPORTANT : Handle Inventory to test catching
+        inventory_item_t* item = InventoryGetCurrent(active_player->inv);
+
+        switch(item->type){
+            case 0:
+                if(item->count <= 0 || item->id == -1) return;
+                printf("Used item with id: %d\n", item->id);
+                
+                InventoryRemoveItem(active_player->inv, item->item, 1);
+                catch_device_t* device = (catch_device_t*) item->item;
+                int has_caught = MonsterTryCatch(active_player, enemy_mon, device);
+                if(has_caught){
+                    // TODO : Display a caught message
+                    fflush(stdout);
+                    battle_state = MESSAGE_DISPLAYED;
+                    return;
+                }
+
+                break;
+            default:
+                return;
+        }
+    }
+    else if(battle_state == MESSAGE_DISPLAYED){
+        active_player->game_state = STATE_EXPLORING;
     }
 }
 

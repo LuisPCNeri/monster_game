@@ -69,7 +69,6 @@ inventory_item_t* InventorySearch(inventory_t* inv, void* item){
     } 
     return NULL;
 }
-
 void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
     if (!inv || !item) return;
 
@@ -84,7 +83,7 @@ void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
 
     // Find first empty slot
     for(int i = 0; i < inv->item_count; i++){
-        if(inv->items[i].count == 0){
+        if(inv->items[i].id == -1){
             inv->items[i].item = item;
             inv->items[i].id = header->id;
             inv->items[i].type = header->type;
@@ -104,13 +103,7 @@ void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){
         if( existing->count <= count ){
-            // Erase the item
-            inventory_item_t* prev = existing->prev_item;
-
-            prev->next_item = existing->next_item;
-            existing->next_item->prev_item = prev;
-
-            free(existing);
+            existing->id = -1;
             return;
         }
 
@@ -195,38 +188,22 @@ void InventoryDraw(inventory_t* inv){
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 }
 
-// Sets the use function of the Inventory menu to the use func of the current item
-static void InventorySetUse(inventory_t* inv){
-    switch(inv->current->type){
-        case 0:
-            catch_device_t* device = (catch_device_t*) inv->current->item;
-            // Set Inventory menu item select to the function to use the item
-            inv->menu->select_routine = device->use;
-            break;
-        default:
-            return;
-    }
-}
-
 void InventoryMoveForward(inventory_t* inv){
     if(inv->current->next_item){
         inv->current = inv->current->next_item;
-        InventorySetUse(inv);
     }
     // Wrap around to the head
     else{
         inv->current = inv->head;
-        InventorySetUse(inv);
     }
 }
 
 void InventoryMoveBack(inventory_t* inv){
     if(inv->current->prev_item){
         inv->current = inv->current->prev_item;
-        InventorySetUse(inv);
     }
 }
 
-void* InventoryGetCurrent(inventory_t* inv){
+inventory_item_t* InventoryGetCurrent(inventory_t* inv){
     return inv->current;
 }

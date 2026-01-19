@@ -49,6 +49,10 @@ void PlayerStarterMenuDraw();
 // And puts it in the first slot of the player's party
 void PlayerMenuHandleSelect();
 
+// Adds a monster to the player's party or the PC if the party is full
+// Returns 0 if the party is full
+int PlayerAddMonsterToParty(monster_t* monster);
+
 void PlayerDestroy(player_t* p);
 
 #endif

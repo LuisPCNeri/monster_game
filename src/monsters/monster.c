@@ -56,7 +56,8 @@ static char* LoadFileToString(char* file_path){
     fseek(fptr, 0, SEEK_SET);
 
     char* buffer = (char*) malloc((size_t) file_size + 1);
-    fread(buffer, 1, file_size, fptr);
+    size_t out = fread(buffer, 1, file_size, fptr);
+    if(out == 0) perror("fread");
     buffer[file_size] = '\0';
 
     fclose(fptr);
@@ -640,7 +641,7 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster){
     }
 }
 
-monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device){
+int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device){
 
     // Initially set the catch_rate to the default
     float catch_rate = BASE_CATCH_RATE;
@@ -655,15 +656,16 @@ monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device){
     catch_rate = catch_rate - level_debuff + remaining_hp_buff;
     catch_rate *= device->catch_rate_mult;
 
-    // Guaranteed catch
-    if(catch_rate > 100) return monster;
-
     int rnd_catch = rand() % (100 + 1);
-    // Random number was inside the catch rate so it was caught
-    if(rnd_catch <= catch_rate) return monster;
+    
+    if(rnd_catch <= catch_rate || catch_rate >= 100){
+        PlayerAddMonsterToParty(monster);
+        printf("Caught %s!\n", monster->monster_name);
+        return 1;
+    }
 
     // Monster was not caught
-    return NULL;
+    return 0;
 }
 
 float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender){

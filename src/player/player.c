@@ -93,6 +93,25 @@ void PlayerMenuHandleSelect(){
     active_player->current_menu = NULL;
 }
 
+int PlayerAddMonsterToParty(monster_t* monster){
+    int has_space = 0;
+    
+    for(int i = 0; i < 5; i++){
+        if(!active_player->monster_party[i]){
+            active_player->monster_party[i] = (monster_t*) malloc(sizeof(monster_t));
+
+            *active_player->monster_party[i] = *monster;
+            has_space = 1;
+            break;
+        }
+    }
+
+    // TODO : PC saving monster stuff
+    if(!has_space){}
+
+    return has_space;
+}
+
 void PlayerDestroy(player_t* p){
     for(unsigned int i = 0; i < 5; i++){
         if(p->monster_party[i]) free(p->monster_party[i]);

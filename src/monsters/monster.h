@@ -211,8 +211,7 @@ void MonsterAddExp(monster_t* monster, monster_t* enemy_monster);
 // Has the player try to catch a monster.
 // Uses the rarity modifiers to calculate the chance.
 // If it hits the monster will go to the player's party. If the party is full goes to the storage.
-// Returns a pointer to the caught monster or NULL if it was not caught
-monster_t* MonsterTryCatch(monster_t* monster, catch_device_t* device);
+int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device);
 
 // Sets the stats of a monster to have some rng
 // Used when a monster spawns and when choosing a starter

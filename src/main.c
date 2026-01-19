@@ -43,7 +43,7 @@ int main(void)
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
 
     player->inv = InventoryCreateEmpty(15);
-    catch_device_t ball = { 1, 0, 1, NULL, "Ball", "" };
+    catch_device_t ball = { 1, 0, 1, "Ball", "" };
     InventoryAddItem(player->inv, &ball, 5);
 
     // triggers the program that controls
