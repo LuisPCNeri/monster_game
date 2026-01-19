@@ -15,7 +15,7 @@ ifeq ($(detected_OS),Windows)
 	LIBS_DIR = win_libs
 	TARGET = main.exe
 	SDL_CFLAGS = -I$(LIBS_DIR)/include -Dmain=SDL_main
-	SDL_LDFLAGS = -L$(LIBS_DIR)/lib -lmingw32 -lSDL2main -lSDL2
+	SDL_LDFLAGS = -L$(LIBS_DIR)/lib -lmingw32 -lSDL2main -lSDL2_image -lSDL2_ttf -lSDL2
 	
 	FixPath = $(subst /,\,$1)
 	MKDIR_P = if not exist "$(call FixPath,$(@D))" mkdir "$(call FixPath,$(@D))"
@@ -26,7 +26,7 @@ else
 	# Use local libraries explicitly for clean installation compatibility
 	SDL_CFLAGS := -I$(LIBS_DIR)/include -D_REENTRANT
 	# Link math library (-lm) and other system dependencies explicitly
-	SDL_LDFLAGS := -L$(LIBS_DIR)/lib -lSDL2 -lm -ldl -lpthread -Wl,-rpath,'$$ORIGIN/$(LIBS_DIR)/lib'
+	SDL_LDFLAGS := -L$(LIBS_DIR)/lib -lSDL2_image -lSDL2_ttf -lSDL2 -lm -ldl -lpthread -Wl,-rpath,'$$ORIGIN/$(LIBS_DIR)/lib'
 	MKDIR_P = mkdir -p $(@D)
 	CLEAN_CMD = rm -rf $(BUILD_DIR) $(TARGET)
 endif
@@ -39,7 +39,7 @@ OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(filter $(SRC_DIR)/%, $(SRC
        $(patsubst $(LIBS_DIR)/%.c, $(BUILD_DIR)/libs/%.o, $(filter $(LIBS_DIR)/%, $(SRCS)))
 
 CFLAGS = -Wall -Wextra -std=c99 -I$(SRC_DIR) -I$(LIBS_DIR) $(SDL_CFLAGS)
-LDFLAGS = $(SDL_LDFLAGS) -lSDL2_image -lSDL2_ttf
+LDFLAGS = $(SDL_LDFLAGS)
 
 release: CFLAGS += -O3
 release: all
