@@ -102,6 +102,7 @@ void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
     // Check if item already exists to stack it
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){
+        // IMPORTANT : This will 100% defenitly break
         if( existing->count <= count ){
             existing->id = -1;
             return;
@@ -149,9 +150,17 @@ void InventoryDraw(inventory_t* inv){
         
         char* item_name = "Unknown";
         // Type 0 would be catch_device_t type so cast current item to it
-        if(inv->items[i].type == 0) {
-            catch_device_t* device = (catch_device_t*) inv->items[i].item;
-            item_name = device->name;
+        switch(inv->items[i].type){
+            case 0:
+                catch_device_t* device = (catch_device_t*) inv->items[i].item;
+                item_name = device->name;
+                break;
+            case 1:
+                restore_item_t* pot = (restore_item_t*) inv->items[i].item;
+                item_name = pot->name;
+                break;
+            default:
+                break;
         }
 
         SDL_Color text_color = {255, 255, 255, 255};

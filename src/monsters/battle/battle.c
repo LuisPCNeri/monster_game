@@ -32,12 +32,15 @@ static move_t* player_move_ptr = NULL;
 static move_t* fst_atck_move = NULL;
 static move_t* scnd_atck_move = NULL;
 
+static char message[520];
+
 typedef enum BattleState{
     MAIN_MENU,
     MOVES_MENU,
     EXECUTING_TURN,
     INV_OPEN,
-    MESSAGE_DISPLAYED
+    MESSAGE_DISPLAYED,
+    MONSTER_CAUGHT
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
@@ -213,9 +216,10 @@ void BattleDraw(){
         monster_t* player_mon = active_player->monster_party[active_player->active_mon_index];
         if(turn_stage == 0){
             // Execute First Attack
-            monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
-            MonsterUseMoveOn(first_attacker, fst_atck_move, target);
-
+            if(fst_atck_move){
+                monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
+                MonsterUseMoveOn(first_attacker, fst_atck_move, target);
+            }
             turn_stage = 1;
         }
         else if(turn_stage == 1){
@@ -239,9 +243,10 @@ void BattleDraw(){
         }
         else if(turn_stage == 2){
             // Execute Second Attack
-            monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
-            MonsterUseMoveOn(second_attacker, scnd_atck_move, target);
-
+            if(scnd_atck_move){
+                monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
+                MonsterUseMoveOn(second_attacker, scnd_atck_move, target);
+            }
             turn_stage = 3;
         }
         else if(turn_stage == 3){
@@ -264,13 +269,10 @@ void BattleDraw(){
             BattleRenderInfo("->", &status_rect, 750, 150);
         }
     }
-    else if(battle_state == MESSAGE_DISPLAYED){
+    else if(battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT){
         SDL_Rect status_rect = {50, 850, 800, 200};
 
-        char message[520];
-        sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
         BattleRenderInfo(message, &status_rect, 20, 20);
-
         // Render "Press Enter" indicator
         BattleRenderInfo("->", &status_rect, 750, 150);
     }
@@ -325,6 +327,7 @@ void BattleDraw(){
 }
 
 void BattleMenuHandleSelect(){
+    monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
     if(battle_state == EXECUTING_TURN) {
         if (turn_stage == 1) {
              if(BattleCheckIsOver()){
@@ -338,6 +341,7 @@ void BattleMenuHandleSelect(){
              } else {
                 battle_state = MAIN_MENU;
                 active_player->is_player_turn = 1;
+                active_player->current_menu = battle_menu;
              }
         }
         return;
@@ -352,6 +356,7 @@ void BattleMenuHandleSelect(){
         else if(selected_btn == RUN) BattleQuit();
         else if(selected_btn == INVENTORY){
             battle_state = INV_OPEN;
+            active_player->inv_isOpen = 1;
             active_player->current_menu = active_player->inv->menu;
             active_player->current_menu->select_routine = BattleMenuHandleSelect;
             active_player->current_menu->draw = BattleDraw;
@@ -362,7 +367,6 @@ void BattleMenuHandleSelect(){
         // Make it so it is not the player's turn anymore
         active_player->is_player_turn = 0;
 
-        monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
         player_move_ptr = &active_mon->usable_moves[active_player->selected_menu_itm];
 
         if(player_move_ptr->available_uses > 0){
@@ -384,9 +388,9 @@ void BattleMenuHandleSelect(){
         }
     }
     else if(battle_state == INV_OPEN){
-        // IMPORTANT : Handle Inventory to test catching
+        // IMPORTANT : Add Inventory scrolling
+        // IMPORTANT : Change turns to enemie's after item use
         inventory_item_t* item = InventoryGetCurrent(active_player->inv);
-
         switch(item->type){
             case 0:
                 if(item->count <= 0 || item->id == -1) return;
@@ -396,19 +400,50 @@ void BattleMenuHandleSelect(){
                 catch_device_t* device = (catch_device_t*) item->item;
                 int has_caught = MonsterTryCatch(active_player, enemy_mon, device);
                 if(has_caught){
-                    // TODO : Display a caught message
+                    sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
+
                     fflush(stdout);
+                    
+                    active_player->inv_isOpen = 0;
+                    battle_state = MONSTER_CAUGHT;
+                    return;
+                }
+                else{
+                    sprintf(message,"%s broke free!", enemy_mon->monster_name);
+                    active_player->inv_isOpen = 0;
                     battle_state = MESSAGE_DISPLAYED;
                     return;
                 }
+
+                break;
+            case 1:
+                if(item->count <= 0 || item->id == -1) return;
+                printf("Used healing item with id: %d\n", item->id);
+
+                restore_item_t* pot = (restore_item_t*) item->item;
+                int has_healed = MonsterHeal(active_mon, pot->restore_amount);
+                if(has_healed){
+                    InventoryRemoveItem(active_player->inv, item->item, 1);
+                    sprintf(message, "Used a %s on %s", pot->name, active_mon->monster_name);
+                    
+                    battle_state = MESSAGE_DISPLAYED;
+                }
+
+                active_player->inv_isOpen = 0;
 
                 break;
             default:
                 return;
         }
     }
-    else if(battle_state == MESSAGE_DISPLAYED){
+    else if(battle_state == MONSTER_CAUGHT){
         active_player->game_state = STATE_EXPLORING;
+    }
+    else if(battle_state == MESSAGE_DISPLAYED){
+        // Enemy must take an action after the player
+        fst_atck_move = NULL;
+        scnd_atck_move = MonsterChooseEnemyAttack(enemy_mon);
+        battle_state = EXECUTING_TURN;
     }
 }
 
@@ -416,12 +451,17 @@ void BattleMenuBack(){
     if(battle_state == MAIN_MENU) return;
     if(battle_state == EXECUTING_TURN) return;
     
-    MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
+    
     if(battle_state == MOVES_MENU){
+        MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
         active_player->selected_menu_itm = ATTACK;
         MenuHighlightBox(&battle_menu->menu_items[ATTACK]);
     }
-    if(battle_state == INV_OPEN) active_player->selected_menu_itm = INVENTORY;
+    if(battle_state == INV_OPEN){
+        
+        active_player->inv_isOpen = 0;
+        active_player->selected_menu_itm = INVENTORY;
+    }
 
     battle_state = MAIN_MENU;
     active_player->current_menu = battle_menu;

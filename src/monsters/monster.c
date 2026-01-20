@@ -740,15 +740,16 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
     // TODO : take into account the status effect move can inflict
 }
 
-move_t* MonsterChooseEnemyAttack(monster_t* enemy){
-    // TODO : Use a score based system for the AI
-    // Different enemies have different AI as to be expected
+int MonsterHeal(monster_t* monster, unsigned int heal_amount){
+    // Has fainted so does not heal
+    if(monster->current_hp <= 0) return 0;
 
-    // Wild monsters have no notion of type advantages
-    // What I think is more plausible for them is to choose the attack that does the highest damage
-    // If they attacked once and the other monster was immune THEY LEARN
-    // and so they will not use that attack again agains that monster
-    
+    monster->current_hp += heal_amount;
+    if(monster->current_hp > monster->max_hp) monster->current_hp = monster->max_hp;
+    return 1;
+}
+
+move_t* MonsterChooseEnemyAttack(monster_t* enemy){
     int rnd = rand() % 4;
     return &enemy->usable_moves[rnd];
 }

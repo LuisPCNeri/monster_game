@@ -218,6 +218,10 @@ int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device
 // All other stat increments are done with MonsterAddExp
 void MonsterSetStats(monster_t* monster);
 
+// Heal a monster through moves, items or idk anything else
+// Returns 1 if the monster was healed 0 if not
+int MonsterHeal(monster_t* monster, unsigned int heal_amount);
+
 // Handles the enter key input for the battle menu
 void BattleMenuHandleSelect();
 

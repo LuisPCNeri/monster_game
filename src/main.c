@@ -26,6 +26,7 @@ int main(void)
     player_t* player = (player_t*) malloc(sizeof(player_t));
     player->x_pos = 0;
     player->y_pos = 0;
+    player->inv_isOpen = 0;
     // Player's absolute position in the world
     int world_x = 0, world_y = 0;
     
@@ -45,6 +46,8 @@ int main(void)
     player->inv = InventoryCreateEmpty(15);
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
     InventoryAddItem(player->inv, &ball, 5);
+    restore_item_t potion = {4, 1, 10, "Potion", ""};
+    InventoryAddItem(player->inv, &potion, 5);
 
     // triggers the program that controls
     // your graphics hardware and sets flags

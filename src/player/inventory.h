@@ -44,7 +44,6 @@ void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count);
 // Returns a pointer to the found item or NULL if it finds nothing
 inventory_item_t* InventorySearch(inventory_t* inv, void* item);
 
-// IMPORTANT : Implement these 3 funcs
 void InventoryMoveForward(inventory_t* inv);
 void InventoryMoveBack(inventory_t* inv);
 inventory_item_t* InventoryGetCurrent(inventory_t* inv);

@@ -16,25 +16,24 @@ typedef enum GameState{
 } GameState;
 
 typedef struct player_t{
+    int inv_isOpen : 1;
+    
     int x_pos;
     int y_pos;
 
     // The index of the monster the player is currently using
     int active_mon_index;
-
     // Supposed to help see if in a battle it is the player's turn or not
     int is_player_turn;
 
-    // Pointers to the monsters the player keeps with him and can use for battles
-    monster_t* monster_party[5];
     int selected_menu_itm;
+    int running;
+    GameState game_state;
 
     menu_t* current_menu;
-
-    GameState game_state;
-    int running;
-
     inventory_t* inv;
+    // Pointers to the monsters the player keeps with him and can use for battles
+    monster_t* monster_party[5];
 } player_t;
 
 // This function is called once and used to have the player chose a starter

@@ -5,6 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
+#include "player/inventory.h"
 #include "player/player.h"
 #include "menu.h"
 
@@ -84,6 +85,12 @@ void MenuItemKeyUp(player_t* player){
     menu_t* menu = player->current_menu;
     int stride = (menu->has_columns) ? 2 : 1;
 
+    if(player->inv_isOpen){
+        if(!player->inv->current->prev_item || player->inv->current->prev_item->id == -1) return;
+        InventoryMoveBack(player->inv);
+        return;
+    }
+
     if(player->selected_menu_itm >= stride && menu->has_rows){
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm -= stride;
@@ -94,6 +101,12 @@ void MenuItemKeyUp(player_t* player){
 void MenuItemKeyDown(player_t* player){
     menu_t* menu = player->current_menu;
     int stride = (menu->has_columns) ? 2 : 1;
+
+    if(player->inv_isOpen){
+        if(!player->inv->current->next_item || player->inv->current->next_item->id == -1) return;
+        InventoryMoveForward(player->inv);
+        return;
+    }
 
     if(player->selected_menu_itm + stride < menu->items_amount && menu->has_rows) {
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
@@ -121,7 +134,6 @@ void MenuItemKeyLeft(player_t* player){
 
 void MenuItemKeyRight(player_t* player){
     menu_t* menu = player->current_menu;
-
     if( menu->has_rows == 0 && player->selected_menu_itm < menu->items_amount - 1){
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm++;
