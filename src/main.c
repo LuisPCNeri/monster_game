@@ -45,7 +45,7 @@ int main(void)
 
     player->inv = InventoryCreateEmpty(15);
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
-    InventoryAddItem(player->inv, &ball, 5);
+    InventoryAddItem(player->inv, &ball, 15);
     restore_item_t potion = {4, 1, 10, "Potion", ""};
     InventoryAddItem(player->inv, &potion, 5);
 

@@ -67,6 +67,7 @@ void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect){
     SDL_DestroyTexture(text_texture);
 }
 
+// IMPORTANT : Add highlighting to the inventory items
 void MenuHighlightBox(SDL_Rect* rect){
     rect->w += 20;
     rect->h += 20;
@@ -125,7 +126,8 @@ void MenuItemKeyLeft(player_t* player){
         return;
     }
 
-    if( (player->selected_menu_itm & 1) == 1 && menu->has_rows && menu->has_columns) {
+    if( (player->selected_menu_itm & 1) == 1 && menu->has_rows && menu->has_columns
+            && player->selected_menu_itm > 0) {
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm--;
         MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
@@ -142,7 +144,8 @@ void MenuItemKeyRight(player_t* player){
         return;
     }
 
-    if( (player->selected_menu_itm & 1) == 0 && menu->has_rows && menu->has_columns) {
+    if( (player->selected_menu_itm & 1) == 0 && menu->has_rows && menu->has_columns
+            && player->selected_menu_itm < menu->items_amount - 1) {
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm++;
         MenuHighlightBox(&menu->menu_items[player->selected_menu_itm]);
