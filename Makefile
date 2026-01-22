@@ -39,6 +39,9 @@ LDFLAGS = $(SDL_LDFLAGS)
 release: CFLAGS += -O3
 release: all
 
+debug: CFLAGS += -g -O0
+debug: all
+
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
@@ -51,4 +54,4 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 clean:
 	$(CLEAN_CMD)
 
-.PHONY: all clean release
+.PHONY: all clean release debug
