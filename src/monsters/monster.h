@@ -31,23 +31,6 @@ typedef enum StatusEffects{
     CORRODED
 } StatusEffects;
 
-// Each monster has a randomly assigned special trait
-// This trait will be assigned upon monster spawning and will affect the monster's base stats
-typedef enum SpecialTrait{
-    // Sligthly higher attack
-    SERIOUS,
-    // Slightly lower speed
-    LAZY,
-    // Slightly higher catch-rate
-    FRIENDLY,
-    // Slightly higher chance to dodge attacks
-    CALM,
-    // Slightly higher speed
-    FAST,
-    // Slightly higher defence
-    HARDWORKING
-} SpecialTrait;
-
 typedef enum MonsterTypes{
     NONE_TYPE,
     FIRE_TYPE,
@@ -73,19 +56,13 @@ typedef struct{
 
 // A move that can be used by a monster
 typedef struct move_t{
+    // States if this move's modifier applies to self or enemy
+    int is_modify_self : 1;
     // id to lookup the move
     int id;
-
     // The level at which a monster can learn this move
     // If it is 0 the monster can always learn it
     int required_level;
-
-    char move_name[256];
-    char move_description[4096];
-
-    // Moves can only have one type
-    MonsterTypes attack_type;
-
     // Max amount of times move can be use => PP
     int max_uses;
     // Amount of times move can still be used
@@ -95,25 +72,22 @@ typedef struct move_t{
     int acc_percent;
     // Amount of damage enemy will take (can be 0)
     int damage;
+    // Modifier applied to [] after using this move
+    float stat_modifier;
 
+    // Moves can only have one type
+    MonsterTypes attack_type;
     // Status effect the move may apply on hit
     StatusEffects status_effect;
+
+    char move_name[256];
+    char move_description[4096];
 } move_t;
 
 // Monster with all it's data
 typedef struct monster_t {      
     // id to lookup the monster
     int id;
-
-    char monster_name[256];
-    char monster_description[4096];
-
-    // Path to the monter's sprite
-    char sprite_path[256];
-
-    // Monster's rarity affects only it's spawning chance
-    // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, VERY_RARE, LEGENDARY
-    Rarities rarity;
 
     // Current monster level
     int level;
@@ -125,13 +99,6 @@ typedef struct monster_t {
     // If monster has no second evolution set to -1
     int evo_2_level;
 
-    // A monster can have only 2 types
-
-    // Monster's main type
-    MonsterTypes type_1;
-    // Monster's secondary type
-    MonsterTypes type_2;
-    
     // Max amount of hitpoints for monster
     int max_hp;
     // Current amount of hitpoints monster has
@@ -144,6 +111,16 @@ typedef struct monster_t {
     // Amount of speed points monster has
     int speed;
 
+    int current_exp;
+    int exp_to_next_level;
+
+    // Monster's main type
+    MonsterTypes type_1;
+    // Monster's secondary type
+    MonsterTypes type_2;
+    // Monster's rarity affects only it's spawning chance
+    // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, VERY_RARE, LEGENDARY
+    Rarities rarity;
     // The current status (debuff) applied to the monster
     // AVAILABLE VALUES DEFINED HERE AS SCORCHED, POISON, ...
     // To specify no status applied, set current_status_fx to NONE
@@ -157,9 +134,10 @@ typedef struct monster_t {
     // Moves the monster can learn
     learnable_moves_list_t learnable_moves;
 
-    int current_exp;
-    int exp_to_next_level;
-
+    char monster_name[256];
+    // Path to the monter's sprite
+    char sprite_path[256];
+    char monster_description[4096];
 } monster_t;
 
 // Initializes all the monster's data
