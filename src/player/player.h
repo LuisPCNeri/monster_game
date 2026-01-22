@@ -4,6 +4,8 @@
 #include "monsters/monster.h"
 #include "inventory.h"
 
+#define PARTY_SIZE 5
+
 // Forward declaration to allow pointer usage without circular dependency
 typedef struct menu_t menu_t;
 

@@ -71,7 +71,7 @@ void PlayerSetStarters(player_t* player){
 }
 
 void PlayerMenuHandleSelect(){
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < PARTY_SIZE; i++){
         // INITIALIZEALL PLAYER PARTY VALUES TO NULL
         active_player->monster_party[i] = NULL;
     }
@@ -96,7 +96,7 @@ void PlayerMenuHandleSelect(){
 int PlayerAddMonsterToParty(monster_t* monster){
     int has_space = 0;
     
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < PARTY_SIZE; i++){
         if(!active_player->monster_party[i]){
             active_player->monster_party[i] = (monster_t*) malloc(sizeof(monster_t));
 
@@ -113,7 +113,7 @@ int PlayerAddMonsterToParty(monster_t* monster){
 }
 
 void PlayerDestroy(player_t* p){
-    for(unsigned int i = 0; i < 5; i++){
+    for(unsigned int i = 0; i < PARTY_SIZE; i++){
         if(p->monster_party[i]) free(p->monster_party[i]);
     }
 

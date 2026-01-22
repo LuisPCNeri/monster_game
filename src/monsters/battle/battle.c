@@ -84,7 +84,7 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     int w, h;
     SDL_GetRendererOutputSize(rend, &w, &h);
     switch_menu = MenuCreate(5, 1, 1, BattleDraw, BattleMenuHandleSelect);
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < switch_menu->items_amount; i++){
         if( !(i & 1) ) switch_menu->menu_items[i].x = (w/2)-420;
         else           switch_menu->menu_items[i].x = (w/2)+20;
         switch_menu->menu_items[i].y = 350 + i*100;
@@ -109,15 +109,14 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
 // If so calls other functions such as increase exp
 // Returns >1 if battle is over and 0 if not
 static int BattleCheckIsOver(){
-    // TODO : Don't end battle if any other monster still has health left
     int has_mon_left = 0;
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < PARTY_SIZE; i++){
         if(active_player->monster_party[i]){
             if(active_player->monster_party[i]->current_hp > 0) has_mon_left = 1;
         }
     }
 
-    if(enemy_mon->current_hp <= 0 && !has_mon_left){
+    if(enemy_mon->current_hp <= 0){
         MonsterAddExp(active_player->monster_party[active_player->active_mon_index], enemy_mon);
         printf("Battle Won! Current Exp: %d/%d\n", 
             active_player->monster_party[active_player->active_mon_index]->current_exp,
