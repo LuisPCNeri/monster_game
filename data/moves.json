@@ -3,8 +3,9 @@
         "id": 101, 
         "name": "Scratch", 
         "power": 20, 
-        "max_pp": 35, 
-        "type": "NORMAL" , 
+        "max_pp": 35,
+        "status_fx": 0,
+        "type": "NORMAL", 
         "req_level": 0,
         "accuracy": 100
     },
@@ -13,6 +14,7 @@
         "name": "Tackle",
         "power": 20,
         "max_pp": 40,
+        "status_fx": 0, 
         "type": "NORMAL",
         "req_level": 0,
         "accuracy": 100
@@ -22,6 +24,7 @@
         "name": "Tail Whip",
         "power": 0,
         "max_pp": 20,
+        "status_fx": 0, 
         "type": "NORMAL",
         "req_level": 0,
         "accuracy": 100
@@ -31,6 +34,7 @@
         "name": "Leer",
         "power": 0,
         "max_pp": 20,
+        "status_fx": 0, 
         "type": "NORMAL",
         "req_level": 0,
         "accuracy": 100
@@ -39,7 +43,8 @@
         "id": 201, 
         "name": "Ember", 
         "power": 40, 
-        "max_pp": 25, 
+        "max_pp": 25,
+        "status_fx": 1, 
         "type": "FIRE", 
         "req_level": 0,
         "accuracy": 95
@@ -49,6 +54,7 @@
         "name": "Bubble",
         "power": 40,
         "max_pp": 25,
+        "status_fx": 0, 
         "type": "WATER",
         "req_level": 0,
         "accuracy": 95
@@ -58,6 +64,7 @@
         "name": "Leaf Cutter",
         "power": 40,
         "max_pp": 25,
+        "status_fx": 0,
         "type": "GRASS",
         "req_level": 0,
         "accuracy": 95
@@ -67,6 +74,7 @@
         "name": "Rock Throw",
         "power": 40,
         "max_pp": 25,
+        "status_fx": 0,
         "type": "ROCK",
         "req_level": 0,
         "accuracy": 95
@@ -76,6 +84,7 @@
         "name": "Poison Sting",
         "power": 40,
         "max_pp": 25,
+        "status_fx": 2, 
         "type": "POISON",
         "req_level": 0,
         "accuracy": 95
@@ -85,6 +94,7 @@
         "name": "Shock",
         "power": 40,
         "max_pp": 25,
+        "status_fx": 0, 
         "type": "ELECTRIC",
         "req_level": 0,
         "accuracy": 95

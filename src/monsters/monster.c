@@ -673,22 +673,95 @@ float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender){
     return TypeChart[attacker][defender];
 }
 
+static void MonsterAddStatusFx(monster_t* m, StatusEffects status_fx){
+    m->current_status_fx = status_fx;
+    m->status_fx_durantion = 3;
+}
+
+void MonsterRemoveStatusFx(monster_t* m){
+    m->current_status_fx = NONE;
+}
+
+static char* MonsterGetSFXString(monster_t* m){
+    switch(m->current_status_fx){
+    case SCORCHED:
+        return "SCORCHED";
+        break;
+    case POISON:
+        return "POISON";
+        break;
+    case STUNNED:
+        return "STUNNED";
+        break;
+    case ASLEEP:
+        return "ASLEEP";
+        break;
+    case FROZEN:
+        return "FROZEN";
+        break;
+    case CORRODED:
+        return "CORRODED";
+        break;
+    default:
+        return "NONE";
+    }
+}
+
+static int MonsterApplyStatusFx(monster_t* m){
+    float dmg = 0.0f;
+    switch(m->current_status_fx){
+        case SCORCHED:
+            dmg = (float) m->max_hp * 0.0625;
+            m->current_hp -= (int) dmg;
+            break;
+        case POISON:
+            dmg = (float) m->max_hp * 0.125;
+            m->current_hp -= (int) dmg;
+            break;
+        case STUNNED:
+            return 0;
+            break;
+        case ASLEEP:
+            return 0;
+            break;
+        case FROZEN:
+            return 0;
+            break;
+        case CORRODED:
+            float debuff = (float) m->speed * 0.0625;
+            m->speed -= (int) debuff;
+            break;
+        default:
+            return 1;
+    }
+    return 1;
+}
+
 // For now it will just stay a simple move power/damage * monster attack / 100 (if it was 100 it'd be way too much damage)
 
-void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
+int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
     // Decrement available uses
     move->available_uses--;
+
+    if(attacker->current_status_fx > 0){
+        attacker->status_fx_durantion--;
+        int can_move = MonsterApplyStatusFx(attacker);
+        sprintf(return_msg, "%s is %s", attacker->monster_name, MonsterGetSFXString(attacker));
+
+        if(!can_move) return 0;
+    }
 
     // Check Accuracy
     int move_hit = rand() % 100;
     if(move->acc_percent != 100 && move_hit >= move->acc_percent){
-        printf("%s used %s but missed!\n", attacker->monster_name, move->move_name);
-        return;
+        sprintf(return_msg, "%s used %s but missed!", attacker->monster_name, move->move_name);
+        printf("%s", return_msg);
+        return 0;
     }
 
     if(move->damage == 0){
         // TODO : Damage is 0 So most likely has some debuff/buff associated
-        return;
+        return 1;
     }
 
     // Calculate Damage
@@ -737,7 +810,15 @@ void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked){
 
     printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->monster_name, move->move_name, final_damage, type_effectiveness);
 
+    if(move->status_effect > 0){
+        int rng = rand() % 3 + 1;
+        if(rng == 1){
+            MonsterAddStatusFx(attacked, move->status_effect);
+            printf("STATUS FX APPLIED: %d\n", move->status_effect);
+        }
+    }
     // TODO : take into account the status effect move can inflict
+    return 1;
 }
 
 int MonsterHeal(monster_t* monster, unsigned int heal_amount){

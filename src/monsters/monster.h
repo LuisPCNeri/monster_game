@@ -46,6 +46,7 @@ typedef enum MonsterTypes{
     FLYING_TYPE,
     FIGHTING_TYPE,
     BUG_TYPE,
+    ICE_TYPE,
     TYPE_COUNT
 } MonsterTypes;
 
@@ -91,6 +92,8 @@ typedef struct monster_t {
 
     // Current monster level
     int level;
+
+    int status_fx_durantion;
 
     // Level at which monster will evolve for the first time
     // If monster has no evolution set to -1
@@ -165,8 +168,8 @@ float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
 
 // Uses MOVE move on the enemy monster
 // Only to be used during a batle
-// attacker uses move on attacked
-void MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked);
+// attacker uses move on attacked 
+int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg);
 
 // Has the enemy monster choose a move to use on the player monster and then attack the player's monster
 move_t* MonsterChooseEnemyAttack(monster_t* enemy);

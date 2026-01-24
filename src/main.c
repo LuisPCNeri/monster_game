@@ -23,7 +23,7 @@ TTF_Font* game_font;
 int main(void)
 {
     MonstersInit();
-    player_t* player = (player_t*) malloc(sizeof(player_t));
+    player_t* player = (player_t*) calloc(1, sizeof(player_t));
     player->x_pos = 0;
     player->y_pos = 0;
     player->inv_isOpen = 0;
@@ -68,9 +68,12 @@ int main(void)
     surface = IMG_Load("./resources/test.jpeg");
     if (!surface) {
         printf("Error loading image: %s\n", IMG_GetError());
+        PlayerDestroy(player);
         SDL_DestroyTexture(map_tex);
+        TTF_CloseFont(game_font);
         SDL_DestroyRenderer(rend);
         SDL_DestroyWindow(win);
+        TTF_Quit();
         IMG_Quit();
         SDL_Quit();
         return 1;
@@ -168,9 +171,9 @@ int main(void)
                                 break;
                         }
                         break;
-                        case STATE_LOCKED:
-                        // In this case the player's inputs should not matter
-                        break;
+                    case STATE_LOCKED:
+                    // In this case the player's inputs should not matter
+                    break;
                 }   
                 
                 

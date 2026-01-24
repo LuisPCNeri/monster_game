@@ -68,6 +68,7 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     battle_state = MAIN_MENU;
 
     if (battle_menu) MenuDestroy(battle_menu);
+    if (switch_menu) MenuDestroy(switch_menu);
     if (enemy_mon_tex) {
         SDL_DestroyTexture(enemy_mon_tex);
         enemy_mon_tex = NULL;
@@ -245,6 +246,33 @@ static void RenderHpBar(int current_hp, int max_hp, SDL_Rect hp_bar){
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 }
 
+static void RenderMonInfo(monster_t* active_mon){
+    BattleRenderInfo(enemy_mon->monster_name, &enemy_rect, 20, 20, 0);
+    BattleRenderInfo(active_mon->monster_name, &player_rect, 20, 20, 0);
+
+    // Is freed whenever the function stops running
+    char enemy_lvl_info[12];
+    sprintf(enemy_lvl_info, "lvl: %d", enemy_mon->level);
+
+    char player_lvl_info[12];
+    sprintf(player_lvl_info, "lvl: %d", active_mon->level);
+    // Render the enemy monster's level
+    BattleRenderInfo(enemy_lvl_info, &enemy_rect, 20, 20, 1);
+    BattleRenderInfo(player_lvl_info, &player_rect, 20, 20, 1);
+
+    char enemy_hp_info[12];
+    sprintf(enemy_hp_info, "%d/%d", enemy_mon->current_hp, enemy_mon->max_hp);
+
+    char player_hp_info[12];
+    sprintf(player_hp_info, "%d/%d", active_mon->current_hp, active_mon->max_hp);
+    // Render the enemy monster's hp info
+    BattleRenderInfo(enemy_hp_info, &enemy_rect, 20, 50, 1);
+    BattleRenderInfo(player_hp_info, &player_rect, 20, 50, 1);
+
+    RenderHpBar((int)player_displayed_hp, active_mon->max_hp, player_hp_rect);
+    RenderHpBar((int)enemy_displayed_hp, enemy_mon->max_hp, enemy_hp_rect);
+}
+
 static void MovesMenuDraw(monster_t* active_mon){
     for(int i = 0; i < 4; i++){
         if(active_mon->usable_moves[i].id != -1){
@@ -297,67 +325,79 @@ static void SwitchMenuDraw(){
 }
 
 static void BattleExecuteTurns(monster_t* player_mon){
+    static char msg[1024];
     if(turn_stage == 0){
+        msg[0] = '\0';
         // Execute First Attack
         if(fst_atck_move){
-            printf("USED FST\n");
             monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
-            MonsterUseMoveOn(first_attacker, fst_atck_move, target);
+            MonsterUseMoveOn(first_attacker, fst_atck_move, target, msg);
         }
         turn_stage = 1;
     }
     else if(turn_stage == 1){
-        // Check if second attacker has fainted to display it
-        if(fst_atck_move){
-            if(second_attacker->current_hp <= 0){
-                char info[269];
-                sprintf(info, "%s has fainted!", second_attacker->monster_name);
-                BattleRenderInfo(info, &status_rect, 20, 20, 0);
-            }
-            else{
-                // Print normal attack info
-                char atck_info[520];
-                snprintf(atck_info, 520, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
-                BattleRenderInfo(atck_info, &status_rect, 20, 20, 0);
-            }
-
+        if(msg[0] != '\0'){
+            BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
             BattleRenderInfo("->", &status_rect, 750, 150, 0);
-            }
-        else {
-            turn_stage = 2;
         }
+        else{
+            // Check if second attacker has fainted to display it
+            if(fst_atck_move){
+                if(second_attacker->current_hp <= 0){
+                    char info[269];
+                    sprintf(info, "%s has fainted!", second_attacker->monster_name);
+                    BattleRenderInfo(info, &status_rect, 20, 20, 0);
+                }
+                else{
+                    // Print normal attack info
+                    char atck_info[520];
+                    snprintf(atck_info, 520, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
+                    BattleRenderInfo(atck_info, &status_rect, 20, 20, 0);
+                }
+                BattleRenderInfo("->", &status_rect, 750, 150, 0);
+            }
+            else {
+                turn_stage = 2;
+            }
+        }
+        
     }
     else if(turn_stage == 2){
+        msg[0] = '\0';
         // Execute Second Attack
         if(scnd_atck_move){
-            printf("USED SCND\n");
             monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
-            MonsterUseMoveOn(second_attacker, scnd_atck_move, target);
+            MonsterUseMoveOn(second_attacker, scnd_atck_move, target, msg);
         }
         turn_stage = 3;
     }
     else if(turn_stage == 3){
-        // Check if first attacker has fainted to display it
-        if(scnd_atck_move){
-            if(first_attacker->current_hp <= 0){
-                char info[269];
-                sprintf(info, "%s has fainted!", first_attacker->monster_name);
-                BattleRenderInfo(info, &status_rect, 20, 20, 0);
-            }
-            else{
-                // Print normal attack info
-                char atck_info[520];
-                snprintf(atck_info, 520, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
-                BattleRenderInfo(atck_info, &status_rect, 20, 20, 0);
-            }
-
-            // Render "Press Enter" indicator
+        if(msg[0] != '\0'){
+            BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
             BattleRenderInfo("->", &status_rect, 750, 150, 0);
-        }   
+        }
         else{
-            battle_state = MAIN_MENU;
-            active_player->is_player_turn = 1;
-            active_player->current_menu = battle_menu;
+            // Check if first attacker has fainted to display it
+            if(scnd_atck_move){
+                if(first_attacker->current_hp <= 0){
+                    char info[269];
+                    sprintf(info, "%s has fainted!", first_attacker->monster_name);
+                    BattleRenderInfo(info, &status_rect, 20, 20, 0);
+                }
+                else{
+                    // Print normal attack info
+                    char atck_info[520];
+                    snprintf(atck_info, 520, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
+                    BattleRenderInfo(atck_info, &status_rect, 20, 20, 0);
+                }
+                // Render "Press Enter" indicator
+                BattleRenderInfo("->", &status_rect, 750, 150, 0);
+            }      
+            else{
+                battle_state = MAIN_MENU;
+                active_player->is_player_turn = 1;
+                active_player->current_menu = battle_menu;
+            }
         }
     }
 }
@@ -386,11 +426,8 @@ void BattleDraw(){
         BattleRenderMenuItem("INVENTORY", &battle_menu->menu_items[INVENTORY]);
         BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN]);
     }
-    else if(battle_state == MOVES_MENU){
-        MovesMenuDraw(active_mon);
-    } else if(battle_state == EXECUTING_TURN){
-        BattleExecuteTurns(active_mon);
-    }
+    else if(battle_state == MOVES_MENU)     MovesMenuDraw(active_mon);
+    else if(battle_state == EXECUTING_TURN) BattleExecuteTurns(active_mon);
     else if(battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT){
         BattleRenderInfo(message, &status_rect, 20, 20, 0);
         BattleRenderInfo("->", &status_rect, 750, 150, 0);
@@ -413,32 +450,7 @@ void BattleDraw(){
 
     SDL_RenderCopy(rend, player_mon_tex, NULL, &player_mon_sprite);
     SDL_RenderCopy(rend, enemy_mon_tex, NULL, &enemy_mon_sprite);
-
-    BattleRenderInfo(enemy_mon->monster_name, &enemy_rect, 20, 20, 0);
-    BattleRenderInfo(active_player->monster_party[active_player->active_mon_index]->monster_name, &player_rect, 20, 20, 0);
-
-    // Is freed whenever the function stops running
-    char enemy_lvl_info[12];
-    sprintf(enemy_lvl_info, "lvl: %d", enemy_mon->level);
-
-    char player_lvl_info[12];
-    sprintf(player_lvl_info, "lvl: %d", active_player->monster_party[active_player->active_mon_index]->level);
-    // Render the enemy monster's level
-    BattleRenderInfo(enemy_lvl_info, &enemy_rect, 20, 20, 1);
-    BattleRenderInfo(player_lvl_info, &player_rect, 20, 20, 1);
-
-    char enemy_hp_info[12];
-    sprintf(enemy_hp_info, "%d/%d", enemy_mon->current_hp, enemy_mon->max_hp);
-
-    char player_hp_info[12];
-    sprintf(player_hp_info, "%d/%d", active_player->monster_party[active_player->active_mon_index]->current_hp,
-        active_player->monster_party[active_player->active_mon_index]->max_hp);
-    // Render the enemy monster's hp info
-    BattleRenderInfo(enemy_hp_info, &enemy_rect, 20, 50, 1);
-    BattleRenderInfo(player_hp_info, &player_rect, 20, 50, 1);
-
-    RenderHpBar((int)player_displayed_hp, active_mon->max_hp, player_hp_rect);
-    RenderHpBar((int)enemy_displayed_hp, enemy_mon->max_hp, enemy_hp_rect);
+    RenderMonInfo(active_mon);
     
     if(battle_state == SWITCH_MENU) SwitchMenuDraw();
     if(battle_state == INV_OPEN) InventoryDraw(active_player->inv);
@@ -639,7 +651,7 @@ void BattleMenuBack(){
 }
 
 void BattleQuit(void){
-    if (battle_menu){
+    if(battle_menu){
         // Prevents double frees
         if(active_player) active_player->current_menu = NULL;
         
@@ -652,7 +664,7 @@ void BattleQuit(void){
         switch_menu = NULL;
     }
 
-    if (info_font){
+    if(info_font){
         TTF_CloseFont(info_font);
         info_font = NULL;
     }
@@ -661,7 +673,7 @@ void BattleQuit(void){
         SDL_DestroyTexture(player_mon_tex);
         player_mon_tex = NULL;
     }
-    if (enemy_mon_tex){
+    if(enemy_mon_tex){
         SDL_DestroyTexture(enemy_mon_tex);
         enemy_mon_tex = NULL;
     }
