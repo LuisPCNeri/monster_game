@@ -171,6 +171,12 @@ float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
 // attacker uses move on attacked 
 int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg);
 
+// Checks if the monster can move this turn (handles Sleep, Freeze, etc.)
+int MonsterCheckCanMove(monster_t* m, char* msg);
+
+// Applies status damage (Poison, Burn) and returns 1 if damage was taken
+int MonsterApplyStatusDamage(monster_t* m, char* msg);
+
 // Has the enemy monster choose a move to use on the player monster and then attack the player's monster
 move_t* MonsterChooseEnemyAttack(monster_t* enemy);
 

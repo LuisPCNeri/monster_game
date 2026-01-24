@@ -326,79 +326,120 @@ static void SwitchMenuDraw(){
 
 static void BattleExecuteTurns(monster_t* player_mon){
     static char msg[1024];
+    
+    // STAGE 0: First Attacker Pre-Check & Attack
     if(turn_stage == 0){
         msg[0] = '\0';
-        // Execute First Attack
-        if(fst_atck_move){
+        int can_move = MonsterCheckCanMove(first_attacker, msg);
+        
+        if(can_move && fst_atck_move){
             monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
             MonsterUseMoveOn(first_attacker, fst_atck_move, target, msg);
+            if(msg[0] == '\0') snprintf(msg, 1024, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
         }
         turn_stage = 1;
     }
+    // STAGE 1: Display First Action
     else if(turn_stage == 1){
         if(msg[0] != '\0'){
             BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
             BattleRenderInfo("->", &status_rect, 750, 150, 0);
+        } else {
+            turn_stage = 2;
         }
-        else{
-            // Check if second attacker has fainted to display it
-            if(fst_atck_move){
-                if(second_attacker->current_hp <= 0){
-                    char info[269];
-                    sprintf(info, "%s has fainted!", second_attacker->monster_name);
-                    BattleRenderInfo(info, &status_rect, 20, 20, 0);
-                }
-                else{
-                    // Print normal attack info
-                    char atck_info[520];
-                    snprintf(atck_info, 520, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
-                    BattleRenderInfo(atck_info, &status_rect, 20, 20, 0);
-                }
-                BattleRenderInfo("->", &status_rect, 750, 150, 0);
-            }
-            else {
-                turn_stage = 2;
-            }
-        }
-        
     }
+    // STAGE 2: First Attacker Status Damage
     else if(turn_stage == 2){
         msg[0] = '\0';
-        // Execute Second Attack
-        if(scnd_atck_move){
+        if(MonsterApplyStatusDamage(first_attacker, msg)){
+            turn_stage = 3;
+        } else {
+            turn_stage = 4;
+        }
+    }
+    // STAGE 3: Display Status Damage
+    else if(turn_stage == 3){
+        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
+        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+    }
+    // STAGE 4: Check Faint (Target or Attacker)
+    else if(turn_stage == 4){
+        msg[0] = '\0';
+        if(first_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", first_attacker->monster_name);
+        else if(second_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", second_attacker->monster_name);
+        
+        if(msg[0] != '\0') turn_stage = 5;
+        else turn_stage = 6;
+    }
+    // STAGE 5: Display Faint
+    else if(turn_stage == 5){
+        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
+        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+    }
+    // STAGE 6: Second Attacker Pre-Check & Attack
+    else if(turn_stage == 6){
+        // If anyone fainted, stop turn
+        if(first_attacker->current_hp <= 0 || second_attacker->current_hp <= 0){
+             battle_state = MAIN_MENU;
+             active_player->is_player_turn = 1;
+             active_player->current_menu = battle_menu;
+             if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
+             return;
+        }
+
+        msg[0] = '\0';
+        int can_move = MonsterCheckCanMove(second_attacker, msg);
+        
+        if(can_move && scnd_atck_move){
             monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
             MonsterUseMoveOn(second_attacker, scnd_atck_move, target, msg);
+            if(msg[0] == '\0') snprintf(msg, 1024, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
         }
-        turn_stage = 3;
+        turn_stage = 7;
     }
-    else if(turn_stage == 3){
+    // STAGE 7: Display Second Action
+    else if(turn_stage == 7){
         if(msg[0] != '\0'){
             BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
             BattleRenderInfo("->", &status_rect, 750, 150, 0);
+        } else {
+            turn_stage = 8;
         }
-        else{
-            // Check if first attacker has fainted to display it
-            if(scnd_atck_move){
-                if(first_attacker->current_hp <= 0){
-                    char info[269];
-                    sprintf(info, "%s has fainted!", first_attacker->monster_name);
-                    BattleRenderInfo(info, &status_rect, 20, 20, 0);
-                }
-                else{
-                    // Print normal attack info
-                    char atck_info[520];
-                    snprintf(atck_info, 520, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
-                    BattleRenderInfo(atck_info, &status_rect, 20, 20, 0);
-                }
-                // Render "Press Enter" indicator
-                BattleRenderInfo("->", &status_rect, 750, 150, 0);
-            }      
-            else{
-                battle_state = MAIN_MENU;
-                active_player->is_player_turn = 1;
-                active_player->current_menu = battle_menu;
-            }
+    }
+    // STAGE 8: Second Attacker Status Damage
+    else if(turn_stage == 8){
+        msg[0] = '\0';
+        if(MonsterApplyStatusDamage(second_attacker, msg)){
+            turn_stage = 9;
+        } else {
+            turn_stage = 10;
         }
+    }
+    // STAGE 9: Display Status Damage
+    else if(turn_stage == 9){
+        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
+        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+    }
+    // STAGE 10: Check Faint
+    else if(turn_stage == 10){
+        msg[0] = '\0';
+        if(first_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", first_attacker->monster_name);
+        else if(second_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", second_attacker->monster_name);
+        
+        if(msg[0] != '\0') turn_stage = 11;
+        else turn_stage = 12;
+    }
+    // STAGE 11: Display Faint
+    else if(turn_stage == 11){
+        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
+        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+    }
+    // End of Turn
+    else {
+        battle_state = MAIN_MENU;
+        active_player->is_player_turn = 1;
+        active_player->current_menu = battle_menu;
+        if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
     }
 }
 
@@ -498,7 +539,13 @@ static void HandleInvOpenSelect(monster_t* active_mon){
             sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
 
             fflush(stdout);
-                    
+
+            // Battle over add exp
+            MonsterAddExp(active_mon, enemy_mon);
+            printf("Battle Won! Current Exp: %d/%d\n", 
+            active_player->monster_party[active_player->active_mon_index]->current_exp,
+            active_player->monster_party[active_player->active_mon_index]->exp_to_next_level);
+
             active_player->inv_isOpen = 0;
             battle_state = MONSTER_CAUGHT;
         }
@@ -549,21 +596,7 @@ static int HandleSwitchMenuSelect(monster_t* active_mon){
 void BattleMenuHandleSelect(){
     monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
     if(battle_state == EXECUTING_TURN) {
-        if (turn_stage == 1) {
-             if(BattleCheckIsOver()){
-                active_player->game_state = STATE_EXPLORING;
-             } else if(battle_state == EXECUTING_TURN) {
-                turn_stage = 2;
-             }
-        } else if (turn_stage == 3) {
-             if(BattleCheckIsOver()){
-                active_player->game_state = STATE_EXPLORING;
-             } else if(battle_state == EXECUTING_TURN) {
-                battle_state = MAIN_MENU;
-                active_player->is_player_turn = 1;
-                active_player->current_menu = battle_menu;
-             }
-        }
+        turn_stage++;
         return;
     }
 

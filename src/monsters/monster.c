@@ -162,6 +162,7 @@ void MonstersInit() {
             m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
             m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
             m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
+            m->status_effect = cJSON_GetObjectItem(entry, "status_fx")->valueint;
 
             char* type = cJSON_GetObjectItem(entry, "type")->valuestring;
             m->attack_type = MonsterGetTypeFromString(type);
@@ -707,34 +708,54 @@ static char* MonsterGetSFXString(monster_t* m){
     }
 }
 
-static int MonsterApplyStatusFx(monster_t* m){
+int MonsterCheckCanMove(monster_t* m, char* msg){
+    if(m->current_status_fx == NONE) return 1;
+    
+    m->status_fx_durantion--;
+    if(m->status_fx_durantion <= 0){
+        m->current_status_fx = NONE;
+        sprintf(msg, "%s recovered.", m->monster_name);
+        return 1;
+    }
+
+    switch(m->current_status_fx){
+        case STUNNED:
+            sprintf(msg, "%s is stunned!", m->monster_name);
+            return 0;
+        case ASLEEP:
+            sprintf(msg, "%s is asleep!", m->monster_name);
+            return 0;
+        case FROZEN:
+            sprintf(msg, "%s is frozen!", m->monster_name);
+            return 0;
+        default:
+            return 1;
+    }
+}
+
+int MonsterApplyStatusDamage(monster_t* m, char* msg){
+    if(m->current_status_fx == NONE) return 0;
+    
     float dmg = 0.0f;
     switch(m->current_status_fx){
         case SCORCHED:
             dmg = (float) m->max_hp * 0.0625;
             m->current_hp -= (int) dmg;
-            break;
+            sprintf(msg, "%s is hurt by the burn!", m->monster_name);
+            return 1;
         case POISON:
             dmg = (float) m->max_hp * 0.125;
             m->current_hp -= (int) dmg;
-            break;
-        case STUNNED:
-            return 0;
-            break;
-        case ASLEEP:
-            return 0;
-            break;
-        case FROZEN:
-            return 0;
-            break;
+            sprintf(msg, "%s is hurt by poison!", m->monster_name);
+            return 1;
         case CORRODED:
             float debuff = (float) m->speed * 0.0625;
             m->speed -= (int) debuff;
-            break;
-        default:
+            sprintf(msg, "%s is corroded!", m->monster_name);
             return 1;
+        default:
+            return 0;
     }
-    return 1;
 }
 
 // For now it will just stay a simple move power/damage * monster attack / 100 (if it was 100 it'd be way too much damage)
@@ -742,14 +763,6 @@ static int MonsterApplyStatusFx(monster_t* m){
 int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
     // Decrement available uses
     move->available_uses--;
-
-    if(attacker->current_status_fx > 0){
-        attacker->status_fx_durantion--;
-        int can_move = MonsterApplyStatusFx(attacker);
-        sprintf(return_msg, "%s is %s", attacker->monster_name, MonsterGetSFXString(attacker));
-
-        if(!can_move) return 0;
-    }
 
     // Check Accuracy
     int move_hit = rand() % 100;
@@ -817,7 +830,6 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
             printf("STATUS FX APPLIED: %d\n", move->status_effect);
         }
     }
-    // TODO : take into account the status effect move can inflict
     return 1;
 }
 

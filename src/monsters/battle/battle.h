@@ -5,17 +5,6 @@
 #include <SDL2/SDL_ttf.h>
 
 #include "player/player.h"
-
-typedef enum BattleStages{
-    FIRST_ATTACK,
-    FIRST_ATTACK_INFO,
-    AFTER_FIRST_ATTACK,
-    SECOND_ATTACK,
-    SECOND_ATTACK_INFO,
-    AFTER_SECOND_ATTACK
-
-} BattleStages;
-
 typedef enum BattleMenuButtons{
     ATTACK,
     INVENTORY,
