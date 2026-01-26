@@ -102,9 +102,25 @@ void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
     // Check if item already exists to stack it
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){
-        // IMPORTANT : This will 100% defenitly break
         if( existing->count <= count ){
-            existing->id = -1;
+            // Gets address of existing as an int
+            // Address of existing - address of first item as int should be it's index
+            int index = (int)(existing - inv->items);
+
+            // Shift items left to fill the gap
+            for(int i = index; i < inv->item_count - 1; i++){
+                inv->items[i].id = inv->items[i+1].id;
+                inv->items[i].type = inv->items[i+1].type;
+                inv->items[i].item = inv->items[i+1].item;
+                inv->items[i].count = inv->items[i+1].count;
+            }
+
+            // Clear the last item
+            int last = inv->item_count - 1;
+            inv->items[last].id = -1;
+            inv->items[last].type = -1;
+            inv->items[last].item = NULL;
+            inv->items[last].count = 0;
             return;
         }
 
