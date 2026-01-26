@@ -170,6 +170,24 @@ void MonstersInit() {
             cJSON* acc_item = cJSON_GetObjectItem(entry, "accuracy");
             m->acc_percent = acc_item ? acc_item->valueint : 100;
             
+            // Load Stat Modifiers
+            cJSON* stat_item = cJSON_GetObjectItem(entry, "stat_target");
+            if(stat_item){
+                char* s = stat_item->valuestring;
+                if(     strcmp(s, "ATTACK")  == 0) m->stat_to_modify = STAT_ATTACK;
+                else if(strcmp(s, "DEFENSE") == 0) m->stat_to_modify = STAT_DEFENSE;
+                else if(strcmp(s, "SPEED")   == 0) m->stat_to_modify = STAT_SPEED;
+                else m->stat_to_modify = STAT_NONE;
+            } else {
+                m->stat_to_modify = STAT_NONE;
+            }
+
+            cJSON* stage_item = cJSON_GetObjectItem(entry, "stage_change");
+            m->stat_stage_change = stage_item ? stage_item->valueint : 0;
+
+            cJSON* self_item = cJSON_GetObjectItem(entry, "target_self");
+            m->is_modify_self = self_item ? self_item->valueint : 0;
+
             // Initialize current state
             m->available_uses = m->max_uses; 
 
@@ -284,6 +302,13 @@ int CheckMonsterCanSpawn(int tile_type){
     }
 }
 
+void MonsterResetBattleStats(monster_t* monster){
+    if(!monster) return;
+    monster->atk_stage = 0;
+    monster->def_stage = 0;
+    monster->spd_stage = 0;
+}
+
 void MonsterSetStats(monster_t* monster){
     if(monster->level == 0) monster->level = 5;
 
@@ -303,6 +328,8 @@ void MonsterSetStats(monster_t* monster){
 
     // Quadratic growth: 10 * Level^2 + 50 * Level
     monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
+
+    MonsterResetBattleStats(monster);
 }
 
 // Takes in a template monster and sets the spawned monster similar to the player's average level
@@ -683,7 +710,7 @@ void MonsterRemoveStatusFx(monster_t* m){
     m->current_status_fx = NONE;
 }
 
-static char* MonsterGetSFXString(monster_t* m){
+char* MonsterGetSFXString(monster_t* m){
     switch(m->current_status_fx){
     case SCORCHED:
         return "SCORCHED";
@@ -763,19 +790,16 @@ int MonsterApplyStatusDamage(monster_t* m, char* msg){
 int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
     // Decrement available uses
     move->available_uses--;
+    sprintf(return_msg, "%s used %s!", attacker->monster_name, move->move_name);
 
     // Check Accuracy
     int move_hit = rand() % 100;
     if(move->acc_percent != 100 && move_hit >= move->acc_percent){
-        sprintf(return_msg, "%s used %s but missed!", attacker->monster_name, move->move_name);
-        printf("%s", return_msg);
+        strcat(return_msg, " But missed!");
+        printf("%s\n", return_msg);
         return 0;
     }
 
-    if(move->damage == 0){
-        // TODO : Damage is 0 So most likely has some debuff/buff associated
-        return 1;
-    }
 
     // Calculate Damage
     // Formula: ((((2 * Level / 5 + 2) * Power * Attack / Defense) / 20) + 2) * Modifier
@@ -783,6 +807,17 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
     float power = (float)move->damage;
     float attack = (float)attacker->attack;
     float defense = (float)attacked->defense;
+
+    // Apply Stages
+    float atk_mult = 1.0f;
+    if(attacker->atk_stage > 0) atk_mult = (2.0f + attacker->atk_stage) / 2.0f;
+    else if(attacker->atk_stage < 0) atk_mult = 2.0f / (2.0f - attacker->atk_stage);
+    attack *= atk_mult;
+
+    float def_mult = 1.0f;
+    if(attacked->def_stage > 0) def_mult = (2.0f + attacked->def_stage) / 2.0f;
+    else if(attacked->def_stage < 0) def_mult = 2.0f / (2.0f - attacked->def_stage);
+    defense *= def_mult;
     
     // Prevent division by zero
     if (defense == 0) defense = 1.0f;
@@ -814,14 +849,23 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
         printf("Critical Hit!\n");
     }
 
-    int final_damage = (int)(base_damage * modifier);
-    if (final_damage < 1) final_damage = 1;
+    if(move->damage > 0){
+        int final_damage = (int)(base_damage * modifier);
+        if (final_damage < 1) final_damage = 1;
 
-    // Apply Damage
-    attacked->current_hp -= final_damage;
+        // Apply Damage
+        attacked->current_hp -= final_damage;
         if(attacked->current_hp < 0) attacked->current_hp = 0;
+        printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->monster_name, move->move_name, final_damage, type_effectiveness);
 
-    printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->monster_name, move->move_name, final_damage, type_effectiveness);
+        if(type_effectiveness > 1.0f){
+            strcat(return_msg, " It's super effective!");
+        }
+        else if(type_effectiveness < 1.0f){
+            strcat(return_msg, " It's not very effective!");
+        }
+    }
+
 
     if(move->status_effect > 0){
         int rng = rand() % 3 + 1;
@@ -830,6 +874,55 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
             printf("STATUS FX APPLIED: %d\n", move->status_effect);
         }
     }
+
+    // Apply Stat Changes
+    if(move->stat_to_modify != STAT_NONE){
+        monster_t* target = move->is_modify_self ? attacker : attacked;
+        int* stage = NULL;
+        char* stat_name = NULL;
+
+        switch(move->stat_to_modify){
+            case STAT_ATTACK:
+                stage = &target->atk_stage;
+                stat_name = "Attack";
+                break;
+            case STAT_DEFENSE:
+                stage = &target->def_stage;
+                stat_name = "Defense";
+                break;
+            case STAT_SPEED:
+                stage = &target->spd_stage;
+                stat_name = "Speed";
+                break;
+            default: break;
+        }
+
+        if(stage){
+            int change = move->stat_stage_change;
+            char stat_msg[512];
+            stat_msg[0] = '\0'; // Initialize to empty string to prevent gibberish if change is 0
+
+            if(change > 0){
+                if(*stage < 3){
+                    *stage += change;
+                    if(*stage > 3) *stage = 3;
+                    sprintf(stat_msg, " %s's %s rose!", target->monster_name, stat_name);
+                } else {
+                    sprintf(stat_msg, " %s's %s won't go higher!", target->monster_name, stat_name);
+                }
+            } else if(change < 0){
+                if(*stage > -3){
+                    *stage += change;
+                    if(*stage < -3) *stage = -3;
+                    sprintf(stat_msg, " %s's %s fell!", target->monster_name, stat_name);
+                } else {
+                    sprintf(stat_msg, " %s's %s won't go lower!", target->monster_name, stat_name);
+                }
+            }
+            strcat(return_msg, stat_msg);
+        }
+    }
+
     return 1;
 }
 

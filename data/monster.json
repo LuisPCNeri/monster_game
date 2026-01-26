@@ -84,6 +84,20 @@
         "starting_moves": [101, 102, 103] 
     },
     {
+        "id": 7,
+        "sprite": "resources/monster_sprites/Seallot.png",
+        "name": "Seallot",
+        "description": "Seal pokemon...",
+        "rarity": 2,
+        "level": 0,
+        "evo_1": 16,
+        "evo_2": 32,
+        "type_1": "WATER",
+        "type_2": "NULL",
+        "stats": { "hp": 31, "atk": 33, "def": 33, "spd": 68 },
+        "starting_moves": [101, 102, 301, 104]
+    },
+    {
         "id": 10,
         "sprite": "",
         "name": "Tazil",

@@ -20,7 +20,9 @@ static TTF_Font* info_font = NULL;
 static SDL_Rect status_rect = {50, 850, 800, 200};
 // Enemy moster health bar, name and lvl rect
 static SDL_Rect enemy_rect = {1450, 50, 400, 100};
+static SDL_Rect enemy_sfx_rect = {1450, 150, 200, 40};
 static SDL_Rect player_rect = {50, 550, 400, 100};
+static SDL_Rect player_sfx_rect = {50, 650, 200, 40};
 static SDL_Rect enemy_mon_sprite = {1500, 150, 300, 300};
 static SDL_Rect player_mon_sprite = {50, 250, 300, 300};
 static SDL_Rect player_hp_rect = {70, 602, 250, 10};
@@ -107,6 +109,9 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     // Set player's active monster to the first one in the party
     player->active_mon_index = 0;
 
+    MonsterResetBattleStats(player->monster_party[0]);
+    MonsterResetBattleStats(enemy_mon);
+
     player_displayed_hp = (float)player->monster_party[0]->current_hp;
     enemy_displayed_hp = (float)enemy_mon->current_hp;
 
@@ -151,14 +156,14 @@ static int BattleCheckIsOver(){
 
 // Renders the button's text and a rect for them
 // TODO : Change from the draw rect to a custom texture
-static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect){
+static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_Font* font){
     // Set color to render the rects
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(rend, dst_rect);
 
     // Set the text color
     SDL_Color text_color = {255, 255, 255, 255};
-    SDL_Surface* text_surface = TTF_RenderText_Solid(game_font, btn_text, text_color);
+    SDL_Surface* text_surface = TTF_RenderText_Solid(font, btn_text, text_color);
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
 
     // Free the surface as it won't be used again
@@ -271,12 +276,22 @@ static void RenderMonInfo(monster_t* active_mon){
 
     RenderHpBar((int)player_displayed_hp, active_mon->max_hp, player_hp_rect);
     RenderHpBar((int)enemy_displayed_hp, enemy_mon->max_hp, enemy_hp_rect);
+
+    char c_status_fx[128];
+    if(active_mon->current_status_fx){
+        strcpy(c_status_fx, MonsterGetSFXString(active_mon));
+        BattleRenderMenuItem(c_status_fx, &player_sfx_rect, info_font);
+    }
+    if(enemy_mon->current_status_fx){
+        strcpy(c_status_fx, MonsterGetSFXString(enemy_mon));
+        BattleRenderMenuItem(c_status_fx, &enemy_sfx_rect, info_font);
+    }
 }
 
 static void MovesMenuDraw(monster_t* active_mon){
     for(int i = 0; i < 4; i++){
         if(active_mon->usable_moves[i].id != -1){
-            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, &battle_menu->menu_items[i]);
+            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, &battle_menu->menu_items[i], game_font);
 
             char move_uses[12];
             sprintf(move_uses, "%d/%d", active_mon->usable_moves[i].available_uses,
@@ -290,7 +305,7 @@ static void MovesMenuDraw(monster_t* active_mon){
                 20, battle_menu->menu_items[i].h - 30, 0);
         }
         else{
-            BattleRenderMenuItem("-", &battle_menu->menu_items[i]);
+            BattleRenderMenuItem("-", &battle_menu->menu_items[i], game_font);
         }
     }
 }
@@ -320,7 +335,7 @@ static void SwitchMenuDraw(){
             RenderHpBar(active_player->monster_party[i]->current_hp, active_player->monster_party[i]->max_hp, switch_hp_bars[i]);
         }
         else
-            BattleRenderMenuItem("-", &switch_menu->menu_items[i]);
+            BattleRenderMenuItem("-", &switch_menu->menu_items[i], game_font);
     }
 }
 
@@ -462,10 +477,10 @@ void BattleDraw(){
 
     if(battle_state == MAIN_MENU || battle_state == INV_OPEN){
         // Render normal menu items
-        BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH]);
-        BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK]);
-        BattleRenderMenuItem("INVENTORY", &battle_menu->menu_items[INVENTORY]);
-        BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN]);
+        BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH], game_font);
+        BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK], game_font);
+        BattleRenderMenuItem("INVENTORY", &battle_menu->menu_items[INVENTORY], game_font);
+        BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN], game_font);
     }
     else if(battle_state == MOVES_MENU)     MovesMenuDraw(active_mon);
     else if(battle_state == EXECUTING_TURN) BattleExecuteTurns(active_mon);
@@ -585,6 +600,7 @@ static int HandleSwitchMenuSelect(monster_t* active_mon){
     player_mon_tex = NULL;
     active_player->active_mon_index = active_player->selected_menu_itm;
     active_mon = active_player->monster_party[active_player->active_mon_index];
+    MonsterResetBattleStats(active_mon);
     
     player_displayed_hp = (float)active_mon->current_hp;
     sprintf(message, "Sent out %s!", active_mon->monster_name);

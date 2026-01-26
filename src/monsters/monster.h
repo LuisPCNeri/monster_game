@@ -31,6 +31,13 @@ typedef enum StatusEffects{
     CORRODED
 } StatusEffects;
 
+typedef enum StatType{
+    STAT_NONE,
+    STAT_ATTACK,
+    STAT_DEFENSE,
+    STAT_SPEED
+} StatType;
+
 typedef enum MonsterTypes{
     NONE_TYPE,
     FIRE_TYPE,
@@ -58,7 +65,7 @@ typedef struct{
 // A move that can be used by a monster
 typedef struct move_t{
     // States if this move's modifier applies to self or enemy
-    int is_modify_self : 1;
+    int is_modify_self;
     // id to lookup the move
     int id;
     // The level at which a monster can learn this move
@@ -73,8 +80,9 @@ typedef struct move_t{
     int acc_percent;
     // Amount of damage enemy will take (can be 0)
     int damage;
-    // Modifier applied to [] after using this move
-    float stat_modifier;
+    
+    StatType stat_to_modify;
+    int stat_stage_change;
 
     // Moves can only have one type
     MonsterTypes attack_type;
@@ -113,6 +121,10 @@ typedef struct monster_t {
     int defense;
     // Amount of speed points monster has
     int speed;
+    
+    int atk_stage;
+    int def_stage;
+    int spd_stage;
 
     int current_exp;
     int exp_to_next_level;
@@ -177,6 +189,9 @@ int MonsterCheckCanMove(monster_t* m, char* msg);
 // Applies status damage (Poison, Burn) and returns 1 if damage was taken
 int MonsterApplyStatusDamage(monster_t* m, char* msg);
 
+// Return char* correspondant to the status effect applied on monster
+char* MonsterGetSFXString(monster_t* m);
+
 // Has the enemy monster choose a move to use on the player monster and then attack the player's monster
 move_t* MonsterChooseEnemyAttack(monster_t* enemy);
 
@@ -204,6 +219,9 @@ int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device
 // Used when a monster spawns and when choosing a starter
 // All other stat increments are done with MonsterAddExp
 void MonsterSetStats(monster_t* monster);
+
+// Resets the temporary battle stats (stages) to 0
+void MonsterResetBattleStats(monster_t* monster);
 
 // Heal a monster through moves, items or idk anything else
 // Returns 1 if the monster was healed 0 if not
