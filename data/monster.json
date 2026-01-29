@@ -87,7 +87,7 @@
         "id": 7,
         "sprite": "resources/monster_sprites/Seallot.png",
         "name": "Seallot",
-        "description": "Seal pokemon...",
+        "description": "Seal monster...",
         "rarity": 2,
         "level": 0,
         "evo_1": 16,
