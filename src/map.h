@@ -8,6 +8,7 @@
 
 #define TILE_MAP_MAX_X 100
 #define TILE_MAP_MAX_Y 100
+#define TILE_SIZE 32
 
 // TILE TYPE DEFENITIONS
 // This is just to prevent magic numbers and make the code more readable

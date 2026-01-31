@@ -14,8 +14,8 @@ int tile_map[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
 
 SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
     // Set the map dimensions to acount for the number of tiles defined in the map.h file
-    int w = TILE_MAP_MAX_X * 32;
-    int h = TILE_MAP_MAX_Y * 32;
+    int w = TILE_MAP_MAX_X * TILE_SIZE;
+    int h = TILE_MAP_MAX_Y * TILE_SIZE;
 
     printf("X TILES: %d\n", TILE_MAP_MAX_X);
     printf("Y TILES: %d\n", TILE_MAP_MAX_Y);
@@ -26,10 +26,10 @@ SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
     for(int i=0; i < 4; i++){
         for(int k=0; k < 4; k++){
             // Go row by row in the image
-            select_tile[i*4 + k].x = 32 * k;
-            select_tile[i*4 + k].y = 32 * i;
-            select_tile[i*4 + k].w = 32;
-            select_tile[i*4 + k].h = 32;
+            select_tile[i*4 + k].x = TILE_SIZE * k;
+            select_tile[i*4 + k].y = TILE_SIZE * i;
+            select_tile[i*4 + k].w = TILE_SIZE;
+            select_tile[i*4 + k].h = TILE_SIZE;
         }
     }
 
@@ -64,10 +64,10 @@ SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
     SDL_Rect tile[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
     for(int y=0; y < TILE_MAP_MAX_Y; y++){
         for(int x=0; x < TILE_MAP_MAX_X; x++){
-            tile[x][y].x = x*32;
-            tile[x][y].y = y*32;
-            tile[x][y].w = 32;
-            tile[x][y].h = 32;
+            tile[x][y].x = x*TILE_SIZE;
+            tile[x][y].y = y*TILE_SIZE;
+            tile[x][y].w = TILE_SIZE;
+            tile[x][y].h = TILE_SIZE;
         }
     }
 
