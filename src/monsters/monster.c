@@ -104,6 +104,105 @@ MonsterTypes MonsterGetTypeFromString(const char* type_name){
     return NONE_TYPE;
 }
 
+void MonsterParseJSON(cJSON* entry, monster_t* mon){
+    // Load Basic Info
+    mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
+    strcpy(mon->sprite_path, cJSON_GetObjectItem(entry, "sprite")->valuestring);
+    strcpy(mon->monster_name, cJSON_GetObjectItem(entry, "name")->valuestring);
+    strcpy(mon->monster_description, cJSON_GetObjectItem(entry, "description")->valuestring);
+
+    // Load Stats
+    cJSON* stats = cJSON_GetObjectItem(entry, "stats");
+    mon->max_hp = cJSON_GetObjectItem(stats, "hp")->valueint;
+    mon->current_hp = mon->max_hp;
+
+    mon->rarity = cJSON_GetObjectItem(entry, "rarity")->valueint;
+
+    mon->level = cJSON_GetObjectItem(entry, "level")->valueint;
+    mon->evo_1_level = cJSON_GetObjectItem(entry, "evo_1")->valueint;
+    mon->evo_2_level = cJSON_GetObjectItem(entry, "evo_2")->valueint;
+
+    char* type_1 = cJSON_GetObjectItem(entry, "type_1")->valuestring;
+    mon->type_1 = MonsterGetTypeFromString(type_1);
+    char* type_2 = cJSON_GetObjectItem(entry, "type_2")->valuestring;;
+    mon->type_2 = MonsterGetTypeFromString(type_2);
+
+    mon->attack = cJSON_GetObjectItem(stats, "atk")->valueint;
+    mon->defense = cJSON_GetObjectItem(stats, "def")->valueint;
+    mon->speed = cJSON_GetObjectItem(stats, "spd")->valueint;
+
+    mon->current_exp = 0;
+            
+    // Load the USABLE MOVES for this monster
+    cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
+    cJSON* moveIdVal = NULL;
+    int slot = 0;
+
+    // Initialize slots to empty values first
+    for(int k=0; k<4; k++) {
+        // -1 FOR EMPTY SLOT
+        mon->usable_moves[k].id = -1;
+        mon->usable_moves[k].damage = 0;
+    }
+
+    // Loop through the JSON array
+    cJSON_ArrayForEach(moveIdVal, movesArray) {
+        if(slot >= 4) break; // Cannot have more than 4 moves
+        int idToFind = moveIdVal->valueint;
+                
+        // Find the move definition in library
+        move_t* foundMove = GetMoveById(idToFind);
+        if(foundMove != NULL) {
+            // COPY the struct into the monster's slot
+            mon->usable_moves[slot] = *foundMove;         
+            // Reset dynamic variables for this specific monster
+            mon->usable_moves[slot].available_uses = foundMove->max_uses;
+                    
+            slot++;
+        } 
+        else {
+            printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->monster_name, idToFind);
+        }
+    }
+}
+
+void MoveParseJSON(cJSON* entry, move_t* m){
+    // Load basic data
+    m->id = cJSON_GetObjectItem(entry, "id")->valueint;
+    strcpy(m->move_name, cJSON_GetObjectItem(entry, "name")->valuestring);
+    m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
+    m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
+    m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
+    m->status_effect = cJSON_GetObjectItem(entry, "status_fx")->valueint;
+
+    char* type = cJSON_GetObjectItem(entry, "type")->valuestring;
+    m->attack_type = MonsterGetTypeFromString(type);
+
+    cJSON* acc_item = cJSON_GetObjectItem(entry, "accuracy");
+    m->acc_percent = acc_item ? acc_item->valueint : 100;
+            
+    // Load Stat Modifiers
+    cJSON* stat_item = cJSON_GetObjectItem(entry, "stat_target");
+    if(stat_item){
+        char* s = stat_item->valuestring;
+        if(     strcmp(s, "ATTACK")  == 0) m->stat_to_modify = STAT_ATTACK;
+        else if(strcmp(s, "DEFENSE") == 0) m->stat_to_modify = STAT_DEFENSE;
+        else if(strcmp(s, "SPEED")   == 0) m->stat_to_modify = STAT_SPEED;
+        else m->stat_to_modify = STAT_NONE;
+    }
+    else {
+        m->stat_to_modify = STAT_NONE;
+    }
+
+    cJSON* stage_item = cJSON_GetObjectItem(entry, "stage_change");
+    m->stat_stage_change = stage_item ? stage_item->valueint : 0;
+    cJSON* self_item = cJSON_GetObjectItem(entry, "target_self");
+    m->is_modify_self = self_item ? self_item->valueint : 0;
+
+    // Initialize current state
+    m->available_uses = m->max_uses; 
+}
+
 void MonstersInit() {
 
     // Set srand once only
@@ -155,42 +254,7 @@ void MonstersInit() {
             if(MoveLibraryCount >= MAX_GAME_MOVES) break;
             
             move_t* m = &ALL_MOVES[MoveLibraryCount];
-            
-            // Load basic data
-            m->id = cJSON_GetObjectItem(entry, "id")->valueint;
-            strcpy(m->move_name, cJSON_GetObjectItem(entry, "name")->valuestring);
-            m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
-            m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
-            m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
-            m->status_effect = cJSON_GetObjectItem(entry, "status_fx")->valueint;
-
-            char* type = cJSON_GetObjectItem(entry, "type")->valuestring;
-            m->attack_type = MonsterGetTypeFromString(type);
-
-            cJSON* acc_item = cJSON_GetObjectItem(entry, "accuracy");
-            m->acc_percent = acc_item ? acc_item->valueint : 100;
-            
-            // Load Stat Modifiers
-            cJSON* stat_item = cJSON_GetObjectItem(entry, "stat_target");
-            if(stat_item){
-                char* s = stat_item->valuestring;
-                if(     strcmp(s, "ATTACK")  == 0) m->stat_to_modify = STAT_ATTACK;
-                else if(strcmp(s, "DEFENSE") == 0) m->stat_to_modify = STAT_DEFENSE;
-                else if(strcmp(s, "SPEED")   == 0) m->stat_to_modify = STAT_SPEED;
-                else m->stat_to_modify = STAT_NONE;
-            } else {
-                m->stat_to_modify = STAT_NONE;
-            }
-
-            cJSON* stage_item = cJSON_GetObjectItem(entry, "stage_change");
-            m->stat_stage_change = stage_item ? stage_item->valueint : 0;
-
-            cJSON* self_item = cJSON_GetObjectItem(entry, "target_self");
-            m->is_modify_self = self_item ? self_item->valueint : 0;
-
-            // Initialize current state
-            m->available_uses = m->max_uses; 
-
+            MoveParseJSON(entry, m);
             MoveLibraryCount++;
         }
         cJSON_Delete(jsonMoves);
@@ -212,69 +276,7 @@ void MonstersInit() {
             // Monsters are to be indexed by ther id
             // Makes the attributing them much easier and as the monster number is fixed it is relativelly safe
             monster_t* mon = &ALL_MONSTERS[monster_count];
-
-            // Load Basic Info
-            mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
-            strcpy(mon->sprite_path, cJSON_GetObjectItem(entry, "sprite")->valuestring);
-            strcpy(mon->monster_name, cJSON_GetObjectItem(entry, "name")->valuestring);
-            strcpy(mon->monster_description, cJSON_GetObjectItem(entry, "description")->valuestring);
-
-            // Load Stats
-            cJSON* stats = cJSON_GetObjectItem(entry, "stats");
-            mon->max_hp = cJSON_GetObjectItem(stats, "hp")->valueint;
-            mon->current_hp = mon->max_hp;
-
-            mon->rarity = cJSON_GetObjectItem(entry, "rarity")->valueint;
-
-            mon->level = cJSON_GetObjectItem(entry, "level")->valueint;
-            mon->evo_1_level = cJSON_GetObjectItem(entry, "evo_1")->valueint;
-            mon->evo_2_level = cJSON_GetObjectItem(entry, "evo_2")->valueint;
-
-            char* type_1 = cJSON_GetObjectItem(entry, "type_1")->valuestring;
-            mon->type_1 = MonsterGetTypeFromString(type_1);
-            char* type_2 = cJSON_GetObjectItem(entry, "type_2")->valuestring;;
-            mon->type_2 = MonsterGetTypeFromString(type_2);
-
-            mon->attack = cJSON_GetObjectItem(stats, "atk")->valueint;
-            mon->defense = cJSON_GetObjectItem(stats, "def")->valueint;
-            mon->speed = cJSON_GetObjectItem(stats, "spd")->valueint;
-
-            mon->current_exp = 0;
-            
-            // Load the USABLE MOVES for this monster
-            cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
-            cJSON* moveIdVal = NULL;
-            int slot = 0;
-
-            // Initialize slots to empty values first
-            for(int k=0; k<4; k++) {
-                // -1 FOR EMPTY SLOT
-                mon->usable_moves[k].id = -1;
-                mon->usable_moves[k].damage = 0;
-            }
-
-            // Loop through the JSON array
-            cJSON_ArrayForEach(moveIdVal, movesArray) {
-                if(slot >= 4) break; // Cannot have more than 4 moves
-
-                int idToFind = moveIdVal->valueint;
-                
-                // Find the move definition in our library
-                move_t* foundMove = GetMoveById(idToFind);
-
-                if(foundMove != NULL) {
-                    // COPY the struct into the monster's slot
-                    mon->usable_moves[slot] = *foundMove; 
-                    
-                    // Reset dynamic variables for this specific monster
-                    mon->usable_moves[slot].available_uses = foundMove->max_uses;
-                    
-                    slot++;
-                } else {
-                    printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->monster_name, idToFind);
-                }
-            }
-
+            MonsterParseJSON(entry, mon);
             monster_count++;
         }
         cJSON_Delete(jsonMons);
@@ -524,7 +526,7 @@ int TrySpawnMonster(void* arg){
         if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
             printf("NEW TILE TYPE: %d\n", new_tile_type);
 
-            // Every time player changes tile 40% chance to spawn
+            // Every time player changes tile 20% chance to spawn
             int spawn_num = rand() % (100 + 1);
 
             if(spawn_num <= 20){
@@ -542,8 +544,6 @@ int TrySpawnMonster(void* arg){
                 printf("AVG LEVEL DONE\n");
 
                 monster_t spawned_mons = SpawnMonster(new_tile_type, avg_level);
-                MonsterPrint(&spawned_mons);
-
                 // Monster has spawned so iniciate a battle
                 BattleInit(player ,&spawned_mons);
             }

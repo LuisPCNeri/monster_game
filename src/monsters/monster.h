@@ -2,6 +2,7 @@
 #define __MONSTER_H__
 
 #include "items/item.h"
+#include "libraries/cJSON.h"
 
 // MONSTER RARITIES
 // These affect only the monster's spawning rate
@@ -160,6 +161,12 @@ typedef struct monster_t {
 // This array will contain ALL monsters and their information
 void MonstersInit();
 
+// Parses the JSON Entry with the monster data and puts it in the address of mon
+void MonsterParseJSON(cJSON* entry, monster_t* mon);
+
+// Parses the JSON Entry with the move data and puts it in the address of m 
+void MoveParseJSON(cJSON* entry, move_t* m);
+
 // Returns 1 if a monster can spawn and 0 if not
 // The monster spawning or not depends on the tile_type
 int CheckMonsterCanSpawn(int tile_type);
@@ -177,6 +184,9 @@ int TrySpawnMonster(void* arg);
 
 // Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
 float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
+
+// Returns MonsterType correspondant to the char type_name
+MonsterTypes MonsterGetTypeFromString(const char* type_name);
 
 // Uses MOVE move on the enemy monster
 // Only to be used during a batle
