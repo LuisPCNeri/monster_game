@@ -97,8 +97,6 @@ void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
 void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
     if (!inv || !item) return;
     
-    item_header_t* header = (item_header_t*)item;
-
     // Check if item already exists to stack it
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){

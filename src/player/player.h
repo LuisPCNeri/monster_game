@@ -5,6 +5,7 @@
 #include "inventory.h"
 
 #define PARTY_SIZE 5
+#define PLAYER_SPRITE_SIZE 32
 
 // Forward declaration to allow pointer usage without circular dependency
 typedef struct menu_t menu_t;
