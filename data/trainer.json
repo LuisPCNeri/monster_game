@@ -1,0 +1,50 @@
+[
+    {
+        "name": "bob",
+        "sprite": "resources/trainer_sprites/fire_trainer.png",
+        "type": "FIRE",
+        "orientation": "RIGHT",
+        "x": 100,
+        "y": 100,
+        "party": [
+            {
+                "id": 1,
+                "sprite": "resources/monster_sprites/Ignisaur.png",
+                "name": "Ignisaur",
+                "description": "Ignisaur are said to be born every time a volcano erupts. However this belief is said to be wrong by most experts, who refuse to comment on other possible origins.",
+                "rarity": 0,
+                "level": 16,
+                "evo_1": 20,
+                "evo_2": 45,
+                "type_1": "FIRE",
+                "type_2": "NULL",
+                "stats": { "hp": 51, "atk": 10, "def": 38, "spd": 62 },
+                "starting_moves": [101, 102, 201, 401] 
+            }
+        ]
+    },
+    {
+        "name": "eric",
+        "sprite": "resources/trainer_sprites/fire_trainer.png",
+        "type": "WATER",
+        "orientation": "FRONT",
+        "x": 1400,
+        "y": 1400,
+        "party": [
+            {
+                "id": 7,
+                "sprite": "resources/monster_sprites/Seallot.png",
+                "name": "Seallot",
+                "description": "Seal monster...",
+                "rarity": 2,
+                "level": 0,
+                "evo_1": 16,
+                "evo_2": 32,
+                "type_1": "WATER",
+                "type_2": "NULL",
+                "stats": { "hp": 31, "atk": 33, "def": 33, "spd": 68 },
+                "starting_moves": [101, 102, 301, 104]
+            }
+        ]
+    }
+]

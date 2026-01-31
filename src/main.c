@@ -12,6 +12,7 @@
 #include "menus/menu.h"
 #include "monsters/monster.h"
 #include "monsters/battle/battle.h"
+#include "trainers/trainer.h"
 
 #define WINDOW_TITLE "WINDOW"
 #define CHARACTER_SPEED 300
@@ -23,6 +24,7 @@ TTF_Font* game_font;
 int main(void)
 {
     MonstersInit();
+    TrainersInit();
     player_t* player = (player_t*) calloc(1, sizeof(player_t));
     player->x_pos = 0;
     player->y_pos = 0;
@@ -91,8 +93,8 @@ int main(void)
     SDL_QueryTexture(player_texture, NULL, NULL, &player_rect.w, &player_rect.h);
 
     // adjust height and width of our image box.
-    player_rect.w /= 6;
-    player_rect.h /= 6;
+    player_rect.w = PLAYER_SPRITE_SIZE;
+    player_rect.h = PLAYER_SPRITE_SIZE;
 
     // Get screen dimensions safely from renderer
     int screen_w, screen_h;
@@ -127,15 +129,19 @@ int main(void)
                         switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_UP:
                             world_y -= CHARACTER_SPEED / 30;
+                            TrainerCheckAggro(player);
                             break;
                         case SDL_SCANCODE_LEFT:
                             world_x -= CHARACTER_SPEED / 30;
+                            TrainerCheckAggro(player);
                             break;
                         case SDL_SCANCODE_DOWN:
                             world_y += CHARACTER_SPEED / 30;
+                            TrainerCheckAggro(player);
                             break;
                         case SDL_SCANCODE_RIGHT:
                             world_x += CHARACTER_SPEED / 30;
+                            TrainerCheckAggro(player);
                             break;
                         case SDL_SCANCODE_ESCAPE:
                             // Clean Up
@@ -216,6 +222,7 @@ int main(void)
             SDL_Rect map_dest = {offset_x, offset_y, map_w, map_h};
             // Copy the map's texture to the new map variable
             SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
+            TrainerDraw(offset_x, offset_y);
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
         }
         else if(player->game_state == STATE_IN_MENU || player->game_state == STATE_LOCKED){

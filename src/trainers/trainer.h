@@ -4,20 +4,30 @@
 #include "player/player.h"
 #include "monsters/monster.h"
 
+typedef enum FacingDirection{
+    FRONT,
+    BACK,
+    RIGHT,
+    LEFT
+} FacingDirection;
+
 typedef struct trainer_t
 {   
     int x_pos;
     int y_pos;
-    int facing_direction;
-
-    // TODO : Trainer inventory
+    FacingDirection facing_direction;
 
     MonsterTypes type;
+
+    char sprite_path[256];
+    char name[512];
     monster_t party[PARTY_SIZE];
 } trainer_t;
 
-trainer_t* TrainerCreate(int x_pos, int y_pos, int facing_direction, MonsterTypes type, monster_t* party);
-trainer_t* TrainerFromJSON();
-
+// Load trainers into memory
+void TrainersInit();
+int TrainerIsVisible(trainer_t* t, int offset_x, int offset_y);
+void TrainerDraw(int offset_x, int offset_y);
+void TrainerCheckAggro(player_t* player);
 
 #endif
