@@ -14,6 +14,7 @@
 #include "trainer.h"
 #include "map.h"
 #include "monsters/battle/battle.h"
+#include "trainer_battle/trainer_battle.h"
 #include "monsters/monster.h"
 
 #define TRAINER_FILE "data/trainer.json"
@@ -81,6 +82,7 @@ void TrainersInit(){
         trainer_t* t = &TRAINERS[current_trainers];
         strcpy(t->name, cJSON_GetObjectItem(entry, "name")->valuestring);
         strcpy(t->sprite_path, cJSON_GetObjectItem(entry, "sprite")->valuestring);
+        strcpy(t->intro_msg, cJSON_GetObjectItem(entry, "intro_msg")->valuestring);
         t->type = MonsterGetTypeFromString(cJSON_GetObjectItem(entry, "type")->valuestring);
         t->facing_direction = GetOrientationFromString(cJSON_GetObjectItem(entry, "orientation")->valuestring);
         t->x_pos = cJSON_GetObjectItem(entry, "x")->valueint;
@@ -103,7 +105,6 @@ void TrainersInit(){
     };
 
     printf("LOADED %d TRAINERS\n", current_trainers);
-    TrainerPrint(&TRAINERS[0]);
     cJSON_Delete(trainers);
     free(file);
 }
@@ -219,28 +220,28 @@ void TrainerCheckAggro(player_t* player){
     if(closest->facing_direction == FRONT){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos >= closest->y_pos){
-            BattleInit(player, &closest->party[0]);
+            TrainerBattleInit(player, closest);
             return;
         }
     }
     else if(closest->facing_direction == BACK){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos <= closest->y_pos){
-            BattleInit(player, &closest->party[0]);
+            TrainerBattleInit(player, closest);
             return;
         }
     }
     else if(closest->facing_direction == LEFT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos <= closest->x_pos){
-            BattleInit(player, &closest->party[0]);
+            TrainerBattleInit(player, closest);
             return;
         }
     }
     else if(closest->facing_direction == RIGHT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos >= closest->x_pos){
-            BattleInit(player, &closest->party[0]);
+            TrainerBattleInit(player, closest);
             return;
         }
     }

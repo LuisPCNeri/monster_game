@@ -21,6 +21,7 @@ typedef struct trainer_t
 
     char sprite_path[256];
     char name[512];
+    char intro_msg[1024];
     monster_t party[PARTY_SIZE];
 } trainer_t;
 

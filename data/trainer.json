@@ -2,6 +2,7 @@
     {
         "name": "bob",
         "sprite": "resources/trainer_sprites/fire_trainer.png",
+        "intro_msg": "",
         "type": "FIRE",
         "orientation": "RIGHT",
         "x": 100,
@@ -24,8 +25,9 @@
         ]
     },
     {
-        "name": "eric",
+        "name": "Water Trainer eric",
         "sprite": "resources/trainer_sprites/fire_trainer.png",
+        "intro_msg": "Hey its me Eric! Lets Battle!!",
         "type": "WATER",
         "orientation": "FRONT",
         "x": 1400,
@@ -37,13 +39,27 @@
                 "name": "Seallot",
                 "description": "Seal monster...",
                 "rarity": 2,
-                "level": 0,
+                "level": 7,
                 "evo_1": 16,
                 "evo_2": 32,
                 "type_1": "WATER",
                 "type_2": "NULL",
-                "stats": { "hp": 31, "atk": 33, "def": 33, "spd": 68 },
+                "stats": { "hp": 11, "atk": 27, "def": 33, "spd": 68 },
                 "starting_moves": [101, 102, 301, 104]
+            },
+            {
+                "id": 1,
+                "sprite": "resources/monster_sprites/Ignisaur.png",
+                "name": "Ignisaur",
+                "description": "Ignisaur are said to be born every time a volcano erupts. However this belief is said to be wrong by most experts, who refuse to comment on other possible origins.",
+                "rarity": 0,
+                "level": 16,
+                "evo_1": 20,
+                "evo_2": 45,
+                "type_1": "FIRE",
+                "type_2": "NULL",
+                "stats": { "hp": 0, "atk": 10, "def": 38, "spd": 62 },
+                "starting_moves": [101, 102, 201, 103] 
             }
         ]
     }
