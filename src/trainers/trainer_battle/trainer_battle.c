@@ -14,6 +14,8 @@ static TTF_Font* info_font = NULL;
 static player_t* player = NULL;
 static trainer_t* trainer = NULL;
 
+static move_t* enemy_last_move = NULL;
+
 #define NOTCH_SIZE 16
 
 void TrainerBattleDraw(){
@@ -129,7 +131,7 @@ void TrainerBattleInitMessageDraw(){
 }
 
 void HandleEnterDownInitMessage(){
-    BattleInit(player, &trainer->party[0]);
+    BattleInit(player, &trainer->party[0], trainer);
     player->current_menu->draw = TrainerBattleDraw;
 }
 
@@ -150,4 +152,30 @@ void TrainerBattleInit(player_t* active_player, trainer_t* active_trainer){
 
     player->current_menu = m;
     player->game_state = STATE_IN_MENU;
+}
+
+move_t* TrainerBattleChooseMove(monster_t* player_monster, monster_t* enemy){
+    
+    move_t* highest_dmg = NULL;
+    for(unsigned int i = 0; i < 4; i++){
+        if(!highest_dmg) highest_dmg = &enemy->usable_moves[i];
+        
+        // Check if last move was inneficient
+        if(enemy_last_move && enemy_last_move->id == enemy->usable_moves[i].id){
+            float type_mult = MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_1);
+
+            if(player_monster->type_2 != NONE_TYPE){
+                if(MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_2) > type_mult)
+                    type_mult = MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_2);
+            }
+            
+            // Do not let this move be used next
+            if(type_mult < 1.0f) continue;
+        }
+
+        if(enemy->usable_moves[i].damage > highest_dmg->damage) 
+            highest_dmg = &enemy->usable_moves[i];
+    }
+    
+    return highest_dmg;
 }
