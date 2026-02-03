@@ -109,9 +109,6 @@ int main(void)
 
     PlayerSetStarters(player);
 
-    SDL_Thread* spawn_thread = SDL_CreateThread(TrySpawnMonster, "spawn_thread", player);
-    printf("Spawn Thread Created\n");
-
     int running = 1;
     while (running) {
         SDL_Event event;
@@ -129,19 +126,27 @@ int main(void)
                         switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_UP:
                             world_y -= CHARACTER_SPEED / 30;
+                            player->y_pos = world_y + (player_rect.h / 2);
                             TrainerCheckAggro(player);
+                            TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_LEFT:
                             world_x -= CHARACTER_SPEED / 30;
+                            player->x_pos = world_x + (player_rect.w / 2);
                             TrainerCheckAggro(player);
+                            TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_DOWN:
                             world_y += CHARACTER_SPEED / 30;
+                            player->y_pos = world_y + (player_rect.h / 2);
                             TrainerCheckAggro(player);
+                            TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_RIGHT:
                             world_x += CHARACTER_SPEED / 30;
+                            player->x_pos = world_x + (player_rect.w / 2);
                             TrainerCheckAggro(player);
+                            TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_ESCAPE:
                             // Clean Up
@@ -238,8 +243,6 @@ int main(void)
     }
 
     player->running = 0;
-    int thread_return;
-    SDL_WaitThread(spawn_thread, &thread_return);
 
     // close SDL
     BattleQuit();

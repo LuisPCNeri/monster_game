@@ -24,6 +24,8 @@ static int MoveLibraryCount = 0;
 
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
 
+static int old_x, old_y = 0;
+
 move_t* GetMoveById(int id) {
     for(int i = 0; i < MoveLibraryCount; i++) {
         if(ALL_MOVES[i].id == id) {
@@ -508,52 +510,42 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
     return ALL_MONSTERS[0];
 }
 
-int TrySpawnMonster(void* arg){
-    // Convert the argument to a player pointer
-    player_t* player = (player_t*) arg;
-    
-    // Player's current tile basically
-    int old_x = player->x_pos / 32;
-    int old_y = player->y_pos / 32;
+int TrySpawnMonster(player_t* player){    
+    // Player's current tile basically        
+    int current_x = player->x_pos / 32;
+    int current_y = player->y_pos / 32;
+    // Get the new tile
+    int new_tile_type = GetCurrentTileType(current_x, current_y);
 
-    while(player->running){
-        
-        int current_x = player->x_pos / 32;
-        int current_y = player->y_pos / 32;
-        // Get the new tile
-        int new_tile_type = GetCurrentTileType(current_x, current_y);
+    if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
+        printf("NEW TILE TYPE: %d\n", new_tile_type);
 
-        if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
-            printf("NEW TILE TYPE: %d\n", new_tile_type);
+        // Every time player changes tile 20% chance to spawn
+        int spawn_num = rand() % (100 + 1);
 
-            // Every time player changes tile 20% chance to spawn
-            int spawn_num = rand() % (100 + 1);
-
-            if(spawn_num <= 20){
-                // The chance hit spawn monster now
-                int total_level = 0;
-                int count = 0;
-                for(int i = 0; i < 5; i++){
-                    if(player->monster_party[i]){
-                        total_level += player->monster_party[i]->level;
-                        count++;
-                    }
+        if(spawn_num <= 20){
+            // The chance hit spawn monster now
+            int total_level = 0;
+            int count = 0;
+            for(int i = 0; i < 5; i++){
+                if(player->monster_party[i]){
+                    total_level += player->monster_party[i]->level;
+                    count++;
                 }
-                int avg_level = (count > 0) ? total_level / count : 5;
-
-                printf("AVG LEVEL DONE\n");
-
-                monster_t spawned_mons = SpawnMonster(new_tile_type, avg_level);
-                // Monster has spawned so iniciate a battle
-                BattleInit(player ,&spawned_mons);
             }
-        }
+            int avg_level = (count > 0) ? total_level / count : 5;
 
-        // Set the current_tile value to the new one
-        old_x = current_x;
-        old_y = current_y; 
-        SDL_Delay(50);
+            printf("AVG LEVEL DONE\n");
+
+            monster_t spawned_mons = SpawnMonster(new_tile_type, avg_level);
+            // Monster has spawned so iniciate a battle
+            BattleInit(player ,&spawned_mons, NULL);
+        }
     }
+
+    // Set the current_tile value to the new one
+    old_x = current_x;
+    old_y = current_y; 
     return -1;
 }
 
