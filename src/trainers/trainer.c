@@ -24,10 +24,8 @@
 #define AGGRO_LENIENCE 10
 
 extern SDL_Renderer* rend;
-static move_t* enemy_last_move = NULL;
 
 static int world_offset_x, world_offset_y;
-
 // Number of trainers is arbitrary and can me increased or decreased at any time
 static trainer_t TRAINERS[100];
 static unsigned int current_trainers = 0;
@@ -160,37 +158,6 @@ void TrainerDraw(int offset_x, int offset_y){
     }
 }
 
-move_t* TrainerUseMove(monster_t* player_monster, monster_t* enemy){
-    // Wild monsters have no notion of type advantages
-    // What I think is more plausible for them is to choose the attack that does the highest damage
-    // If they attacked once and the other monster was immune THEY LEARN
-    // and so they will not use that attack again agains that monster
-    
-    move_t* highest_dmg = NULL;
-
-    for(unsigned int i = 0; i < 4; i++){
-        // Check if last move was inneficient
-        if(enemy_last_move && enemy_last_move->id == enemy->usable_moves[i].id){
-            float type_mult = MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_1);
-
-            if(player_monster->type_2 != NONE_TYPE){
-                if(MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_2) > type_mult)
-                    type_mult = MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_2);
-            }
-            
-            // Do not let this move be used next
-            if(type_mult < 1.0f) continue;
-        }
-
-        if(!highest_dmg) highest_dmg = &enemy->usable_moves[i];
-
-        if(enemy->usable_moves[i].damage > highest_dmg->damage) 
-            highest_dmg = &enemy->usable_moves[i];
-    }
-    
-    return highest_dmg;
-}
-
 static trainer_t* TrainerGetClosest(player_t* p){
     if(current_trainers < 2) return &TRAINERS[0];
 
@@ -245,4 +212,12 @@ void TrainerCheckAggro(player_t* player){
             return;
         }
     }
+}
+
+int TrainerCheckPartyIsDead(trainer_t* trainer){
+    for(int i = 0; i < PARTY_SIZE; i++){
+        if(trainer->party[i].current_hp > 0) return 0;
+    }
+
+    return 1;
 }

@@ -112,6 +112,16 @@ int PlayerAddMonsterToParty(monster_t* monster){
     return has_space;
 }
 
+int PlayerCheckIsPartyDead(player_t* player){
+    for(int i = 0; i < PARTY_SIZE; i++){
+        if(player->monster_party[i]){
+            if(player->monster_party[i]->current_hp > 0) return 0;
+        }
+    }
+
+    return 1;
+}
+
 void PlayerDestroy(player_t* p){
     for(unsigned int i = 0; i < PARTY_SIZE; i++){
         if(p->monster_party[i]) free(p->monster_party[i]);

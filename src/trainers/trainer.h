@@ -30,5 +30,6 @@ void TrainersInit();
 int TrainerIsVisible(trainer_t* t, int offset_x, int offset_y);
 void TrainerDraw(int offset_x, int offset_y);
 void TrainerCheckAggro(player_t* player);
+int TrainerCheckPartyIsDead(trainer_t* trainer);
 
 #endif

@@ -55,6 +55,9 @@ void PlayerMenuHandleSelect();
 // Returns 0 if the party is full
 int PlayerAddMonsterToParty(monster_t* monster);
 
+// Returns 1 if all of the player's monsters are dead and 0 if there is at least one alive
+int PlayerCheckIsPartyDead(player_t* player);
+
 void PlayerDestroy(player_t* p);
 
 #endif
