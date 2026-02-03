@@ -7,6 +7,8 @@
 
 #include "monsters/monster.h"
 #include "player/player.h"
+#include "trainers/trainer.h"
+#include "trainers/trainer_battle/trainer_battle.h"
 #include "menus/menu.h"
 #include "battle.h"
 
@@ -30,12 +32,15 @@ static SDL_Rect enemy_hp_rect = {1470, 102, 250, 10};
 
 static monster_t* enemy_mon = NULL;
 static SDL_Texture* enemy_mon_tex = NULL;
+static monster_t wild_battle_monster;
 
 static menu_t* battle_menu = NULL;
 static menu_t* switch_menu = NULL;
 
 static player_t* active_player = NULL;
 static SDL_Texture* player_mon_tex = NULL;
+
+static trainer_t* act_trainer = NULL;
 
 static int turn_stage = 0;
 static monster_t* first_attacker = NULL;
@@ -50,7 +55,7 @@ static float enemy_displayed_hp = 0.0f;
 
 static SDL_Rect switch_hp_bars[PARTY_SIZE];
 
-static char message[520];
+static char message[1028];
 
 typedef enum BattleState{
     MAIN_MENU,
@@ -59,15 +64,17 @@ typedef enum BattleState{
     EXECUTING_TURN,
     INV_OPEN,
     MESSAGE_DISPLAYED,
-    MONSTER_CAUGHT
+    MONSTER_CAUGHT,
+    TRAINER_SWITCH
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
 
-void BattleInit(player_t* player, monster_t* enemy_monster){
+void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
     printf("BATTLE STARTING\n");
     active_player = player;
     battle_state = MAIN_MENU;
+    if(!act_trainer) act_trainer = trainer;
 
     if (battle_menu) MenuDestroy(battle_menu);
     if (switch_menu) MenuDestroy(switch_menu);
@@ -104,7 +111,12 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
     }
     switch_menu->back = BattleMenuBack;
     // Just to hep on BattleDraw function to prevent it running when it is not supposed to
-    enemy_mon = enemy_monster;
+    if(trainer){
+        enemy_mon = enemy_monster;
+    } else {
+        wild_battle_monster = *enemy_monster;
+        enemy_mon = &wild_battle_monster;
+    }
 
     // Set player's active monster to the first one in the party
     player->active_mon_index = 0;
@@ -125,18 +137,41 @@ void BattleInit(player_t* player, monster_t* enemy_monster){
 // If so calls other functions such as increase exp
 // Returns >1 if battle is over and 0 if not
 static int BattleCheckIsOver(){
-    int has_mon_left = 0;
-    for(int i = 0; i < PARTY_SIZE; i++){
-        if(active_player->monster_party[i]){
-            if(active_player->monster_party[i]->current_hp > 0) has_mon_left = 1;
-        }
-    }
+    int has_mon_left = !PlayerCheckIsPartyDead(active_player);
 
     if(enemy_mon->current_hp <= 0){
-        MonsterAddExp(active_player->monster_party[active_player->active_mon_index], enemy_mon);
+        if(act_trainer){
+            if(!TrainerCheckPartyIsDead(act_trainer)){
+                // TODO : Message to send out
+                for(int i = 0; i < PARTY_SIZE; i++){
+                    if(act_trainer->party[i].current_hp > 0){
+                        SDL_DestroyTexture(enemy_mon_tex);
+                        enemy_mon_tex = NULL;
+                        
+                        enemy_mon = &act_trainer->party[i];
+                        MonsterResetBattleStats(enemy_mon);
+                        enemy_displayed_hp = (float)enemy_mon->current_hp;
+                        sprintf(message, "%s sent out %s!", act_trainer->name, enemy_mon->monster_name);
+                        battle_state = TRAINER_SWITCH;
+                        break;
+                    }
+                }
+                return 0;
+            }
+            else{
+                for(int i = 0; i < PARTY_SIZE; i++){
+                    MonsterAddExp(active_player->monster_party[active_player->active_mon_index], &act_trainer->party[i]);
+                }
+            }
+        }
+        else{
+            MonsterAddExp(active_player->monster_party[active_player->active_mon_index], enemy_mon);
+        }
         printf("Battle Won! Current Exp: %d/%d\n", 
             active_player->monster_party[active_player->active_mon_index]->current_exp,
             active_player->monster_party[active_player->active_mon_index]->exp_to_next_level);
+
+        if(act_trainer) act_trainer = NULL;
         return 1;
     }
     else if(active_player->monster_party[active_player->active_mon_index]->current_hp <= 0 && has_mon_left){
@@ -484,7 +519,7 @@ void BattleDraw(){
     }
     else if(battle_state == MOVES_MENU)     MovesMenuDraw(active_mon);
     else if(battle_state == EXECUTING_TURN) BattleExecuteTurns(active_mon);
-    else if(battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT){
+    else if(battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT || battle_state == TRAINER_SWITCH){
         BattleRenderInfo(message, &status_rect, 20, 20, 0);
         BattleRenderInfo("->", &status_rect, 750, 150, 0);
     }
@@ -523,12 +558,14 @@ static void HandleMovesMenuSelect(monster_t* active_mon){
             second_attacker = enemy_mon;
 
             fst_atck_move = player_move_ptr;
-            scnd_atck_move = MonsterChooseEnemyAttack(enemy_mon);
+            if(!act_trainer) scnd_atck_move = MonsterChooseEnemyAttack(enemy_mon);
+            else scnd_atck_move = TrainerBattleChooseMove(active_mon, enemy_mon);
         } else {
             first_attacker = enemy_mon;
             second_attacker = active_mon;
 
-            fst_atck_move = MonsterChooseEnemyAttack(enemy_mon);
+            if(!act_trainer) fst_atck_move = MonsterChooseEnemyAttack(enemy_mon);
+            else fst_atck_move = TrainerBattleChooseMove(active_mon, enemy_mon);
             scnd_atck_move = player_move_ptr;
         }
         battle_state = EXECUTING_TURN;
@@ -651,6 +688,11 @@ void BattleMenuHandleSelect(){
     }
     else if(battle_state == MONSTER_CAUGHT){
         active_player->game_state = STATE_EXPLORING;
+    }
+    else if(battle_state == TRAINER_SWITCH){
+        battle_state = MAIN_MENU;
+        active_player->selected_menu_itm = ATTACK;
+        MenuHighlightBox(&battle_menu->menu_items[ATTACK]);
     }
     else if(battle_state == MESSAGE_DISPLAYED){
         // Make it so it is not the player's turn anymore

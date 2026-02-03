@@ -58,7 +58,7 @@
                 "evo_2": 45,
                 "type_1": "FIRE",
                 "type_2": "NULL",
-                "stats": { "hp": 0, "atk": 10, "def": 38, "spd": 62 },
+                "stats": { "hp": 10, "atk": 10, "def": 38, "spd": 62 },
                 "starting_moves": [101, 102, 201, 103] 
             }
         ]

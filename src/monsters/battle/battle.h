@@ -5,6 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #include "player/player.h"
+#include "trainers/trainer.h"
 typedef enum BattleMenuButtons{
     ATTACK,
     INVENTORY,
@@ -16,7 +17,7 @@ typedef enum BattleMenuButtons{
 // Renders a new texture on top of the existing one (the map)
 // Locks the player position and let's the player change selected buttons with arrow keys
 // The player monster is not an arg as it will always be the first one in the party
-void BattleInit(player_t* player, monster_t* enemy_monster);
+void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer);
 
 // Renders the battle interface. Should be called every frame while in battle state.
 void BattleDraw();
