@@ -15,6 +15,7 @@ typedef struct trainer_t
 {   
     int x_pos;
     int y_pos;
+    int was_defeated;
     FacingDirection facing_direction;
 
     MonsterTypes type;
@@ -29,7 +30,8 @@ typedef struct trainer_t
 void TrainersInit();
 int TrainerIsVisible(trainer_t* t, int offset_x, int offset_y);
 void TrainerDraw(int offset_x, int offset_y);
-void TrainerCheckAggro(player_t* player);
+// If a trainer has agrroed the player returns 1 if not returns 0
+int TrainerCheckAggro(player_t* player);
 int TrainerCheckPartyIsDead(trainer_t* trainer);
 
 #endif

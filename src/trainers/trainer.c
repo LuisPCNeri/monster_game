@@ -86,6 +86,8 @@ void TrainersInit(){
         t->x_pos = cJSON_GetObjectItem(entry, "x")->valueint;
         t->y_pos = cJSON_GetObjectItem(entry, "y")->valueint;
 
+        t->was_defeated = 0;
+
         cJSON* party = cJSON_GetObjectItem(entry, "party");
         cJSON* monster = NULL;
         int slot = 0;
@@ -174,44 +176,50 @@ static trainer_t* TrainerGetClosest(player_t* p){
     return closest;
 }
 
-void TrainerCheckAggro(player_t* player){
+int TrainerCheckAggro(player_t* player){
     trainer_t* closest = TrainerGetClosest(player);
+
+    if(closest->was_defeated) return 0;
+    if(PlayerCheckIsPartyDead(player)) return 0;
+
     int dist = sqrt(pow(player->x_pos - closest->x_pos, 2) + pow(player->y_pos - closest->y_pos, 2));
 
     // Position of the center of the closest trainer's sprite
     int trainer_CoM_x = closest->x_pos + (TRAINER_SPRITE_SIZE / 2);
     int trainer_CoM_y = closest->y_pos + (TRAINER_SPRITE_SIZE) / 2;
 
-    if(dist / TILE_SIZE > MAX_AGGRO_DIST) return;
+    if(dist / TILE_SIZE > MAX_AGGRO_DIST) return 0;
 
     if(closest->facing_direction == FRONT){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos >= closest->y_pos){
             TrainerBattleInit(player, closest);
-            return;
+            return 1;
         }
     }
     else if(closest->facing_direction == BACK){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos <= closest->y_pos){
             TrainerBattleInit(player, closest);
-            return;
+            return 1;
         }
     }
     else if(closest->facing_direction == LEFT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos <= closest->x_pos){
             TrainerBattleInit(player, closest);
-            return;
+            return 1;
         }
     }
     else if(closest->facing_direction == RIGHT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos >= closest->x_pos){
             TrainerBattleInit(player, closest);
-            return;
+            return 1;
         }
     }
+
+    return 0;
 }
 
 int TrainerCheckPartyIsDead(trainer_t* trainer){
