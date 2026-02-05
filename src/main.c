@@ -32,7 +32,6 @@ int main(void)
     // Player's absolute position in the world
     int world_x = 0, world_y = 0;
     
-    // returns zero on success else non-zero
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         printf("error initializing SDL: %s\n", SDL_GetError());
     }
@@ -51,22 +50,14 @@ int main(void)
     restore_item_t potion = {4, 1, 10, "Potion", ""};
     InventoryAddItem(player->inv, &potion, 5);
 
-    // triggers the program that controls
-    // your graphics hardware and sets flags
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
-    // creates a renderer to render our images
-    rend = SDL_CreateRenderer(win, -1, render_flags);
-    // Create the map texture
     SDL_Texture* map_tex = CreateGameMap(rend);
 
-    // Get the actual size of the generated map for boundary checks
     int map_w, map_h;
     SDL_QueryTexture(map_tex, NULL, NULL, &map_w, &map_h);
 
-    // creates a surface to load an image into the main memory
     SDL_Surface* surface;
 
-    // please provide a path for your image
     surface = IMG_Load("./resources/test.jpeg");
     if (!surface) {
         printf("Error loading image: %s\n", IMG_GetError());
@@ -81,9 +72,7 @@ int main(void)
         return 1;
     }
 
-    // loads image to our graphics hardware memory.
     SDL_Texture* player_texture = SDL_CreateTextureFromSurface(rend, surface);
-    // clears main-memory
     SDL_FreeSurface(surface);
 
     // let us control our image position
@@ -92,11 +81,9 @@ int main(void)
     // connects our texture with player_rect to control position
     SDL_QueryTexture(player_texture, NULL, NULL, &player_rect.w, &player_rect.h);
 
-    // adjust height and width of our image box.
     player_rect.w = PLAYER_SPRITE_SIZE;
     player_rect.h = PLAYER_SPRITE_SIZE;
 
-    // Get screen dimensions safely from renderer
     int screen_w, screen_h;
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
@@ -104,7 +91,6 @@ int main(void)
     world_x = (map_w - player_rect.w) / 2;
     world_y = (map_h - player_rect.h) / 2;
 
-    // CREATEAS a Thread to keep trying to spawn monsters in the background
     player->running = 1;
 
     PlayerSetStarters(player);
@@ -112,7 +98,6 @@ int main(void)
     int running = 1;
     while (running) {
         SDL_Event event;
-
         // Events management
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -127,29 +112,24 @@ int main(void)
                         case SDL_SCANCODE_UP:
                             world_y -= CHARACTER_SPEED / 30;
                             player->y_pos = world_y + (player_rect.h / 2);
-                            TrainerCheckAggro(player);
-                            TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_LEFT:
                             world_x -= CHARACTER_SPEED / 30;
                             player->x_pos = world_x + (player_rect.w / 2);
-                            TrainerCheckAggro(player);
-                            TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_DOWN:
                             world_y += CHARACTER_SPEED / 30;
                             player->y_pos = world_y + (player_rect.h / 2);
-                            TrainerCheckAggro(player);
-                            TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_RIGHT:
                             world_x += CHARACTER_SPEED / 30;
                             player->x_pos = world_x + (player_rect.w / 2);
-                            TrainerCheckAggro(player);
-                            TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_ESCAPE:
-                            // Clean Up
                             running = 0;
                             break;
                         default:
@@ -175,7 +155,6 @@ int main(void)
                                 player->current_menu->back();
                                 break;
                             case SDL_SCANCODE_RETURN:
-                                // Select player's current selected item
                                 MenuSelectCurrentItem(player);
                                 break;
                             default:
@@ -191,7 +170,6 @@ int main(void)
             }
         }
 
-        // Update screen dimensions in case of window resize or resolution change
         SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
         // Clamp player to map boundaries
@@ -214,11 +192,10 @@ int main(void)
         player_rect.x = world_x + offset_x;
         player_rect.y = world_y + offset_y;
 
-        // The player's position should be the center of it's sprite
+        // Set player's position to the center of it's sprite
         player->x_pos = world_x + (player_rect.w / 2);
         player->y_pos = world_y + (player_rect.h / 2);
 
-        // clears the screen
         SDL_RenderClear(rend);
 
         if(player->game_state == STATE_EXPLORING){
@@ -244,18 +221,13 @@ int main(void)
 
     player->running = 0;
 
-    // close SDL
     BattleQuit();
     PlayerDestroy(player);
 
     SDL_DestroyTexture(map_tex);
-    // destroy texture
     SDL_DestroyTexture(player_texture);
-    // destroy renderer
     SDL_DestroyRenderer(rend);
-    // Destroy font
     TTF_CloseFont(game_font);
-    // destroy window
     SDL_DestroyWindow(win);
     TTF_Quit();
     IMG_Quit();
