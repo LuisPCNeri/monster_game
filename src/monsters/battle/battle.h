@@ -13,6 +13,12 @@ typedef enum BattleMenuButtons{
     RUN
 } BattleMenuButtons;
 
+// When defeating a trainer's monster the exp to add gets saved with the monster that defeated that monster
+typedef struct BattleQueueItem{
+    int exp_amount;
+    monster_t* monster;
+} BattleQueueItem;
+
 // This function puts the player in the battle state
 // Renders a new texture on top of the existing one (the map)
 // Locks the player position and let's the player change selected buttons with arrow keys
