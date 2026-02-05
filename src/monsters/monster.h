@@ -218,7 +218,11 @@ monster_t* GetMonsterById(int id);
 
 // Increments monster_t monster's exp by an amount calculated in another helper function
 // This amount has a linear realtion to the enemy_monster's level
-void MonsterAddExp(monster_t* monster, monster_t* enemy_monster);
+// If the exp to add is already know i.e a predefined int for example, enemy_monster can be passed as NULL
+// If enemy_monster is not null the exp its defeat would provide is used instead
+void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int exp);
+
+int MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster);
 
 // Has the player try to catch a monster.
 // Uses the rarity modifiers to calculate the chance.

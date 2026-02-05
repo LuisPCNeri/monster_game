@@ -149,15 +149,12 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
 
     // Loop through the JSON array
     cJSON_ArrayForEach(moveIdVal, movesArray) {
-        if(slot >= 4) break; // Cannot have more than 4 moves
+        if(slot >= 4) break;
         int idToFind = moveIdVal->valueint;
                 
-        // Find the move definition in library
         move_t* foundMove = GetMoveById(idToFind);
         if(foundMove != NULL) {
-            // COPY the struct into the monster's slot
             mon->usable_moves[slot] = *foundMove;         
-            // Reset dynamic variables for this specific monster
             mon->usable_moves[slot].available_uses = foundMove->max_uses;
                     
             slot++;
@@ -206,14 +203,9 @@ void MoveParseJSON(cJSON* entry, move_t* m){
 }
 
 void MonstersInit() {
-
-    // Set srand once only
     srand(time(NULL));
 
-    // =========================================================
     // LOAD ALL TYPE ADVANTAGES INTO THE LIBRARY
-    // =========================================================
-
     // Initialize all values to 1 as the default mult
     for(unsigned int i = 0; i < TYPE_COUNT; i++){
         for(unsigned int k = 0; k < TYPE_COUNT; k++){
@@ -244,9 +236,7 @@ void MonstersInit() {
 
     printf("Loaded TYPE CHART\n");
 
-    // =========================================================
     // LOAD ALL MOVES INTO THE LIBRARY
-    // =========================================================
     char* moveData = LoadFileToString("data/moves.json");
     if(moveData) {
         cJSON* jsonMoves = cJSON_Parse(moveData);
@@ -264,9 +254,7 @@ void MonstersInit() {
         printf("Loaded %d moves.\n", MoveLibraryCount);
     }
 
-    // =========================================================
     // LOAD MONSTERS AND LINK MOVES
-    // =========================================================
     char* monData = LoadFileToString("data/monster.json");
     if(monData) {
         cJSON* jsonMons = cJSON_Parse(monData);
@@ -316,7 +304,6 @@ void MonsterResetBattleStats(monster_t* monster){
 void MonsterSetStats(monster_t* monster){
     if(monster->level == 0) monster->level = 5;
 
-    // Retrieve base stats to calculate initial stats based on level
     monster_t* base = GetMonsterById(monster->id);
     if (!base) return;
 
@@ -387,7 +374,6 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
         int tile_type_json = t_item->valueint;
         if(tile_type_json == tile_type){
             // Load the spawnable monsters to the array
-            
             cJSON* spawnable_mons = cJSON_GetObjectItem(tile_data, "spawnable_monsters");
             cJSON* mon_id = NULL;
 
@@ -502,19 +488,13 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
         }
     }
 
-    // LEGENDARY SPAWN
-    // Infinite loop to try to keep spawning
-    // Legendaries will not spawn naturaly
-    // so nothing here
-
     return ALL_MONSTERS[0];
 }
 
-int TrySpawnMonster(player_t* player){    
-    // Player's current tile basically        
+int TrySpawnMonster(player_t* player){            
     int current_x = player->x_pos / 32;
     int current_y = player->y_pos / 32;
-    // Get the new tile
+
     int new_tile_type = GetCurrentTileType(current_x, current_y);
 
     if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
@@ -524,7 +504,6 @@ int TrySpawnMonster(player_t* player){
         int spawn_num = rand() % (100 + 1);
 
         if(spawn_num <= 20){
-            // The chance hit spawn monster now
             int total_level = 0;
             int count = 0;
             for(int i = 0; i < 5; i++){
@@ -538,7 +517,6 @@ int TrySpawnMonster(player_t* player){
             printf("AVG LEVEL DONE\n");
 
             monster_t spawned_mons = SpawnMonster(new_tile_type, avg_level);
-            // Monster has spawned so iniciate a battle
             BattleInit(player ,&spawned_mons, NULL);
         }
     }
@@ -551,7 +529,6 @@ int TrySpawnMonster(player_t* player){
 
 // Updates the monster's stats to reflect the level up
 static void MonsterLevelUpStats(monster_t* monster){
-    // Retrieve base stats to calculate growth
     monster_t* base = GetMonsterById(monster->id);
     if (!base) return;
 
@@ -605,15 +582,20 @@ static monster_t* MonsterEvolve(monster_t* monster){
     return monster;
 }
 
-static int MonsterGetExpYield(monster_t* monster, float multiplier){
-    if(multiplier <= 0) multiplier = 1.0;
+int MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster){
+    float multiplier = 1.0f;
+
+    if(defeated_monster->level > player_monster->level){
+        multiplier += (defeated_monster->level - player_monster->level) * 0.25f;
+    }
+
     // Quadratic formula to scale with the XP requirement curve
     // (Level^2 / 2) + 10*Level + 10
-    int base_yield = (monster->level * monster->level / 2) + (monster->level * 10) + 100;
+    int base_yield = (defeated_monster->level * defeated_monster->level / 2) + (defeated_monster->level * 10) + 100;
     
     // Bonus for rarity (Common=0, Uncommon=1, etc.)
     // Adds 20% per rarity tier
-    int rarity_bonus = (base_yield * monster->rarity) / 5;
+    int rarity_bonus = (base_yield * player_monster->rarity) / 5;
     
     return (int)((base_yield + rarity_bonus) * multiplier);
 }
@@ -625,33 +607,22 @@ static void MonsterRestoreMoves(monster_t* monster){
 }
 
 
-void MonsterAddExp(monster_t* monster, monster_t* defeated_monster){
-    float xp_mult = 1.0f;
+void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int exp_amount){
+    if(defeated_monster) monster->current_exp += MonsterGetExpYield(defeated_monster, monster);
+    else monster->current_exp += exp_amount;
 
-    // Underdog bonus: 25% extra XP per level difference if enemy is higher level
-    if(defeated_monster->level > monster->level){
-        xp_mult += (defeated_monster->level - monster->level) * 0.25f;
-    }
-
-    // Update monster's current exp
-    monster->current_exp += MonsterGetExpYield(defeated_monster, xp_mult);
-
-    // While loop to keep leveling up whilst current_exp > exp to next level
     while(monster->current_exp >= monster->exp_to_next_level){
         if(monster->level >= 100){
             monster->current_exp = 0;
             break;
         }
 
-        // Updates the current exp and updates the monster's level
         monster->current_exp -= monster->exp_to_next_level;
         monster->level++;
 
         // Update the monster's stats to reflect the level up
         MonsterLevelUpStats(monster);
         MonsterRestoreMoves(monster);
-
-        // Clear the status effects
         monster->current_status_fx = NONE;
 
         if(monster->level >= monster->evo_1_level) monster = MonsterEvolve(monster);
@@ -760,11 +731,13 @@ int MonsterApplyStatusDamage(monster_t* m, char* msg){
         case SCORCHED:
             dmg = (float) m->max_hp * 0.0625;
             m->current_hp -= (int) dmg;
+            if(m->current_hp < 0) m->current_hp = 0;
             sprintf(msg, "%s is hurt by the burn!", m->monster_name);
             return 1;
         case POISON:
             dmg = (float) m->max_hp * 0.125;
             m->current_hp -= (int) dmg;
+            if(m->current_hp < 0) m->current_hp = 0;
             sprintf(msg, "%s is hurt by poison!", m->monster_name);
             return 1;
         case CORRODED:
@@ -777,14 +750,10 @@ int MonsterApplyStatusDamage(monster_t* m, char* msg){
     }
 }
 
-// For now it will just stay a simple move power/damage * monster attack / 100 (if it was 100 it'd be way too much damage)
-
 int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
-    // Decrement available uses
     move->available_uses--;
     sprintf(return_msg, "%s used %s!", attacker->monster_name, move->move_name);
 
-    // Check Accuracy
     int move_hit = rand() % 100;
     if(move->acc_percent != 100 && move_hit >= move->acc_percent){
         strcat(return_msg, " But missed!");
@@ -802,21 +771,22 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
 
     // Apply Stages
     float atk_mult = 1.0f;
-    if(attacker->atk_stage > 0) atk_mult = (2.0f + attacker->atk_stage) / 2.0f;
-    else if(attacker->atk_stage < 0) atk_mult = 2.0f / (2.0f - attacker->atk_stage);
+    if(attacker->atk_stage > 0) 
+        atk_mult = (2.0f + attacker->atk_stage) / 2.0f;
+    else if(attacker->atk_stage < 0) 
+        atk_mult = 2.0f / (2.0f - attacker->atk_stage);
     attack *= atk_mult;
 
     float def_mult = 1.0f;
-    if(attacked->def_stage > 0) def_mult = (2.0f + attacked->def_stage) / 2.0f;
-    else if(attacked->def_stage < 0) def_mult = 2.0f / (2.0f - attacked->def_stage);
+    if(attacked->def_stage > 0) 
+        def_mult = (2.0f + attacked->def_stage) / 2.0f;
+    else if(attacked->def_stage < 0) 
+        def_mult = 2.0f / (2.0f - attacked->def_stage);
     defense *= def_mult;
     
-    // Prevent division by zero
     if (defense == 0) defense = 1.0f;
 
     float base_damage = ((((2.0f * level / 5.0f + 2.0f) * power * (attack / defense)) / 50.0f) + 2.0f);
-
-    // Modifiers
     float modifier = 1.0f;
 
     // Get type effectiveness mult
@@ -892,7 +862,8 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
         if(stage){
             int change = move->stat_stage_change;
             char stat_msg[512];
-            stat_msg[0] = '\0'; // Initialize to empty string to prevent gibberish if change is 0
+            // Initialize to empty string to prevent gibberish if change is 0
+            stat_msg[0] = '\0';
 
             if(change > 0){
                 if(*stage < 3){
