@@ -26,17 +26,25 @@ void TrainerBattleDraw(){
     SDL_SetRenderDrawColor(rend, 82, 79, 79, 255);
     SDL_RenderDrawLine(rend, 1450, 40, 1850, 40);
 
-    SDL_Surface* empty_notch_surf = IMG_Load("resources/battle_misc/empty_notch.png");
-    SDL_Texture* empty_notch = SDL_CreateTextureFromSurface(rend, empty_notch_surf);
-    SDL_FreeSurface(empty_notch_surf);
+    static SDL_Texture* empty_notch = NULL;
+    static SDL_Texture* full_notch = NULL;
+    static SDL_Texture* dead_notch = NULL;
 
-    SDL_Surface* full_notch_surf = IMG_Load("resources/battle_misc/full_notch.png");
-    SDL_Texture* full_notch = SDL_CreateTextureFromSurface(rend, full_notch_surf);
-    SDL_FreeSurface(full_notch_surf);
-
-    SDL_Surface* dead_notch_surf = IMG_Load("resources/battle_misc/dead_notch.png");
-    SDL_Texture* dead_notch = SDL_CreateTextureFromSurface(rend, dead_notch_surf);
-    SDL_FreeSurface(dead_notch_surf);
+    if(!empty_notch){
+        SDL_Surface* s = IMG_Load("resources/battle_misc/empty_notch.png");
+        empty_notch = SDL_CreateTextureFromSurface(rend, s);
+        SDL_FreeSurface(s);
+    }
+    if(!full_notch){
+        SDL_Surface* s = IMG_Load("resources/battle_misc/full_notch.png");
+        full_notch = SDL_CreateTextureFromSurface(rend, s);
+        SDL_FreeSurface(s);
+    }
+    if(!dead_notch){
+        SDL_Surface* s = IMG_Load("resources/battle_misc/dead_notch.png");
+        dead_notch = SDL_CreateTextureFromSurface(rend, s);
+        SDL_FreeSurface(s);
+    }
 
     int w_empty, h_empty;
     int w_full, h_full;
@@ -76,66 +84,74 @@ void TrainerBattleDraw(){
 
 
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-    SDL_DestroyTexture(empty_notch);
-    SDL_DestroyTexture(full_notch);
-    SDL_DestroyTexture(dead_notch);
 }
+
+static SDL_Texture* intro_msg_tex = NULL;
+static SDL_Texture* intro_name_tex = NULL;
+static SDL_Texture* intro_sprite_tex = NULL;
 
 void TrainerBattleInitMessageDraw(){
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(rend, &player->current_menu->menu_items[0]);
 
     // Message from the trainer when starting the battle
-    SDL_Color white = {.r = 255, .g = 255, .b = 255, .a = 255};
-    SDL_Surface* intro_text_surf = TTF_RenderText_Solid(game_font, trainer->intro_msg, white);
-    SDL_Texture* intro_text = SDL_CreateTextureFromSurface(rend, intro_text_surf);
-    SDL_FreeSurface(intro_text_surf);
-
-    int w, h;
-    SDL_QueryTexture(intro_text, NULL, NULL, &w, &h);
-    SDL_Rect text_rect = {.x = 50 + 20, .y = player->current_menu->menu_items[0].y + 20, .w = w, .h = h};
-
-    SDL_RenderCopy(rend, intro_text, NULL, &text_rect);
-    SDL_DestroyTexture(intro_text);
+    if(intro_msg_tex){
+        int w, h;
+        SDL_QueryTexture(intro_msg_tex, NULL, NULL, &w, &h);
+        SDL_Rect text_rect = {.x = 50 + 20, .y = player->current_menu->menu_items[0].y + 20, .w = w, .h = h};
+        SDL_RenderCopy(rend, intro_msg_tex, NULL, &text_rect);
+    }
 
     // This just renders the trainer's name to the box where usually the enemy monster's info is
     SDL_Rect trainer_info_rect = {.x = 1450, .y = 50, .w = 400, .h = 100};
-    SDL_Surface* trainer_name_surf = TTF_RenderText_Solid(game_font, trainer->name, white);
-    SDL_Texture* trainer_name = SDL_CreateTextureFromSurface(rend, trainer_name_surf);
-    SDL_FreeSurface(trainer_name_surf);
-
-    SDL_QueryTexture(trainer_name, NULL, NULL, &w, &h);
-    SDL_Rect trainer_name_rect = {
-        .x = trainer_info_rect.x + (trainer_info_rect.w - w) / 2,
-        .y = trainer_info_rect.y + (trainer_info_rect.h - h) / 2,
-        .w = w, .h = h
-    };
-
-    SDL_RenderCopy(rend, trainer_name, NULL, &trainer_name_rect);
     SDL_RenderDrawRect(rend, &trainer_info_rect);
-    SDL_DestroyTexture(trainer_name);
+
+    if(intro_name_tex){
+        int w, h;
+        SDL_QueryTexture(intro_name_tex, NULL, NULL, &w, &h);
+        SDL_Rect trainer_name_rect = {
+            .x = trainer_info_rect.x + (trainer_info_rect.w - w) / 2,
+            .y = trainer_info_rect.y + (trainer_info_rect.h - h) / 2,
+            .w = w, .h = h
+        };
+        SDL_RenderCopy(rend, intro_name_tex, NULL, &trainer_name_rect);
+    }
 
     // Finally this renders the trainer's sprite to the screen
     // TODO : Change the sprite to a full body more detailed sprite
-    SDL_Rect src_rect = {.x = 0,    .y = 0,   .w = 256, .h = 256};
-    SDL_Rect dst_rect = {.x = 1500, .y = 100, .w = 300, .h = 300};
-
-    SDL_Surface* trainer_surf = IMG_Load(trainer->sprite_path);
-    SDL_Texture* trainer_tex = SDL_CreateTextureFromSurface(rend, trainer_surf);
-    SDL_FreeSurface(trainer_surf);
-
-    SDL_RenderCopy(rend, trainer_tex, &src_rect, &dst_rect);
-    SDL_DestroyTexture(trainer_tex);
+    if(intro_sprite_tex){
+        SDL_Rect src_rect = {.x = 0,    .y = 0,   .w = 256, .h = 256};
+        SDL_Rect dst_rect = {.x = 1500, .y = 100, .w = 300, .h = 300};
+        SDL_RenderCopy(rend, intro_sprite_tex, &src_rect, &dst_rect);
+    }
 
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 }
 
 void HandleEnterDownInitMessage(){
+    if(intro_msg_tex){ 
+        SDL_DestroyTexture(intro_msg_tex);    
+        intro_msg_tex = NULL; 
+    }
+    if(intro_name_tex){ 
+        SDL_DestroyTexture(intro_name_tex);   
+        intro_name_tex = NULL; 
+    }
+    if(intro_sprite_tex){ 
+        SDL_DestroyTexture(intro_sprite_tex); 
+        intro_sprite_tex = NULL; 
+    }
+
+    menu_t* intro_menu = player->current_menu;
     BattleInit(player, &trainer->party[0], trainer);
+    if(intro_menu) MenuDestroy(intro_menu);
+    
     player->current_menu->draw = TrainerBattleDraw;
 }
 
 void TrainerBattleInit(player_t* active_player, trainer_t* active_trainer){
+    printf("TRAINER BATTLE STARTING\n");
+
     player = active_player;
     trainer = active_trainer;
 
@@ -144,7 +160,21 @@ void TrainerBattleInit(player_t* active_player, trainer_t* active_trainer){
     int w, h;
     SDL_GetRendererOutputSize(rend, &w, &h);
 
-    menu_t* m = MenuCreate(1, 0, 1, TrainerBattleInitMessageDraw, HandleEnterDownInitMessage);
+    SDL_Color white = {255, 255, 255, 255};
+    
+    SDL_Surface* s = TTF_RenderText_Solid(game_font, trainer->intro_msg, white);
+    intro_msg_tex = SDL_CreateTextureFromSurface(rend, s);
+    SDL_FreeSurface(s);
+
+    s = TTF_RenderText_Solid(game_font, trainer->name, white);
+    intro_name_tex = SDL_CreateTextureFromSurface(rend, s);
+    SDL_FreeSurface(s);
+
+    s = IMG_Load(trainer->sprite_path);
+    intro_sprite_tex = SDL_CreateTextureFromSurface(rend, s);
+    SDL_FreeSurface(s);
+
+    menu_t* m = MenuCreate(1, 1, 1, TrainerBattleInitMessageDraw, HandleEnterDownInitMessage);
     m->menu_items[0]. x = 50;
     m->menu_items[0]. y = h - 450;
     m->menu_items[0]. w = w - 100;
@@ -152,12 +182,15 @@ void TrainerBattleInit(player_t* active_player, trainer_t* active_trainer){
 
     player->current_menu = m;
     player->game_state = STATE_IN_MENU;
+
+    printf("TRAINER BATTLE STARTED\n");
 }
 
 move_t* TrainerBattleChooseMove(monster_t* player_monster, monster_t* enemy){
     
     move_t* highest_dmg = NULL;
     for(unsigned int i = 0; i < 4; i++){
+        if(enemy->usable_moves[i].id == -1) continue;
         if(!highest_dmg) highest_dmg = &enemy->usable_moves[i];
         
         // Check if last move was inneficient
