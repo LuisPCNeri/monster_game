@@ -13,10 +13,8 @@ extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
 
 menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func, void* select_func){
-    // Make space for the menu
     menu_t* menu = (menu_t*) malloc(sizeof(menu_t));
 
-    // Make space in the menu_items array for all items
     menu->menu_items = (SDL_Rect*) malloc(sizeof(SDL_Rect)*item_num);
     menu->has_rows = has_rows;
     menu->has_columns = has_columns;
@@ -34,21 +32,15 @@ void MenuDestroy(menu_t* menu){
     free(menu);
 }
 
-// Renders the button's text and a rect for them
 void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect){
-    // Set color to render the rects
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(rend, dst_rect);
 
-    // Set the text color
     SDL_Color text_color = {255, 255, 255, 255};
     SDL_Surface* text_surface = TTF_RenderText_Solid(game_font, btn_text, text_color);
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
-
-    // Free the surface as it won't be used again
     SDL_FreeSurface(text_surface);
 
-    // The text textures natural height and width
     int text_w, text_h;
     SDL_QueryTexture(text_texture, NULL, NULL, &text_w, &text_h);
 
@@ -84,6 +76,8 @@ void MenuDeHighlightBox(SDL_Rect* rect){
 
 void MenuItemKeyUp(player_t* player){
     menu_t* menu = player->current_menu;
+    if(menu->items_amount <= 1) return;
+
     int stride = (menu->has_columns) ? 2 : 1;
 
     if(player->inv_isOpen){
@@ -101,6 +95,8 @@ void MenuItemKeyUp(player_t* player){
 
 void MenuItemKeyDown(player_t* player){
     menu_t* menu = player->current_menu;
+    if(menu->items_amount <= 1) return;
+
     int stride = (menu->has_columns) ? 2 : 1;
 
     if(player->inv_isOpen){
@@ -118,6 +114,8 @@ void MenuItemKeyDown(player_t* player){
 
 void MenuItemKeyLeft(player_t* player){
     menu_t* menu = player->current_menu;
+    if(menu->items_amount <= 1) return;
+
     if( menu->has_rows == 0 && player->selected_menu_itm > 0){
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm--;
@@ -136,6 +134,8 @@ void MenuItemKeyLeft(player_t* player){
 
 void MenuItemKeyRight(player_t* player){
     menu_t* menu = player->current_menu;
+    if(menu->items_amount <= 1) return;
+
     if( menu->has_rows == 0 && player->selected_menu_itm < menu->items_amount - 1){
         MenuDeHighlightBox(&menu->menu_items[player->selected_menu_itm]);
         player->selected_menu_itm++;
