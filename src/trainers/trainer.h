@@ -33,5 +33,6 @@ void TrainerDraw(int offset_x, int offset_y);
 // If a trainer has agrroed the player returns 1 if not returns 0
 int TrainerCheckAggro(player_t* player);
 int TrainerCheckPartyIsDead(trainer_t* trainer);
+void TrainerRestoreParty(trainer_t* trainer);
 
 #endif

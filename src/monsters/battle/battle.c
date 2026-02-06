@@ -200,6 +200,7 @@ static int BattleCheckIsOver(){
         BattleMenuHandleSelect();
     }
     else if(active_mon->current_hp <= 0 && !has_mon_left){
+        TrainerRestoreParty(act_trainer);
         return 1;
     }
 

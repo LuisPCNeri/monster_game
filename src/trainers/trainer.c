@@ -229,3 +229,19 @@ int TrainerCheckPartyIsDead(trainer_t* trainer){
 
     return 1;
 }
+
+void TrainerRestoreParty(trainer_t* trainer){
+    for(int i = 0; i < PARTY_SIZE; i++){
+        monster_t* mon = &trainer->party[i];
+        
+        mon->current_hp = mon->max_hp;
+        mon->spd_stage = 0;
+        mon->atk_stage = 0;
+        mon->def_stage = 0;
+        mon->current_status_fx = NONE;
+        // k < amount of moves per monster
+        for(int k = 0; k < 4; k++){
+            mon->usable_moves[i].available_uses = mon->usable_moves[i].max_uses;
+        }
+    }
+}
