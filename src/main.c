@@ -41,6 +41,9 @@ int main(void)
                                        SDL_WINDOWPOS_CENTERED,
                                        1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
+    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
+    rend = SDL_CreateRenderer(win, -1, render_flags);
+
     // Set up TTF
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
 
@@ -50,7 +53,6 @@ int main(void)
     restore_item_t potion = {4, 1, 10, "Potion", ""};
     InventoryAddItem(player->inv, &potion, 5);
 
-    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
     SDL_Texture* map_tex = CreateGameMap(rend);
 
     int map_w, map_h;
