@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
+
 #include "libraries/cJSON.h"
 
 #include "map.h"
@@ -25,6 +28,9 @@ static int MoveLibraryCount = 0;
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
 
 static int old_x, old_y = 0;
+
+static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
+static Mix_Music* notif_sound = NULL;
 
 move_t* GetMoveById(int id) {
     for(int i = 0; i < MoveLibraryCount; i++) {
@@ -491,6 +497,18 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
     return ALL_MONSTERS[0];
 }
 
+void MonsterUpdateAggro(player_t* player){
+    if(player->aggro_timer > 0){
+        player->aggro_timer--;
+    } else {
+        if(notif_sound) Mix_FreeMusic(notif_sound);
+        
+        BattleInit(player, player->aggro_monster, NULL);
+        free(player->aggro_monster);
+        player->aggro_monster = NULL;
+    }
+}
+
 int TrySpawnMonster(player_t* player){            
     int current_x = player->x_pos / 32;
     int current_y = player->y_pos / 32;
@@ -516,8 +534,16 @@ int TrySpawnMonster(player_t* player){
 
             printf("AVG LEVEL DONE\n");
 
-            monster_t spawned_mons = SpawnMonster(new_tile_type, avg_level);
-            BattleInit(player ,&spawned_mons, NULL);
+            monster_t* spawned_mons = (monster_t*) malloc(sizeof(monster_t));
+
+            if(!notif_sound) notif_sound = Mix_LoadMUS(NOTIF_SOUND_LOC);
+            Mix_PlayMusic(notif_sound, 1);
+
+            *spawned_mons = SpawnMonster(new_tile_type, avg_level);
+            player->aggro_timer = PLAYER_AGGRO_TIMER;
+            player->aggro_monster = spawned_mons;
+            player->game_state = STATE_AGGRO;
+            return 1;
         }
     }
 

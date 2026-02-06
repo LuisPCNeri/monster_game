@@ -176,10 +176,8 @@ int CheckMonsterCanSpawn(int tile_type);
 // Returns a pointer to the monster's data
 monster_t SpawnMonster(int tile_type, int avg_player_level);
 
-// To be used in a separate thread, this function is always running
 // Every time the player changes tiles it checks the tile_type
 // If monsters can spawn in that tile it tries to spawn one
-// void* arg is passed when creating the thread that will run this code and should be a pointer to the player "object"
 int TrySpawnMonster(player_t* player);
 
 // Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
@@ -240,6 +238,8 @@ void MonsterResetBattleStats(monster_t* monster);
 // Heal a monster through moves, items or idk anything else
 // Returns 1 if the monster was healed 0 if not
 int MonsterHeal(monster_t* monster, unsigned int heal_amount);
+
+void MonsterUpdateAggro(player_t* player);
 
 // Handles the enter key input for the battle menu
 void BattleMenuHandleSelect();

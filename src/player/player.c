@@ -122,6 +122,24 @@ int PlayerCheckIsPartyDead(player_t* player){
     return 1;
 }
 
+void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y){
+    // blink blink fucker
+    static int blink_timer = 0;
+    blink_timer++;
+    if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
+
+    SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");
+    SDL_Texture* notif_text = SDL_CreateTextureFromSurface(rend, notif_surf);
+    SDL_FreeSurface(notif_surf);
+
+    int w, h;
+    SDL_QueryTexture(notif_text, NULL, NULL, &w, &h);
+
+    SDL_Rect notif_box = {.x = player->x_pos + offset_x - (16/2), .y = player->y_pos + offset_y - (PLAYER_SPRITE_SIZE / 2) - 16 - 4, .w = 16, .h = 16};
+    SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
+    SDL_DestroyTexture(notif_text);
+}
+
 void PlayerDestroy(player_t* p){
     for(unsigned int i = 0; i < PARTY_SIZE; i++){
         if(p->monster_party[i]) free(p->monster_party[i]);

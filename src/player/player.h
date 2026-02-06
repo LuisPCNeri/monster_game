@@ -5,17 +5,21 @@
 #include "inventory.h"
 
 #define PARTY_SIZE 5
+#define BLINK_FRAMES 30
 #define PLAYER_SPRITE_SIZE 32
+#define PLAYER_AGGRO_TIMER 90
 
 // Forward declaration to allow pointer usage without circular dependency
 typedef struct menu_t menu_t;
+typedef struct trainer_t trainer_t;
 
 typedef enum GameState{
     STATE_EXPLORING,
     STATE_IN_MENU,
     // State for when the player's movement is locked
     // Or for when the player is not supposed to move in between menus
-    STATE_LOCKED
+    STATE_LOCKED,
+    STATE_AGGRO
 } GameState;
 
 typedef struct player_t{
@@ -32,6 +36,10 @@ typedef struct player_t{
     int selected_menu_itm;
     int running;
     GameState game_state;
+
+    int aggro_timer;
+    trainer_t* aggro_trainer;
+    monster_t* aggro_monster;
 
     menu_t* current_menu;
     inventory_t* inv;
@@ -57,6 +65,8 @@ int PlayerAddMonsterToParty(monster_t* monster);
 
 // Returns 1 if all of the player's monsters are dead and 0 if there is at least one alive
 int PlayerCheckIsPartyDead(player_t* player);
+
+void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y);
 
 void PlayerDestroy(player_t* p);
 

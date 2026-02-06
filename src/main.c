@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_keyboard.h>
+#include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 
@@ -32,10 +33,13 @@ int main(void)
     // Player's absolute position in the world
     int world_x = 0, world_y = 0;
     
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) 
         printf("error initializing SDL: %s\n", SDL_GetError());
-    }
-    if( TTF_Init() != 0 ) printf("Error initializing TTF: %s\n", TTF_GetError());
+    if( TTF_Init() != 0 )            
+        printf("Error initializing TTF: %s\n", TTF_GetError());
+    if( MIX_INIT_MP3 != Mix_Init(MIX_INIT_MP3)) 
+        printf("ERROR on MIXER: %s\n", Mix_GetError());
+
     SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
                                        SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOWPOS_CENTERED,
@@ -46,6 +50,7 @@ int main(void)
 
     // Set up TTF
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
+    Mix_OpenAudio(22050, AUDIO_S16SYS, 1, 1024);
 
     player->inv = InventoryCreateEmpty(15);
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
@@ -166,6 +171,8 @@ int main(void)
                     case STATE_LOCKED:
                     // In this case the player's inputs should not matter
                     break;
+                    case STATE_AGGRO:
+                    break;
                 }   
                 
                 
@@ -200,14 +207,27 @@ int main(void)
 
         SDL_RenderClear(rend);
 
-        if(player->game_state == STATE_EXPLORING){
+        if(player->game_state == STATE_EXPLORING || player->game_state == STATE_AGGRO){
             // Create new rectangle with same w and h as map
             // But starts at the offset points
             SDL_Rect map_dest = {offset_x, offset_y, map_w, map_h};
             // Copy the map's texture to the new map variable
             SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
-            TrainerDraw(offset_x, offset_y);
+
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
+            
+            TrainerDraw(offset_x, offset_y);
+
+            if(player->game_state == STATE_AGGRO){
+                if(player->aggro_trainer){
+                    TrainerRenderNotifBox(player->aggro_trainer, offset_x, offset_y);
+                    TrainerUpdateAggro(player);
+                }
+                if(player->aggro_monster){
+                    PlayerRenderNotifBox(player, offset_x, offset_y);
+                    MonsterUpdateAggro(player);
+                }
+            }
         }
         else if(player->game_state == STATE_IN_MENU || player->game_state == STATE_LOCKED){
             if(player->current_menu) player->current_menu->draw();
@@ -231,6 +251,7 @@ int main(void)
     SDL_DestroyRenderer(rend);
     TTF_CloseFont(game_font);
     SDL_DestroyWindow(win);
+    Mix_CloseAudio();
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();

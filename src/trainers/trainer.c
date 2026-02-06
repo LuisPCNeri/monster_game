@@ -10,6 +10,7 @@
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
 
 #include "trainer.h"
 #include "map.h"
@@ -29,6 +30,9 @@ static int world_offset_x, world_offset_y;
 // Number of trainers is arbitrary and can me increased or decreased at any time
 static trainer_t TRAINERS[100];
 static unsigned int current_trainers = 0;
+
+static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
+static Mix_Music* notif_sound = NULL;
 
 static char* LoadFileToString(char* file_path){
     FILE* fptr;
@@ -176,6 +180,15 @@ static trainer_t* TrainerGetClosest(player_t* p){
     return closest;
 }
 
+static void TrainerAggro(player_t* p, trainer_t* t){
+    if(!notif_sound) notif_sound = Mix_LoadMUS(NOTIF_SOUND_LOC);
+    Mix_PlayMusic(notif_sound, 1);
+
+    p->aggro_trainer = t;
+    p->game_state = STATE_AGGRO;
+    p->aggro_timer = PLAYER_AGGRO_TIMER;
+}
+
 int TrainerCheckAggro(player_t* player){
     trainer_t* closest = TrainerGetClosest(player);
 
@@ -193,33 +206,48 @@ int TrainerCheckAggro(player_t* player){
     if(closest->facing_direction == FRONT){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos >= closest->y_pos){
-            TrainerBattleInit(player, closest);
+            
+            TrainerAggro(player, closest);
             return 1;
         }
     }
     else if(closest->facing_direction == BACK){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos <= closest->y_pos){
-            TrainerBattleInit(player, closest);
+
+            TrainerAggro(player, closest);
             return 1;
         }
     }
     else if(closest->facing_direction == LEFT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos <= closest->x_pos){
-            TrainerBattleInit(player, closest);
+
+            TrainerAggro(player, closest);
             return 1;
         }
     }
     else if(closest->facing_direction == RIGHT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos >= closest->x_pos){
-            TrainerBattleInit(player, closest);
+
+            TrainerAggro(player, closest);
             return 1;
         }
     }
 
     return 0;
+}
+
+void TrainerUpdateAggro(player_t* player){
+    if(player->aggro_timer > 0){
+        player->aggro_timer--;
+    } else {
+        if(notif_sound) Mix_FreeMusic(notif_sound);
+
+        TrainerBattleInit(player, player->aggro_trainer);
+        player->aggro_trainer = NULL;
+    }
 }
 
 int TrainerCheckPartyIsDead(trainer_t* trainer){
@@ -232,8 +260,9 @@ int TrainerCheckPartyIsDead(trainer_t* trainer){
 
 void TrainerRestoreParty(trainer_t* trainer){
     for(int i = 0; i < PARTY_SIZE; i++){
+        if(trainer->party[i].id == -1) continue;
+
         monster_t* mon = &trainer->party[i];
-        
         mon->current_hp = mon->max_hp;
         mon->spd_stage = 0;
         mon->atk_stage = 0;
@@ -244,4 +273,25 @@ void TrainerRestoreParty(trainer_t* trainer){
             mon->usable_moves[i].available_uses = mon->usable_moves[i].max_uses;
         }
     }
+}
+
+void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y){
+    // blink blink fucker
+    static int blink_timer = 0;
+    blink_timer++;
+    if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
+
+    SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");
+    SDL_Texture* notif_text = SDL_CreateTextureFromSurface(rend, notif_surf);
+    SDL_FreeSurface(notif_surf);
+
+    int w, h;
+    SDL_QueryTexture(notif_text, NULL, NULL, &w, &h);
+
+    SDL_Rect notif_box = {
+        .x = t->x_pos + offset_x + (TRAINER_SPRITE_SIZE/2) - 32/2, 
+        .y = t->y_pos + offset_y + (TRAINER_SPRITE_SIZE/2) - 32 - 20, 
+        .w = 32, .h = 32};
+    SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
+    SDL_DestroyTexture(notif_text);
 }
