@@ -14,7 +14,7 @@ BUILD_DIR = build
 ifeq ($(detected_OS),Windows)
 	TARGET = main.exe
 	SDL_CFLAGS = -Dmain=SDL_main
-	SDL_LDFLAGS = -lmingw32 -lSDL2main -lSDL2_image -lSDL2_ttf -lSDL2
+	SDL_LDFLAGS = -lmingw32 -lSDL2main -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lSDL2
 	
 	FixPath = $(subst /,\,$1)
 	MKDIR_P = if not exist "$(call FixPath,$(@D))" mkdir "$(call FixPath,$(@D))"
@@ -22,7 +22,7 @@ ifeq ($(detected_OS),Windows)
 else
 	TARGET = main
 	SDL_CFLAGS := $(shell sdl2-config --cflags)
-	SDL_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image -lSDL2_ttf -lm
+	SDL_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
 	MKDIR_P = mkdir -p $(@D)
 	CLEAN_CMD = rm -rf $(BUILD_DIR) $(TARGET)
 endif

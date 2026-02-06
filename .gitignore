@@ -3,6 +3,7 @@
 
 # Resources
 *.png
+*.mp3
 
 # The main executable file
 main
