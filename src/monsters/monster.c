@@ -501,7 +501,10 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
     if(player->aggro_timer > 0){
         player->aggro_timer -= dt;
     } else {
-        if(notif_sound) Mix_FreeMusic(notif_sound);
+        if(notif_sound) {
+            Mix_FreeMusic(notif_sound);
+            notif_sound = NULL;
+        }
         
         BattleInit(player, player->aggro_monster, NULL);
         free(player->aggro_monster);
