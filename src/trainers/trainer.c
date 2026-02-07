@@ -131,8 +131,15 @@ void TrainerDraw(int offset_x, int offset_y){
     for(unsigned int i = 0; i < current_trainers; i++){
         if(!TrainerIsVisible(&TRAINERS[i], offset_x, offset_y)) continue;
 
-        SDL_Surface* s = IMG_Load(TRAINERS[i].sprite_path);
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(rend, s);
+        if(TRAINERS[i].texture == NULL){
+            SDL_Surface* s = IMG_Load(TRAINERS[i].sprite_path);
+            if(s){
+                TRAINERS[i].texture = SDL_CreateTextureFromSurface(rend, s);
+                SDL_FreeSurface(s);
+            }
+        }
+
+        if(TRAINERS[i].texture == NULL) continue;
 
         SDL_Rect src_rect;
         src_rect.w = 256;
@@ -158,9 +165,7 @@ void TrainerDraw(int offset_x, int offset_y){
             break;
         }
 
-        SDL_RenderCopy(rend, tex, &src_rect, &dst_rect);
-        SDL_DestroyTexture(tex);
-        SDL_FreeSurface(s);
+        SDL_RenderCopy(rend, TRAINERS[i].texture, &src_rect, &dst_rect);
     }
 }
 

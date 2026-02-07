@@ -1,6 +1,7 @@
 #ifndef __TRAINER_H__
 #define __TRAINER_H__
 
+#include <SDL2/SDL.h>
 #include "player/player.h"
 #include "monsters/monster.h"
 
@@ -23,6 +24,7 @@ typedef struct trainer_t
     char sprite_path[256];
     char name[512];
     char intro_msg[1024];
+    SDL_Texture* texture;
     monster_t party[PARTY_SIZE];
 } trainer_t;
 
