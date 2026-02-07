@@ -103,6 +103,14 @@ int main(void)
     PlayerSetStarters(player);
 
     int running = 1;
+    Uint32 last_time = SDL_GetTicks();
+    int frame_count = 0;
+    int fps = 0;
+    char fps_str[32] = "0";
+
+    SDL_Rect fps_rect = {5, 5, 0, 0};
+    SDL_Rect fps_box = {.x = 0, .y = 0, .w = 0, .h = 0};
+
     while (running) {
         SDL_Event event;
         // Events management
@@ -208,11 +216,8 @@ int main(void)
         SDL_RenderClear(rend);
 
         if(player->game_state == STATE_EXPLORING || player->game_state == STATE_AGGRO){
-            // Create new rectangle with same w and h as map
-            // But starts at the offset points
-            SDL_Rect map_dest = {offset_x, offset_y, map_w, map_h};
-            // Copy the map's texture to the new map variable
-            SDL_RenderCopy(rend, map_tex, NULL, &map_dest);
+            SDL_Rect map_src = {-offset_x, -offset_y, screen_w, screen_h};
+            SDL_RenderCopy(rend, map_tex, &map_src, NULL);
 
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
             
@@ -233,12 +238,34 @@ int main(void)
             if(player->current_menu) player->current_menu->draw();
         }
 
+        frame_count++;
+        Uint32 current_time = SDL_GetTicks();
+        if (current_time - last_time >= 1000) {
+            fps = frame_count;
+            frame_count = 0;
+            last_time = current_time;
+            sprintf(fps_str, "%d", fps);
+        }
+
+        SDL_Color fps_color = {.r = 0, .g = 255, .b = 0, .a = 255};
+        SDL_Surface* fps_surf = TTF_RenderText_Solid(game_font, fps_str, fps_color);
+        SDL_Texture* fps_text = SDL_CreateTextureFromSurface(rend, fps_surf);
+        SDL_FreeSurface(fps_surf);
+
+        SDL_QueryTexture(fps_text, NULL, NULL, &fps_rect.w, &fps_rect.h);
+        fps_box.w = fps_rect.w + 10;
+        fps_box.h = fps_rect.h + 10;
+        SDL_RenderFillRect(rend, &fps_box);
+
+        SDL_RenderCopy(rend, fps_text, NULL, &fps_rect);
+        SDL_DestroyTexture(fps_text);
+
         // triggers the double buffers
         // for multiple rendering
         SDL_RenderPresent(rend);
 
         // calculates to 60 fps
-        SDL_Delay(1000 / 60);
+        //SDL_Delay(1000 / 30);
     }
 
     player->running = 0;
