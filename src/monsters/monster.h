@@ -1,6 +1,7 @@
 #ifndef __MONSTER_H__
 #define __MONSTER_H__
 
+#include <SDL2/SDL.h>
 #include "items/item.h"
 #include "libraries/cJSON.h"
 
@@ -239,7 +240,7 @@ void MonsterResetBattleStats(monster_t* monster);
 // Returns 1 if the monster was healed 0 if not
 int MonsterHeal(monster_t* monster, unsigned int heal_amount);
 
-void MonsterUpdateAggro(player_t* player);
+void MonsterUpdateAggro(player_t* player, Uint32 dt);
 
 // Handles the enter key input for the battle menu
 void BattleMenuHandleSelect();

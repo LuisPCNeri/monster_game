@@ -5,9 +5,9 @@
 #include "inventory.h"
 
 #define PARTY_SIZE 5
-#define BLINK_FRAMES 30
+#define BLINK_FRAMES 500
 #define PLAYER_SPRITE_SIZE 32
-#define PLAYER_AGGRO_TIMER 90
+#define PLAYER_AGGRO_TIMER 1500
 
 // Forward declaration to allow pointer usage without circular dependency
 typedef struct menu_t menu_t;
@@ -66,7 +66,7 @@ int PlayerAddMonsterToParty(monster_t* monster);
 // Returns 1 if all of the player's monsters are dead and 0 if there is at least one alive
 int PlayerCheckIsPartyDead(player_t* player);
 
-void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y);
+void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 dt);
 
 void PlayerDestroy(player_t* p);
 

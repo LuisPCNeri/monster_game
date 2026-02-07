@@ -497,9 +497,9 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
     return ALL_MONSTERS[0];
 }
 
-void MonsterUpdateAggro(player_t* player){
+void MonsterUpdateAggro(player_t* player, Uint32 dt){
     if(player->aggro_timer > 0){
-        player->aggro_timer--;
+        player->aggro_timer -= dt;
     } else {
         if(notif_sound) Mix_FreeMusic(notif_sound);
         

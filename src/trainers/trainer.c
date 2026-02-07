@@ -244,9 +244,9 @@ int TrainerCheckAggro(player_t* player){
     return 0;
 }
 
-void TrainerUpdateAggro(player_t* player){
+void TrainerUpdateAggro(player_t* player, Uint32 dt){
     if(player->aggro_timer > 0){
-        player->aggro_timer--;
+        player->aggro_timer -= dt;
     } else {
         if(notif_sound) Mix_FreeMusic(notif_sound);
 
@@ -280,10 +280,10 @@ void TrainerRestoreParty(trainer_t* trainer){
     }
 }
 
-void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y){
+void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt){
     // blink blink fucker
     static int blink_timer = 0;
-    blink_timer++;
+    blink_timer += dt;
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
     SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");

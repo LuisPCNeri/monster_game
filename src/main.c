@@ -105,6 +105,7 @@ int main(void)
     int running = 1;
     Uint32 last_time = SDL_GetTicks();
     int frame_count = 0;
+    Uint32 last_frame_time = SDL_GetTicks();
     int fps = 0;
     char fps_str[32] = "0";
 
@@ -112,6 +113,10 @@ int main(void)
     SDL_Rect fps_box = {.x = 0, .y = 0, .w = 0, .h = 0};
 
     while (running) {
+        Uint32 current_frame_time = SDL_GetTicks();
+        Uint32 dt = current_frame_time - last_frame_time;
+        last_frame_time = current_frame_time;
+
         SDL_Event event;
         // Events management
         while (SDL_PollEvent(&event)) {
@@ -225,12 +230,12 @@ int main(void)
 
             if(player->game_state == STATE_AGGRO){
                 if(player->aggro_trainer){
-                    TrainerRenderNotifBox(player->aggro_trainer, offset_x, offset_y);
-                    TrainerUpdateAggro(player);
+                    TrainerRenderNotifBox(player->aggro_trainer, offset_x, offset_y, dt);
+                    TrainerUpdateAggro(player, dt);
                 }
                 if(player->aggro_monster){
-                    PlayerRenderNotifBox(player, offset_x, offset_y);
-                    MonsterUpdateAggro(player);
+                    PlayerRenderNotifBox(player, offset_x, offset_y, dt);
+                    MonsterUpdateAggro(player, dt);
                 }
             }
         }

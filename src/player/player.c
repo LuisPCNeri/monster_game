@@ -122,10 +122,10 @@ int PlayerCheckIsPartyDead(player_t* player){
     return 1;
 }
 
-void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y){
+void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 dt){
     // blink blink fucker
     static int blink_timer = 0;
-    blink_timer++;
+    blink_timer += dt;
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
     SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");

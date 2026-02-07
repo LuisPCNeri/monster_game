@@ -34,9 +34,9 @@ int TrainerIsVisible(trainer_t* t, int offset_x, int offset_y);
 void TrainerDraw(int offset_x, int offset_y);
 // If a trainer has agrroed the player returns 1 if not returns 0
 int TrainerCheckAggro(player_t* player);
-void TrainerUpdateAggro(player_t* player);
+void TrainerUpdateAggro(player_t* player, Uint32 dt);
 int TrainerCheckPartyIsDead(trainer_t* trainer);
 void TrainerRestoreParty(trainer_t* trainer);
-void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y);
+void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt);
 
 #endif
