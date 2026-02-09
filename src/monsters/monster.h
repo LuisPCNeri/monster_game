@@ -186,10 +186,14 @@ float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
 
 // Returns MonsterType correspondant to the char type_name
 MonsterTypes MonsterGetTypeFromString(const char* type_name);
-
-// Uses MOVE move on the enemy monster
-// Only to be used during a batle
-// attacker uses move on attacked 
+ 
+/*
+    Uses MOVE move on the enemy monster, only to be used during a batle, attacker uses move on attacked
+    \param *attacker Monster who used the attack
+    \param *move move used by attacker
+    \param *attacked monster who is targeted by the attack
+    \param *return_msg pointer to a char that will store the message correspondant to the attack.
+*/
 int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg);
 
 // Checks if the monster can move this turn (handles Sleep, Freeze, etc.)
@@ -201,24 +205,40 @@ int MonsterApplyStatusDamage(monster_t* m, char* msg);
 // Return char* correspondant to the status effect applied on monster
 char* MonsterGetSFXString(monster_t* m);
 
-// Has the enemy monster choose a move to use on the player monster and then attack the player's monster
+/*
+    Given a monster returns the attack that monster will use in battle. The caller is responsible for the returned move_t*
+    \param *enemy Monster whose moves will be considered when choosing what move to use
+*/
 move_t* MonsterChooseEnemyAttack(monster_t* enemy);
 
 // Prints a monsters data to the terminal
 void MonsterPrint(monster_t* monster);
 
-// With a given id returns a pointer to the move on the global moves array
-// To use this please create a local copy of the struct
+/*
+    Returns a pointer to the base template of the move with a given id.
+    To make changes to this monster or create a new instance of it create a copy of the struct.
+    DO NOT ALTER THE VALUES IN THE STRUCT GIVE BY THE POINTER
+
+    \param id Id of the move to get
+*/
 move_t* GetMoveById(int id); 
 
-// With a given id returns a pointer to the monster on the global monsters array
-// To use this please create a local copy of the struct
+/*
+    Returns a pointer to the base template of the monster with a given id.
+    To make changes to this monster or create a new instance of it create a copy of the struct.
+    DO NOT ALTER THE VALUES IN THE STRUCT GIVE BY THE POINTER
+
+    \param id Id of the monster to get
+*/
 monster_t* GetMonsterById(int id);
 
-// Increments monster_t monster's exp by an amount calculated in another helper function
-// This amount has a linear realtion to the enemy_monster's level
-// If the exp to add is already know i.e a predefined int for example, enemy_monster can be passed as NULL
-// If enemy_monster is not null the exp its defeat would provide is used instead
+/*
+    Increments the monsters' current exp by either the amount provided by enemy_monster or in exp.
+
+    \param *monster Monster that will receive the exp.
+    \param *enemy_monster Either a pointer to the defeated monster that will be used for exp calculations or NULL to use the int exp parameter.
+    \param exp Amount of exp to add to monster. Will only be used if enemy_monster is NULL.
+*/
 void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int exp);
 
 int MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster);
