@@ -21,39 +21,16 @@ extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
 static TTF_Font* info_font;
 
-inventory_t* InventoryCreateEmpty(int size){
+inventory_t* InventoryCreateEmpty(){
     
     inventory_t* inv = (inventory_t*) malloc(sizeof(inventory_t));
-    inv->item_count = size;
-    inv->items = (inventory_item_t*) malloc(sizeof(inventory_item_t) * size);
+    inv->item_count = 0;
 
-    for(int i = 0; i < size; i++){
-        inv->items[i].item = NULL;
-        inv->items[i].id = -1;
-        inv->items[i].type = -1;
-        inv->items[i].count = 0;
-
-        if(i == 0) inv->items[i].prev_item = NULL;
-        if(i == size - 1) inv->items[i].next_item = NULL;
-
-        if(i > 0) inv->items[i].prev_item = &inv->items[i - 1];
-        if(i < size - 1) inv->items[i].next_item = &inv->items[i + 1];
-    }
+    inv->head = NULL;
+    inv->current = NULL;
+    inv->tail = NULL;
 
     if(!info_font) info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
-    inv->menu = MenuCreate(MAX_ITEM_TYPE_AMOUNT, 1, 0, InventoryDraw, NULL);
-
-    // Initialize the menu rects so the generic menu logic can animate them
-    for(int i = 0; i < MAX_ITEM_TYPE_AMOUNT; i++){
-        inv->menu->menu_items[i].x = 1450;
-        inv->menu->menu_items[i].y = 200 + (i*50);
-        inv->menu->menu_items[i].w = 400;
-        inv->menu->menu_items[i].h = 50;
-    }
-
-    inv->head = &inv->items[0];
-    inv->current = inv->head;
-
     return inv;
 }
 
@@ -62,11 +39,13 @@ inventory_item_t* InventorySearch(inventory_t* inv, void* item){
     
     // Cast to header to get ID safely (assuming common memory layout)
     int search_id = ((item_header_t*)item)->id;
+    inventory_item_t* itm_ptr = inv->head;
 
-    for(int i = 0; i < inv->item_count; i++){
-        // Now we can check the ID directly without dereferencing the void* item
-        if(inv->items[i].id == search_id && inv->items[i].count > 0) return &inv->items[i];
-    } 
+    while(itm_ptr){
+        if(itm_ptr->id == search_id) return itm_ptr;
+        itm_ptr = itm_ptr->next_item;
+    }
+    
     return NULL;
 }
 void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
@@ -80,18 +59,32 @@ void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
         existing->count += count;
         return;
     }
-
-    // Find first empty slot
-    for(int i = 0; i < inv->item_count; i++){
-        if(inv->items[i].id == -1){
-            inv->items[i].item = item;
-            inv->items[i].id = header->id;
-            inv->items[i].type = header->type;
-            inv->items[i].count = count;
-            return;
-        }
+    
+    inventory_item_t* itm = (inventory_item_t*) malloc(sizeof(inventory_item_t));
+    if(!inv->head){
+        inv->head = itm;
+        inv->tail = itm;
+        inv->current = itm;
+        itm->index = 0;
+        itm->prev_item = NULL;
     }
-    printf("Inventory is full!\n");
+    else {
+        itm->index = inv->tail->index + 1;
+        inv->tail->next_item = itm;
+        itm->prev_item = inv->tail;
+        inv->tail = itm;
+    }
+
+    itm->id = header->id;
+    itm->type = header->type;
+    itm->count = count;
+    itm->item = item;
+    itm->next_item = NULL;
+    
+    itm->menu_item.x = 1450;
+    itm->menu_item.y = 200 + (itm->index * 50);
+    itm->menu_item.w = 400;
+    itm->menu_item.h = 50;
 }
 
 void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
@@ -101,24 +94,26 @@ void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){
         if( existing->count <= count ){
-            // Gets address of existing as an int
-            // Address of existing - address of first item as int should be it's index
-            int index = (int)(existing - inv->items);
+            if(existing->id == inv->tail->id){
+                inv->tail = inv->tail->prev_item;
+                inv->tail->next_item = NULL;
 
-            // Shift items left to fill the gap
-            for(int i = index; i < inv->item_count - 1; i++){
-                inv->items[i].id = inv->items[i+1].id;
-                inv->items[i].type = inv->items[i+1].type;
-                inv->items[i].item = inv->items[i+1].item;
-                inv->items[i].count = inv->items[i+1].count;
+                free(existing);
+                return;
             }
 
-            // Clear the last item
-            int last = inv->item_count - 1;
-            inv->items[last].id = -1;
-            inv->items[last].type = -1;
-            inv->items[last].item = NULL;
-            inv->items[last].count = 0;
+            if(existing->id == inv->head->id){
+                inv->head = inv->head->next_item;
+                inv->head->prev_item = NULL;
+
+                free(existing);
+                return;
+            }
+
+            existing->prev_item->next_item = existing->next_item;
+            existing->next_item->prev_item = existing->prev_item;
+            free(existing);
+
             return;
         }
 
@@ -132,8 +127,16 @@ void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
 }
 
 void InventoryDestroy(inventory_t* inv){
-    MenuDestroy(inv->menu);
-    free(inv->items);
+    inventory_item_t* tmp = inv->head;
+    while(tmp->next_item){
+        inventory_item_t* current = tmp;
+        tmp = tmp->next_item;
+
+        free(current);
+    }
+
+    if(inv->tail) free(inv->tail);
+
     free(inv);
     if(info_font) {
         TTF_CloseFont(info_font);
@@ -155,56 +158,60 @@ void InventoryDraw(inventory_t* inv){
     // Set the color to white for the item boxes
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
 
-    for(int i = 0; i < inv->item_count; i++){
+    inventory_item_t* itm = inv->head;
+    while(itm){
         // Don't render items that do not exist
-        if(inv->items[i].id == -1 || inv->items[i].count == 0) continue;
+        if(itm->id != -1 && itm->count > 0) {
+            SDL_Rect item_box = itm->menu_item;
+            
+            
+            char* item_name = "Unknown";
+            // Type 0 would be catch_device_t type so cast current item to it
+            switch(itm->type){
+                case 0:
+                    catch_device_t* device = (catch_device_t*) itm->item;
+                    item_name = device->name;
+                    break;
+                case 1:
+                    restore_item_t* pot = (restore_item_t*) itm->item;
+                    item_name = pot->name;
+                    break;
+                default:
+                    break;
+            }
 
-        SDL_Rect item_box = inv->menu->menu_items[i];
-        
-        
-        char* item_name = "Unknown";
-        // Type 0 would be catch_device_t type so cast current item to it
-        switch(inv->items[i].type){
-            case 0:
-                catch_device_t* device = (catch_device_t*) inv->items[i].item;
-                item_name = device->name;
-                break;
-            case 1:
-                restore_item_t* pot = (restore_item_t*) inv->items[i].item;
-                item_name = pot->name;
-                break;
-            default:
-                break;
+            SDL_Color text_color = {255, 255, 255, 255};
+            SDL_Surface* text_surface = TTF_RenderText_Solid(info_font, item_name, text_color);
+            if(text_surface) {
+                SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
+                SDL_FreeSurface(text_surface);
+
+                char item_count[16];
+                sprintf(item_count, "%d", itm->count);
+
+                SDL_Surface* count_surface = TTF_RenderText_Solid(info_font, item_count, text_color);
+                if(count_surface) {
+                    SDL_Texture* count_texture = SDL_CreateTextureFromSurface(rend, count_surface);
+                    SDL_FreeSurface(count_surface);
+
+                    
+                    int w, h;
+                    SDL_QueryTexture(text_texture, NULL, NULL, &w, &h);
+                    SDL_Rect text_rect = {item_box.x + 20, item_box.y + 18, w, h};
+
+                    int count_w, count_h;
+                    SDL_QueryTexture(count_texture, NULL, NULL, &count_w, &count_h);
+                    SDL_Rect count_rect = {item_box.x + 370, item_box.y + 18, count_w, count_h};
+                    
+                    SDL_RenderCopy(rend, text_texture,  NULL, &text_rect);
+                    SDL_RenderCopy(rend, count_texture, NULL, &count_rect);
+                    SDL_RenderDrawRect(rend, &item_box);
+                    SDL_DestroyTexture(count_texture);
+                }
+                SDL_DestroyTexture(text_texture);
+            }
         }
-
-        SDL_Color text_color = {255, 255, 255, 255};
-        SDL_Surface* text_surface = TTF_RenderText_Solid(info_font, item_name, text_color);
-        if(!text_surface) continue;
-        SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
-        SDL_FreeSurface(text_surface);
-
-        char item_count[3];
-        sprintf(item_count, "%d", inv->items[i].count);
-
-        SDL_Surface* count_surface = TTF_RenderText_Solid(info_font, item_count, text_color);
-        if(!count_surface) continue;
-        SDL_Texture* count_texture = SDL_CreateTextureFromSurface(rend, count_surface);
-        SDL_FreeSurface(count_surface);
-
-        
-        int w, h;
-        SDL_QueryTexture(text_texture, NULL, NULL, &w, &h);
-        SDL_Rect text_rect = {item_box.x + 20, item_box.y + 18, w, h};
-
-        int count_w, count_h;
-        SDL_QueryTexture(count_texture, NULL, NULL, &count_w, &count_h);
-        SDL_Rect count_rect = {item_box.x + 370, item_box.y + 18, count_w, count_h};
-        
-        SDL_RenderCopy(rend, text_texture,  NULL, &text_rect);
-        SDL_RenderCopy(rend, count_texture, NULL, &count_rect);
-        SDL_RenderDrawRect(rend, &item_box);
-        SDL_DestroyTexture(text_texture);
-        SDL_DestroyTexture(count_texture);
+        itm = itm->next_item;
     }
 
     // Set Render color back to black PLEASE FFS DO NOT LET THIS BE CHANGED ME :pray:

@@ -6,11 +6,13 @@ typedef struct inventory_item_t{
     int id;
     int type;
 
+    int index;
     // As the item can be a capture device, healing item, or any other item type
     // it shall be considered a void*
     void* item;
     unsigned int count;
 
+    SDL_Rect menu_item;
     struct inventory_item_t* next_item;
     struct inventory_item_t* prev_item;
 
@@ -19,20 +21,16 @@ typedef struct inventory_item_t{
 // Struct to keep track of the items the player has
 // It is a Doubly Linked List that CANNOT have repeated items
 // So a Doubly Linked Set or something like that
-typedef struct{
+typedef struct inventory_t{
     int item_count;
     inventory_item_t* current;
     inventory_item_t* head;
-
-    struct menu_t* menu;
-    // Array for all the items the player has
-    inventory_item_t* items;
-
+    inventory_item_t* tail;
 } inventory_t;
 
 // Creates an empty Doubly Linked Inventory of item_count = size
 // All elements of items are initialized to NULL
-inventory_t* InventoryCreateEmpty(int size);
+inventory_t* InventoryCreateEmpty();
 // Adds an item to the inventory
 // If the item already exists in the inventory increases it's count
 void InventoryAddItem(inventory_t* inv, void* item, unsigned int count);
@@ -50,6 +48,6 @@ inventory_item_t* InventoryGetCurrent(inventory_t* inv);
 
 void InventoryDestroy(inventory_t* inv);
 
-void InventoryDraw();
+void InventoryDraw(inventory_t* inv);
 
 #endif
