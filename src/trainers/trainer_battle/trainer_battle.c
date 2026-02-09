@@ -18,8 +18,8 @@ static move_t* enemy_last_move = NULL;
 
 #define NOTCH_SIZE 16
 
-void TrainerBattleDraw(){
-    BattleDraw();
+void TrainerBattleDraw(Uint32 dt){
+    BattleDraw(dt);
 
     // This next code block just draws the symbols indicating the trainer's party
     // as in a symbol for a slot with a monster, a greyed ou slot for a dead monster and an empty slot for well an empty space

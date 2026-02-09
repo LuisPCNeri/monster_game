@@ -17,7 +17,8 @@ static monster_t* starter_mons[STARTER_NUM];
 
 static player_t* active_player = NULL;
 
-void PlayerStarterMenuDraw(){
+void PlayerStarterMenuDraw(Uint32 dt){
+    (void)dt;
     if(!starter_select_menu) return;
 
     for(int i = 0; i < STARTER_NUM; i++){

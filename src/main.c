@@ -52,7 +52,7 @@ int main(void)
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
     Mix_OpenAudio(22050, AUDIO_S16SYS, 1, 1024);
 
-    player->inv = InventoryCreateEmpty(15);
+    player->inv = InventoryCreateEmpty();
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
     InventoryAddItem(player->inv, &ball, 15);
     restore_item_t potion = {4, 1, 10, "Potion", ""};
@@ -240,7 +240,7 @@ int main(void)
             }
         }
         else if(player->game_state == STATE_IN_MENU || player->game_state == STATE_LOCKED){
-            if(player->current_menu) player->current_menu->draw();
+            if(player->current_menu) player->current_menu->draw(dt);
         }
 
         frame_count++;

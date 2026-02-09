@@ -15,8 +15,8 @@ typedef struct menu_t{
     // If there is more than one column this should be >= 1
     int has_columns;
 
-    // Draw function that takes a menu_t menu as argument
-    void (*draw)();
+    // Draw function that takes dt as argument
+    void (*draw)(Uint32 dt);
 
     // This is a pointer to the menu's specified select function
     // Should handle the select input from the player

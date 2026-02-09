@@ -500,7 +500,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
     }
 }
 
-void BattleDraw(){
+void BattleDraw(Uint32 dt){
     if (!enemy_mon || !battle_menu || !active_player) return;
     if(!info_font) info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
     if(!active_player->monster_party[active_player->active_mon_index]) return;
@@ -508,12 +508,17 @@ void BattleDraw(){
     monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
 
     // Animate HP bars
+    float dt_sec = dt / 1000.0f;
+    float speed = 6.0f;
+    float factor = speed * dt_sec;
+    if (factor > 1.0f) factor = 1.0f;
+
     float player_target = (float)active_mon->current_hp;
-    player_displayed_hp += (player_target - player_displayed_hp) * 0.1f;
+    player_displayed_hp += (player_target - player_displayed_hp) * factor;
     if(fabs(player_target - player_displayed_hp) < 0.5f) player_displayed_hp = player_target;
 
     float enemy_target = (float)enemy_mon->current_hp;
-    enemy_displayed_hp += (enemy_target - enemy_displayed_hp) * 0.1f;
+    enemy_displayed_hp += (enemy_target - enemy_displayed_hp) * factor;
     if(fabs(enemy_target - enemy_displayed_hp) < 0.5f) enemy_displayed_hp = enemy_target;
 
     if(battle_state == MAIN_MENU || battle_state == INV_OPEN){
@@ -586,7 +591,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
     switch(item->type){
     case 0:
         if(item->count <= 0 || item->id == -1) return;
-        printf("Used item with id: %d\n", item->id);
+        printf("Used catch_device with id: %d\n", item->id);
                 
         InventoryRemoveItem(active_player->inv, item->item, 1);
         catch_device_t* device = (catch_device_t*) item->item;
@@ -670,7 +675,6 @@ void BattleMenuHandleSelect(){
         else if(selected_btn == INVENTORY){
             battle_state = INV_OPEN;
             active_player->inv_isOpen = 1;
-            active_player->current_menu = active_player->inv->menu;
             active_player->current_menu->select_routine = BattleMenuHandleSelect;
             active_player->current_menu->draw = BattleDraw;
             active_player->current_menu->back = BattleMenuBack;

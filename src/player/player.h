@@ -23,7 +23,7 @@ typedef enum GameState{
 } GameState;
 
 typedef struct player_t{
-    int inv_isOpen : 1;
+    int inv_isOpen;
     
     int x_pos;
     int y_pos;
@@ -52,7 +52,7 @@ typedef struct player_t{
 void PlayerSetStarters(player_t* player);
 
 // Function to draw the starter choosing menu
-void PlayerStarterMenuDraw();
+void PlayerStarterMenuDraw(Uint32 dt);
 
 // When the enter key is pressed if this is the current menu this function is called
 // Gets the monster at the index of the current selected item, takes care of it's stats

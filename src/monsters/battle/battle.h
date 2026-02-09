@@ -26,7 +26,7 @@ typedef struct BattleQueueItem{
 void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer);
 
 // Renders the battle interface. Should be called every frame while in battle state.
-void BattleDraw();
+void BattleDraw(Uint32 dt);
 
 void BattleMenuBack();
 
