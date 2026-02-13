@@ -19,7 +19,6 @@
 #include "monsters/monster.h"
 
 #define TRAINER_FILE "data/trainer.json"
-#define TRAINER_SPRITE_SIZE 128
 // Max ditance trainer can aggro from in TILES
 #define MAX_AGGRO_DIST 10
 #define AGGRO_LENIENCE 10
@@ -175,7 +174,9 @@ static trainer_t* TrainerGetClosest(player_t* p){
     trainer_t* closest = NULL;
     int closest_dist = INT32_MAX;
     for(unsigned int i = 0; i < current_trainers; i++){
-        int dist = sqrt(pow(p->x_pos - TRAINERS[i].x_pos, 2) + pow(p->y_pos - TRAINERS[i].y_pos, 2));
+        int dx = p->x_pos - TRAINERS[i].x_pos;
+        int dy = p->y_pos - TRAINERS[i].y_pos;
+        int dist = dx*dx + dy*dy;
         if(closest_dist > dist){
             closest_dist = dist;
             closest = &TRAINERS[i];
@@ -204,13 +205,13 @@ int TrainerCheckAggro(player_t* player){
 
     // Position of the center of the closest trainer's sprite
     int trainer_CoM_x = closest->x_pos + (TRAINER_SPRITE_SIZE / 2);
-    int trainer_CoM_y = closest->y_pos + (TRAINER_SPRITE_SIZE) / 2;
+    int trainer_CoM_y = closest->y_pos + (TRAINER_SPRITE_SIZE / 2);
 
     if(dist / TILE_SIZE > MAX_AGGRO_DIST) return 0;
 
     if(closest->facing_direction == FRONT){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
-        && player->y_pos >= closest->y_pos){
+        && player->y_pos > trainer_CoM_y){
             
             TrainerAggro(player, closest);
             return 1;
@@ -218,7 +219,7 @@ int TrainerCheckAggro(player_t* player){
     }
     else if(closest->facing_direction == BACK){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
-        && player->y_pos <= closest->y_pos){
+        && player->y_pos < trainer_CoM_y){
 
             TrainerAggro(player, closest);
             return 1;
@@ -226,7 +227,7 @@ int TrainerCheckAggro(player_t* player){
     }
     else if(closest->facing_direction == LEFT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
-        && player->x_pos <= closest->x_pos){
+        && player->x_pos < trainer_CoM_x){
 
             TrainerAggro(player, closest);
             return 1;
@@ -234,7 +235,7 @@ int TrainerCheckAggro(player_t* player){
     }
     else if(closest->facing_direction == RIGHT){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
-        && player->x_pos >= closest->x_pos){
+        && player->x_pos > trainer_CoM_x){
 
             TrainerAggro(player, closest);
             return 1;
@@ -284,22 +285,64 @@ void TrainerRestoreParty(trainer_t* trainer){
 }
 
 void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt){
+    static SDL_Texture* notif_text = NULL;
+    if(!notif_text) {
+        SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");
+        if(notif_surf) {
+            notif_text = SDL_CreateTextureFromSurface(rend, notif_surf);
+            SDL_FreeSurface(notif_surf);
+        }
+    }
+
     // blink blink fucker
     static int blink_timer = 0;
     blink_timer += dt;
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
-    SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");
-    SDL_Texture* notif_text = SDL_CreateTextureFromSurface(rend, notif_surf);
-    SDL_FreeSurface(notif_surf);
-
-    int w, h;
-    SDL_QueryTexture(notif_text, NULL, NULL, &w, &h);
-
     SDL_Rect notif_box = {
         .x = t->x_pos + offset_x + (TRAINER_SPRITE_SIZE/2) - 32/2, 
         .y = t->y_pos + offset_y + (TRAINER_SPRITE_SIZE/2) - 32 - 20, 
         .w = 32, .h = 32};
-    SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
-    SDL_DestroyTexture(notif_text);
+    if(notif_text) SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
+}
+
+int TrainerIsCollingWithPlayer(player_t* player){
+    trainer_t* closest = TrainerGetClosest(player);
+    
+    int player_half = PLAYER_SPRITE_SIZE / 2;
+    int player_bottom = player->y_pos + player_half;
+    int player_right = player->x_pos + player_half;
+    int player_left = player->x_pos - player_half;
+    int player_top = player->y_pos - player_half;
+
+    int trainer_right = closest->x_pos + TRAINER_SPRITE_SIZE;
+    int trainer_bottom = closest->y_pos + TRAINER_SPRITE_SIZE;
+
+    if(player_left < closest->x_pos || player_top <= closest->y_pos || player_right >= trainer_right || player_bottom >= trainer_bottom )
+        return 5;
+
+    int overlap_left = player_right - closest->x_pos;
+    int overlap_right = trainer_right - player_left;
+    int overlap_top = player_bottom - closest->y_pos;
+    int overlap_bottom = trainer_bottom - player_top;
+
+    // As a default, consider player is coming from the left of the trainer
+    int min_overlap = overlap_left;
+    int direction = EAST;
+
+    // Whatever overlap is the highest is returned
+    if(overlap_right < min_overlap){
+        min_overlap = overlap_right;
+        direction = WEST;
+    }
+    if(overlap_top < min_overlap){
+        min_overlap = overlap_top;
+        direction = SOUTH;
+    }
+    if(overlap_bottom < min_overlap){
+        min_overlap = overlap_bottom;
+        direction = NORTH;
+    }
+
+    return direction;
 }

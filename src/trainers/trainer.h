@@ -5,6 +5,8 @@
 #include "player/player.h"
 #include "monsters/monster.h"
 
+#define TRAINER_SPRITE_SIZE 128
+
 typedef enum FacingDirection{
     FRONT,
     BACK,
@@ -55,5 +57,13 @@ void TrainerUpdateAggro(player_t* player, Uint32 dt);
 int TrainerCheckPartyIsDead(trainer_t* trainer);
 void TrainerRestoreParty(trainer_t* trainer);
 void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt);
+
+/*
+    Returns 1 if player is overlapping with the closest trainer's rectangle.
+    Returns 0 otherwise.
+
+    \param *player Pointer to current active player.
+*/
+int TrainerIsCollingWithPlayer(player_t* player);
 
 #endif

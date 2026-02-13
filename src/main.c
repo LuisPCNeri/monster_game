@@ -112,6 +112,14 @@ int main(void)
     SDL_Rect fps_rect = {5, 5, 0, 0};
     SDL_Rect fps_box = {.x = 0, .y = 0, .w = 0, .h = 0};
 
+    SDL_Color fps_color = {.r = 0, .g = 255, .b = 0, .a = 255};
+    SDL_Surface* fps_surf = TTF_RenderText_Solid(game_font, fps_str, fps_color);
+    SDL_Texture* fps_text = SDL_CreateTextureFromSurface(rend, fps_surf);
+    SDL_FreeSurface(fps_surf);
+    SDL_QueryTexture(fps_text, NULL, NULL, &fps_rect.w, &fps_rect.h);
+    fps_box.w = fps_rect.w + 10;
+    fps_box.h = fps_rect.h + 10;
+
     while (running) {
         Uint32 current_frame_time = SDL_GetTicks();
         Uint32 dt = current_frame_time - last_frame_time;
@@ -130,21 +138,29 @@ int main(void)
                     // keyboard API for key pressed
                         switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_UP:
+                            if(TrainerIsCollingWithPlayer(player) == NORTH) break;
+                            player->facing_direction = NORTH;
                             world_y -= CHARACTER_SPEED / 30;
                             player->y_pos = world_y + (player_rect.h / 2);
                             if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_LEFT:
+                            if(TrainerIsCollingWithPlayer(player) == WEST) break;
+                            player->facing_direction = WEST;
                             world_x -= CHARACTER_SPEED / 30;
                             player->x_pos = world_x + (player_rect.w / 2);
                             if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_DOWN:
+                            if(TrainerIsCollingWithPlayer(player) == SOUTH) break;
+                            player->facing_direction = SOUTH;
                             world_y += CHARACTER_SPEED / 30;
                             player->y_pos = world_y + (player_rect.h / 2);
                             if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
                             break;
                         case SDL_SCANCODE_RIGHT:
+                            if(TrainerIsCollingWithPlayer(player) == EAST) break;
+                            player->facing_direction = EAST;
                             world_x += CHARACTER_SPEED / 30;
                             player->x_pos = world_x + (player_rect.w / 2);
                             if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
@@ -250,20 +266,19 @@ int main(void)
             frame_count = 0;
             last_time = current_time;
             sprintf(fps_str, "%d", fps);
+
+            SDL_DestroyTexture(fps_text);
+            fps_surf = TTF_RenderText_Solid(game_font, fps_str, fps_color);
+            fps_text = SDL_CreateTextureFromSurface(rend, fps_surf);
+            SDL_FreeSurface(fps_surf);
+            SDL_QueryTexture(fps_text, NULL, NULL, &fps_rect.w, &fps_rect.h);
+            fps_box.w = fps_rect.w + 10;
+            fps_box.h = fps_rect.h + 10;
         }
 
-        SDL_Color fps_color = {.r = 0, .g = 255, .b = 0, .a = 255};
-        SDL_Surface* fps_surf = TTF_RenderText_Solid(game_font, fps_str, fps_color);
-        SDL_Texture* fps_text = SDL_CreateTextureFromSurface(rend, fps_surf);
-        SDL_FreeSurface(fps_surf);
-
-        SDL_QueryTexture(fps_text, NULL, NULL, &fps_rect.w, &fps_rect.h);
-        fps_box.w = fps_rect.w + 10;
-        fps_box.h = fps_rect.h + 10;
         SDL_RenderFillRect(rend, &fps_box);
 
         SDL_RenderCopy(rend, fps_text, NULL, &fps_rect);
-        SDL_DestroyTexture(fps_text);
 
         // triggers the double buffers
         // for multiple rendering
@@ -274,6 +289,7 @@ int main(void)
     }
 
     player->running = 0;
+    SDL_DestroyTexture(fps_text);
 
     BattleQuit();
     PlayerDestroy(player);
