@@ -13,6 +13,13 @@
 typedef struct menu_t menu_t;
 typedef struct trainer_t trainer_t;
 
+typedef enum Orientation{
+    NORTH,
+    SOUTH,
+    EAST,
+    WEST
+} Orientation;
+
 typedef enum GameState{
     STATE_EXPLORING,
     STATE_IN_MENU,
@@ -38,6 +45,7 @@ typedef struct player_t{
     GameState game_state;
 
     int aggro_timer;
+    Orientation facing_direction;
     trainer_t* aggro_trainer;
     monster_t* aggro_monster;
 
