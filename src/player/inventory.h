@@ -26,6 +26,7 @@ typedef struct inventory_t{
     inventory_item_t* current;
     inventory_item_t* head;
     inventory_item_t* tail;
+    SDL_Texture* arrow_texture;
 } inventory_t;
 
 // Creates an empty Doubly Linked Inventory of item_count = size

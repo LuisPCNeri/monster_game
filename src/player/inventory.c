@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -31,6 +32,12 @@ inventory_t* InventoryCreateEmpty(){
     inv->tail = NULL;
 
     if(!info_font) info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 24);
+    
+    SDL_Color arrow_color = {255, 255, 255, 255};
+    SDL_Surface* arrow_surf = TTF_RenderText_Solid(info_font, "->", arrow_color);
+    inv->arrow_texture = SDL_CreateTextureFromSurface(rend, arrow_surf);
+    SDL_FreeSurface(arrow_surf);
+
     return inv;
 }
 
@@ -213,6 +220,18 @@ void InventoryDraw(inventory_t* inv){
         }
         itm = itm->next_item;
     }
+
+    int w,h;
+    SDL_QueryTexture(inv->arrow_texture, NULL, NULL ,&w, &h);
+    
+    double time = (double) SDL_GetTicks()/1000;
+    SDL_Rect arrow_rect = {
+        inv->current->menu_item.x - w - 15 - 10*cos((double) time *3),
+        inv->current->menu_item.y + inv->current->menu_item.h / 2 - h / 2,
+        w, h
+    };
+
+    SDL_RenderCopy(rend, inv->arrow_texture, NULL, &arrow_rect);
 
     // Set Render color back to black PLEASE FFS DO NOT LET THIS BE CHANGED ME :pray:
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
