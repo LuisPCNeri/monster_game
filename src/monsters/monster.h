@@ -59,11 +59,6 @@ typedef enum MonsterTypes{
     TYPE_COUNT
 } MonsterTypes;
 
-// A list of all moves a single monster can learn
-typedef struct{
-
-} learnable_moves_list_t;
-
 // A move that can be used by a monster
 typedef struct move_t{
     // States if this move's modifier applies to self or enemy
@@ -130,7 +125,7 @@ typedef struct monster_t {
 
     int current_exp;
     int exp_to_next_level;
-
+    int learnable_moves_amount;
     // Monster's main type
     MonsterTypes type_1;
     // Monster's secondary type
@@ -147,9 +142,8 @@ typedef struct monster_t {
     // When a move is learned one of these 4 moves will be changed
     // Moves the monster can currently use in battle
     move_t usable_moves[4];
-
-    // Moves the monster can learn
-    learnable_moves_list_t learnable_moves;
+    // A list of all moves a single monster can learn
+    move_t* learnable_moves;
 
     char monster_name[256];
     // Path to the monter's sprite

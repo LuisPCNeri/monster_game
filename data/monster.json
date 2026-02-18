@@ -95,7 +95,8 @@
         "type_1": "WATER",
         "type_2": "NULL",
         "stats": { "hp": 31, "atk": 33, "def": 33, "spd": 68 },
-        "starting_moves": [101, 102, 301, 104]
+        "starting_moves": [101, 102, 301, 104],
+        "learnable_moves": [302, 303, 304]
     },
     {
         "id": 10,

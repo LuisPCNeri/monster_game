@@ -66,6 +66,36 @@
         "accuracy": 95
     },
     {
+        "id": 302,
+        "name": "Aqua Gun",
+        "power": 50,
+        "max_pp": 20,
+        "status_fx": 0, 
+        "type": "WATER",
+        "req_level": 8,
+        "accuracy": 95
+    },
+    {
+        "id": 303,
+        "name": "Hydro Pump",
+        "power": 120,
+        "max_pp": 5,
+        "status_fx": 0, 
+        "type": "WATER",
+        "req_level": 32,
+        "accuracy": 80
+    },
+    {
+        "id": 304,
+        "name": "Water Shuriken",
+        "power": 30,
+        "max_pp": 35,
+        "status_fx": 0, 
+        "type": "WATER",
+        "req_level": 12,
+        "accuracy": 100
+    },
+    {
         "id": 401,
         "name": "Leaf Cutter",
         "power": 40,
