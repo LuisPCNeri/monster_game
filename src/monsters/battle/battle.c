@@ -591,6 +591,8 @@ static void HandleInvOpenSelect(monster_t* active_mon){
     switch(item->type){
     case 0:
         if(item->count <= 0 || item->id == -1) return;
+        // Cannot catch other trainer's monsters lol
+        if(act_trainer) return;
         printf("Used catch_device with id: %d\n", item->id);
                 
         InventoryRemoveItem(active_player->inv, item->item, 1);
