@@ -45,7 +45,8 @@ int main(void)
                                        SDL_WINDOWPOS_CENTERED,
                                        1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
-    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
+    // Frame rate is capped at the monitor's refresh rate because of SDL_RENDERER_PRESENTVSYNC
+    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC;
     rend = SDL_CreateRenderer(win, -1, render_flags);
 
     // Set up TTF
