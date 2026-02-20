@@ -5,6 +5,9 @@
 #include "items/item.h"
 #include "libraries/cJSON.h"
 
+#define MAX_LEVEL 100
+#define LEARNABLE_MOVES_AMOUNT_PER_LEVEL 5
+
 // MONSTER RARITIES
 // These affect only the monster's spawning rate
 typedef enum Rarities{
@@ -125,7 +128,6 @@ typedef struct monster_t {
 
     int current_exp;
     int exp_to_next_level;
-    int learnable_moves_amount;
     // Monster's main type
     MonsterTypes type_1;
     // Monster's secondary type
@@ -142,8 +144,9 @@ typedef struct monster_t {
     // When a move is learned one of these 4 moves will be changed
     // Moves the monster can currently use in battle
     move_t usable_moves[4];
-    // A list of all moves a single monster can learn
-    move_t* learnable_moves;
+    // An array that has the ids of all the moves learnable from leveling up for a monster
+    // All monsters are hardcapped to this
+    int level_up_table[MAX_LEVEL][LEARNABLE_MOVES_AMOUNT_PER_LEVEL];
 
     char monster_name[256];
     // Path to the monter's sprite

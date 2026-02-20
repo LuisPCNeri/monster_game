@@ -169,6 +169,29 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
             printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->monster_name, idToFind);
         }
     }
+
+    for(int i = 0; i < MAX_LEVEL; i++){
+        for(int k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
+            mon->level_up_table[i][k] = -1;
+        }
+    }
+
+    cJSON* lvl_up_table = cJSON_GetObjectItem(entry, "level_up_table");
+    slot = 0;
+    for(int i = 0; i < MAX_LEVEL; i++){
+        char lvl[8];
+        sprintf(lvl, "%d", i);
+
+        cJSON* move_lvl = cJSON_GetObjectItem(lvl_up_table, lvl);
+        cJSON* move_id = NULL;
+        if(move_lvl){
+            int k = 0;
+            cJSON_ArrayForEach(move_id, move_lvl){
+                mon->level_up_table[i][k] = move_id->valueint;
+                k++;
+            };
+        }
+    }
 }
 
 void MoveParseJSON(cJSON* entry, move_t* m){
@@ -607,6 +630,12 @@ static monster_t* MonsterEvolve(monster_t* monster){
     monster->evo_2_level = evo_monster->evo_2_level;
 
     // TODO : Check for evolution unlocked moves
+    for(int i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
+        if(monster->level_up_table[monster->level][i] == -1) break;
+
+        move_t* move_to_learn = GetMoveById(monster->level_up_table[monster->level][i]);
+        // IMPORTANT : LEARN MOVE
+    }
 
     return monster;
 }

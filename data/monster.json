@@ -96,7 +96,10 @@
         "type_2": "NULL",
         "stats": { "hp": 31, "atk": 33, "def": 33, "spd": 68 },
         "starting_moves": [101, 102, 301, 104],
-        "learnable_moves": [302, 303, 304]
+        "level_up_table": {
+            "8": [302, 304],
+            "16": [303]
+        }
     },
     {
         "id": 10,
