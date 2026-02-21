@@ -21,8 +21,10 @@
 
 SDL_Renderer* rend;
 TTF_Font* game_font;
+int screen_w;
+int screen_h;
 
-int main(void)
+int main(int argc, char* argv[])
 {
     MonstersInit();
     TrainersInit();
@@ -48,6 +50,7 @@ int main(void)
     // Frame rate is capped at the monitor's refresh rate because of SDL_RENDERER_PRESENTVSYNC
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC;
     rend = SDL_CreateRenderer(win, -1, render_flags);
+    SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
     // Set up TTF
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);

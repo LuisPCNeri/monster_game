@@ -17,9 +17,13 @@
 // Renderer created in main
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
+extern int screen_w;
+extern int screen_h;
+
 static TTF_Font* info_font = NULL;
 
-static SDL_Rect status_rect = {50, 850, 800, 200};
+static SDL_Rect status_rect = {40, 700, 1200, 350};
+static SDL_Rect menu_options_rect = {1250, 650, 600, 400};
 // Enemy moster health bar, name and lvl rect
 static SDL_Rect enemy_rect = {1450, 50, 400, 100};
 static SDL_Rect enemy_sfx_rect = {1450, 150, 200, 40};
@@ -55,10 +59,12 @@ static float enemy_displayed_hp = 0.0f;
 
 static SDL_Rect switch_hp_bars[PARTY_SIZE];
 
-static char message[1028];
+static char message[4096];
 
 static BattleQueueItem trainer_exp_rewards[PARTY_SIZE];
 static int defeated_trainer_mon_count = 0;
+
+static SDL_Texture* arrow_texture = NULL;
 
 typedef enum BattleState{
     MAIN_MENU,
@@ -97,10 +103,12 @@ void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
     battle_menu = MenuCreate(4, 1, 1, &BattleDraw, &BattleMenuHandleSelect);
     battle_menu->back = BattleMenuBack;
 
-    SDL_Rect switch_btn = { 50, 950, 400, 100 };
-    SDL_Rect attack_btn = { 40, 790, 420, 120};
-    SDL_Rect inventory_btn = {500, 800, 400, 100};
-    SDL_Rect run_btn = {500, 950, 400, 100};
+    //1250, 600
+    // 600x400
+    SDL_Rect switch_btn = { menu_options_rect.x + menu_options_rect.w / 2 - 150, menu_options_rect.y + menu_options_rect.h - 190, 200, 100 };
+    SDL_Rect attack_btn = { menu_options_rect.x + menu_options_rect.w / 2 - 160, menu_options_rect.y + 90, 200, 100 };
+    SDL_Rect inventory_btn = { menu_options_rect.x + 380, menu_options_rect.y + 90, 200, 100};
+    SDL_Rect run_btn = { menu_options_rect.x + 380, menu_options_rect.y + menu_options_rect.h - 190, 200, 100};
 
     battle_menu->menu_items[ATTACK] = attack_btn;
     battle_menu->menu_items[SWITCH] = switch_btn;
@@ -123,6 +131,13 @@ void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
     else {
         wild_battle_monster = *enemy_monster;
         enemy_mon = &wild_battle_monster;
+    }
+
+    if(!arrow_texture){
+        SDL_Color arrow_color = {255, 255, 255, 255};
+        SDL_Surface* arrow_surf = TTF_RenderText_Solid(game_font, ">", arrow_color);
+        arrow_texture = SDL_CreateTextureFromSurface(rend, arrow_surf);
+        SDL_FreeSurface(arrow_surf);
     }
 
     // Set player's active monster to the first one in the party
@@ -208,10 +223,12 @@ static int BattleCheckIsOver(){
 }
 
 // Renders the button's text and a rect for them
+// \param is_borderless Set to 0 if you want the rect to have borders showing
+// \param is_x_centered Dictates if the text is center aligned (1) or left aligned (0)
 // TODO : Change from the draw rect to a custom texture
-static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_Font* font){
+static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_Font* font, int is_borderless, int is_x_centered){
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-    SDL_RenderDrawRect(rend, dst_rect);
+    if(!is_borderless) SDL_RenderDrawRect(rend, dst_rect);
 
     SDL_Color text_color = {255, 255, 255, 255};
     SDL_Surface* text_surface = TTF_RenderText_Solid(font, btn_text, text_color);
@@ -223,7 +240,8 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_F
     SDL_QueryTexture(text_texture, NULL, NULL, &text_w, &text_h);
 
     SDL_Rect text_rect;
-    text_rect.x = dst_rect->x + (dst_rect->w - text_w) / 2;
+    if(is_x_centered) text_rect.x = dst_rect->x + (dst_rect->w - text_w) / 2;
+    else text_rect.x = dst_rect->x;
     text_rect.y = dst_rect->y + (dst_rect->h - text_h) / 2;
     text_rect.w = text_w;
     text_rect.h = text_h;
@@ -232,7 +250,7 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_F
     SDL_RenderCopy(rend, text_texture, NULL, &text_rect);
     // Draw the text_rect outline
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-    SDL_RenderDrawRect(rend, &text_rect);
+    if(!is_borderless) SDL_RenderDrawRect(rend, &text_rect);
 
     SDL_DestroyTexture(text_texture);
 }
@@ -321,18 +339,47 @@ static void RenderMonInfo(monster_t* active_mon){
     char c_status_fx[128];
     if(active_mon->current_status_fx){
         strcpy(c_status_fx, MonsterGetSFXString(active_mon));
-        BattleRenderMenuItem(c_status_fx, &player_sfx_rect, info_font);
+        BattleRenderMenuItem(c_status_fx, &player_sfx_rect, info_font, 0, 1);
     }
     if(enemy_mon->current_status_fx){
         strcpy(c_status_fx, MonsterGetSFXString(enemy_mon));
-        BattleRenderMenuItem(c_status_fx, &enemy_sfx_rect, info_font);
+        BattleRenderMenuItem(c_status_fx, &enemy_sfx_rect, info_font, 0, 1);
     }
 }
 
+static void BattleRenderMainMenu(){
+    SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+    SDL_RenderDrawRect(rend, &status_rect);
+    SDL_RenderDrawRect(rend, &menu_options_rect);
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+
+    int menu_index = active_player->selected_menu_itm;
+    int w,h;
+    SDL_QueryTexture(arrow_texture, NULL, NULL, &w, &h);
+    SDL_Rect arrow_rect = {
+        battle_menu->menu_items[menu_index].x - w - 5,
+        battle_menu->menu_items[menu_index].y + battle_menu->menu_items[menu_index].h / 2 - h / 2,
+        w,h
+    };
+    SDL_RenderCopy(rend, arrow_texture, NULL, &arrow_rect);
+
+    BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH], game_font, 1, 0);
+    BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK], game_font, 1, 0);
+    BattleRenderMenuItem("INV", &battle_menu->menu_items[INVENTORY], game_font, 1, 0);
+    BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN], game_font, 1, 0);
+
+    if(message[0] != '\0'){
+        BattleRenderInfo(message, &status_rect, 20, 20, 0);
+        BattleRenderInfo("->", &status_rect, status_rect.w - 50, status_rect.h - 50, 0);  
+    }
+}
+
+// IMPORTANT
+// TODO : Re do the moves menu because the changes to main menu fucked it up
 static void MovesMenuDraw(monster_t* active_mon){
     for(int i = 0; i < 4; i++){
         if(active_mon->usable_moves[i].id != -1){
-            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, &battle_menu->menu_items[i], game_font);
+            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, &battle_menu->menu_items[i], game_font, 0, 1);
 
             char move_uses[12];
             sprintf(move_uses, "%d/%d", active_mon->usable_moves[i].available_uses,
@@ -346,7 +393,7 @@ static void MovesMenuDraw(monster_t* active_mon){
                 20, battle_menu->menu_items[i].h - 30, 0);
         }
         else{
-            BattleRenderMenuItem("-", &battle_menu->menu_items[i], game_font);
+            BattleRenderMenuItem("-", &battle_menu->menu_items[i], game_font, 0, 1);
         }
     }
 }
@@ -376,38 +423,33 @@ static void SwitchMenuDraw(){
             RenderHpBar(active_player->monster_party[i]->current_hp, active_player->monster_party[i]->max_hp, switch_hp_bars[i]);
         }
         else
-            BattleRenderMenuItem("-", &switch_menu->menu_items[i], game_font);
+            BattleRenderMenuItem("-", &switch_menu->menu_items[i], game_font, 0, 1);
     }
 }
 
 static void BattleExecuteTurns(monster_t* player_mon){
-    static char msg[4096];
-    
     // STAGE 0: First Attacker Pre-Check & Attack
     if(turn_stage == 0){
-        msg[0] = '\0';
-        int can_move = MonsterCheckCanMove(first_attacker, msg);
+        message[0] = '\0';
+        int can_move = MonsterCheckCanMove(first_attacker, message);
         
         if(can_move && fst_atck_move){
             monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
-            MonsterUseMoveOn(first_attacker, fst_atck_move, target, msg);
-            if(msg[0] == '\0') snprintf(msg, 1024, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
+            MonsterUseMoveOn(first_attacker, fst_atck_move, target, message);
+            if(message[0] == '\0') snprintf(message, 1024, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
         }
         turn_stage = 1;
     }
     // STAGE 1: Display First Action
     else if(turn_stage == 1){
-        if(msg[0] != '\0'){
-            BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
-            BattleRenderInfo("->", &status_rect, 750, 150, 0);
-        } else {
+        if(message[0] == '\0') {
             turn_stage = 2;
         }
     }
     // STAGE 2: First Attacker Status Damage
     else if(turn_stage == 2){
-        msg[0] = '\0';
-        if(MonsterApplyStatusDamage(first_attacker, msg)){
+        message[0] = '\0';
+        if(MonsterApplyStatusDamage(first_attacker, message)){
             turn_stage = 3;
         } else {
             turn_stage = 4;
@@ -415,57 +457,49 @@ static void BattleExecuteTurns(monster_t* player_mon){
     }
     // STAGE 3: Display Status Damage
     else if(turn_stage == 3){
-        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
-        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+        if(message[0] == '\0') turn_stage = 4;
     }
     // STAGE 4: Check Faint (Target or Attacker)
     else if(turn_stage == 4){
-        msg[0] = '\0';
-        if(first_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", first_attacker->monster_name);
-        else if(second_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", second_attacker->monster_name);
+        message[0] = '\0';
+        if(first_attacker->current_hp <= 0) snprintf(message, 1024, "%s has fainted!", first_attacker->monster_name);
+        else if(second_attacker->current_hp <= 0) snprintf(message, 1024, "%s has fainted!", second_attacker->monster_name);
         
-        if(msg[0] != '\0') turn_stage = 5;
+        if(message[0] != '\0') turn_stage = 5;
         else turn_stage = 6;
     }
     // STAGE 5: Display Faint
     else if(turn_stage == 5){
-        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
-        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+        if(message[0] == '\0') turn_stage = 6;
     }
     // STAGE 6: Second Attacker Pre-Check & Attack
     else if(turn_stage == 6){
         // If anyone fainted, stop turn
         if(first_attacker->current_hp <= 0 || second_attacker->current_hp <= 0){
-            battle_state = MAIN_MENU;
-            active_player->is_player_turn = 1;
-            active_player->current_menu = battle_menu;
-            if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
+            turn_stage = 12; // Skip to end
             return;
         }
 
-        msg[0] = '\0';
-        int can_move = MonsterCheckCanMove(second_attacker, msg);
+        message[0] = '\0';
+        int can_move = MonsterCheckCanMove(second_attacker, message);
         
         if(can_move && scnd_atck_move){
             monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
-            MonsterUseMoveOn(second_attacker, scnd_atck_move, target, msg);
-            if(msg[0] == '\0') snprintf(msg, 1024, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
+            MonsterUseMoveOn(second_attacker, scnd_atck_move, target, message);
+            if(message[0] == '\0') snprintf(message, 1024, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
         }
         turn_stage = 7;
     }
     // STAGE 7: Display Second Action
     else if(turn_stage == 7){
-        if(msg[0] != '\0'){
-            BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
-            BattleRenderInfo("->", &status_rect, 750, 150, 0);
-        } else {
+        if(message[0] == '\0') {
             turn_stage = 8;
         }
     }
     // STAGE 8: Second Attacker Status Damage
     else if(turn_stage == 8){
-        msg[0] = '\0';
-        if(MonsterApplyStatusDamage(second_attacker, msg)){
+        message[0] = '\0';
+        if(MonsterApplyStatusDamage(second_attacker, message)){
             turn_stage = 9;
         } else {
             turn_stage = 10;
@@ -473,22 +507,20 @@ static void BattleExecuteTurns(monster_t* player_mon){
     }
     // STAGE 9: Display Status Damage
     else if(turn_stage == 9){
-        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
-        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+        if(message[0] == '\0') turn_stage = 10;
     }
     // STAGE 10: Check Faint
     else if(turn_stage == 10){
-        msg[0] = '\0';
-        if(first_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", first_attacker->monster_name);
-        else if(second_attacker->current_hp <= 0) snprintf(msg, 1024, "%s has fainted!", second_attacker->monster_name);
+        message[0] = '\0';
+        if(first_attacker->current_hp <= 0) snprintf(message, 1024, "%s has fainted!", first_attacker->monster_name);
+        else if(second_attacker->current_hp <= 0) snprintf(message, 1024, "%s has fainted!", second_attacker->monster_name);
         
-        if(msg[0] != '\0') turn_stage = 11;
+        if(message[0] != '\0') turn_stage = 11;
         else turn_stage = 12;
     }
     // STAGE 11: Display Faint
     else if(turn_stage == 11){
-        BattleRenderInfo(msg, &status_rect, 20, 20 ,0);
-        BattleRenderInfo("->", &status_rect, 750, 150, 0);
+        if(message[0] == '\0') turn_stage = 12;
     }
     // TODO : Victory message state
     // End of Turn
@@ -521,18 +553,12 @@ void BattleDraw(Uint32 dt){
     enemy_displayed_hp += (enemy_target - enemy_displayed_hp) * factor;
     if(fabs(enemy_target - enemy_displayed_hp) < 0.5f) enemy_displayed_hp = enemy_target;
 
-    if(battle_state == MAIN_MENU || battle_state == INV_OPEN){
-        BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH], game_font);
-        BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK], game_font);
-        BattleRenderMenuItem("INVENTORY", &battle_menu->menu_items[INVENTORY], game_font);
-        BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN], game_font);
+    if(battle_state == MAIN_MENU || battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT || battle_state == TRAINER_SWITCH || battle_state == EXECUTING_TURN){
+        BattleRenderMainMenu();
     }
-    else if(battle_state == MOVES_MENU)     MovesMenuDraw(active_mon);
+
+    if(battle_state == MOVES_MENU)     MovesMenuDraw(active_mon);
     else if(battle_state == EXECUTING_TURN) BattleExecuteTurns(active_mon);
-    else if(battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT || battle_state == TRAINER_SWITCH){
-        BattleRenderInfo(message, &status_rect, 20, 20, 0);
-        BattleRenderInfo("->", &status_rect, 750, 150, 0);
-    }
 
     if (!enemy_mon_tex) {
         SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
@@ -727,6 +753,8 @@ void BattleMenuHandleSelect(){
         printf("EXECUTING TURN\n");
         battle_state = EXECUTING_TURN;
         turn_stage = 0;
+
+        if(!message[0] == '\0') message[0] = '\0';
     }
 }
 
@@ -779,6 +807,10 @@ void BattleQuit(void){
     if(enemy_mon_tex){
         SDL_DestroyTexture(enemy_mon_tex);
         enemy_mon_tex = NULL;
+    }
+    if(arrow_texture){
+        SDL_DestroyTexture(arrow_texture);
+        arrow_texture = NULL;
     }
 
     if(active_player) active_player->game_state = STATE_EXPLORING;

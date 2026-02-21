@@ -20,6 +20,9 @@ typedef struct {
 
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
+extern int screen_w;
+extern int screen_h;
+
 static TTF_Font* info_font;
 
 inventory_t* InventoryCreateEmpty(){
@@ -88,7 +91,7 @@ void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
     itm->item = item;
     itm->next_item = NULL;
     
-    itm->menu_item.x = 1450;
+    itm->menu_item.x = screen_w / 2 - 200;
     itm->menu_item.y = 200 + (itm->index * 50);
     itm->menu_item.w = 400;
     itm->menu_item.h = 50;
@@ -152,7 +155,7 @@ void InventoryDestroy(inventory_t* inv){
 }
 
 void InventoryDraw(inventory_t* inv){
-    SDL_Rect inv_box = {1450, 200, 400, 800};
+    SDL_Rect inv_box = {screen_w / 2 - 200, 200, 400, 800};
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(rend, &inv_box);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
