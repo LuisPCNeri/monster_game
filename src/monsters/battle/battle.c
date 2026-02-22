@@ -13,6 +13,8 @@
 #include "battle.h"
 
 #define TURN_LENGTH 1000
+// IN MILLISECONDS (ms)
+#define ARROW_BLINK_INTERVAL 500
 
 // Renderer created in main
 extern SDL_Renderer* rend;
@@ -40,6 +42,7 @@ static monster_t wild_battle_monster;
 
 static menu_t* battle_menu = NULL;
 static menu_t* switch_menu = NULL;
+static menu_t* moves_menu = NULL;
 
 static player_t* active_player = NULL;
 static SDL_Texture* player_mon_tex = NULL;
@@ -79,6 +82,70 @@ typedef enum BattleState{
 
 static BattleState battle_state = MAIN_MENU;
 
+static void BattleMainMenuCreate(){
+    battle_menu = MenuCreate(4, 1, 1, &BattleDraw, &BattleMenuHandleSelect);
+    battle_menu->back = BattleMenuBack;
+
+    //1250, 600
+    // 600x400
+    SDL_Rect switch_btn = { menu_options_rect.x + menu_options_rect.w / 2 - 150, menu_options_rect.y + menu_options_rect.h - 190, 200, 100 };
+    SDL_Rect attack_btn = { menu_options_rect.x + menu_options_rect.w / 2 - 160, menu_options_rect.y + 90, 200, 100 };
+    SDL_Rect inventory_btn = { menu_options_rect.x + 380, menu_options_rect.y + 90, 200, 100};
+    SDL_Rect run_btn = { menu_options_rect.x + 380, menu_options_rect.y + menu_options_rect.h - 190, 200, 100};
+
+    battle_menu->menu_items[ATTACK] = attack_btn;
+    battle_menu->menu_items[SWITCH] = switch_btn;
+    battle_menu->menu_items[INVENTORY] = inventory_btn;
+    battle_menu->menu_items[RUN] = run_btn;
+}
+
+static void BattleMovesMenuCreate(){
+    int w,h;
+    SDL_GetRendererOutputSize(rend, &w, &h);
+
+    moves_menu = MenuCreate(USBALE_MOVES_AMOUNT, 1, 1, BattleDraw, BattleMenuHandleSelect);
+    moves_menu->back = BattleMenuBack;
+
+    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++){
+        int offset_x = 50;
+        int offset_y = h - 150;
+        if( i & 1 ) offset_x += 450;
+        if( i < 2 ) offset_y -= 150;
+
+        int box_w = 400;
+        int box_h = 100;
+
+        if( i == 0 ){
+            offset_x -= 10;
+            box_w += 20;
+            offset_y -= 10;
+            box_h += 20;
+        }
+
+        SDL_Rect move_box = {
+            offset_x,
+            offset_y,
+            box_w, 
+            box_h
+        };
+        moves_menu->menu_items[i] = move_box;
+    }
+}
+
+static void BattleSwitchMenuCreate(){
+    int w, h;
+    SDL_GetRendererOutputSize(rend, &w, &h);
+    switch_menu = MenuCreate(PARTY_SIZE, 1, 1, BattleDraw, BattleMenuHandleSelect);
+    for(int i = 0; i < switch_menu->items_amount; i++){
+        if( !(i & 1) ) switch_menu->menu_items[i].x = (w/2)-420;
+        else           switch_menu->menu_items[i].x = (w/2)+20;
+        switch_menu->menu_items[i].y = 350 + i*100;
+        switch_menu->menu_items[i].w = 400;
+        switch_menu->menu_items[i].h = 100;
+    }
+    switch_menu->back = BattleMenuBack;
+}
+
 void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
     printf("BATTLE STARTING\n");
     if(!player || !player->monster_party[0]) return;
@@ -100,32 +167,9 @@ void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
         trainer_exp_rewards[i].monster = NULL;
     }
 
-    battle_menu = MenuCreate(4, 1, 1, &BattleDraw, &BattleMenuHandleSelect);
-    battle_menu->back = BattleMenuBack;
-
-    //1250, 600
-    // 600x400
-    SDL_Rect switch_btn = { menu_options_rect.x + menu_options_rect.w / 2 - 150, menu_options_rect.y + menu_options_rect.h - 190, 200, 100 };
-    SDL_Rect attack_btn = { menu_options_rect.x + menu_options_rect.w / 2 - 160, menu_options_rect.y + 90, 200, 100 };
-    SDL_Rect inventory_btn = { menu_options_rect.x + 380, menu_options_rect.y + 90, 200, 100};
-    SDL_Rect run_btn = { menu_options_rect.x + 380, menu_options_rect.y + menu_options_rect.h - 190, 200, 100};
-
-    battle_menu->menu_items[ATTACK] = attack_btn;
-    battle_menu->menu_items[SWITCH] = switch_btn;
-    battle_menu->menu_items[INVENTORY] = inventory_btn;
-    battle_menu->menu_items[RUN] = run_btn;
-
-    int w, h;
-    SDL_GetRendererOutputSize(rend, &w, &h);
-    switch_menu = MenuCreate(PARTY_SIZE, 1, 1, BattleDraw, BattleMenuHandleSelect);
-    for(int i = 0; i < switch_menu->items_amount; i++){
-        if( !(i & 1) ) switch_menu->menu_items[i].x = (w/2)-420;
-        else           switch_menu->menu_items[i].x = (w/2)+20;
-        switch_menu->menu_items[i].y = 350 + i*100;
-        switch_menu->menu_items[i].w = 400;
-        switch_menu->menu_items[i].h = 100;
-    }
-    switch_menu->back = BattleMenuBack;
+    BattleMainMenuCreate();
+    BattleSwitchMenuCreate();
+    BattleMovesMenuCreate();
 
     if(trainer) enemy_mon = enemy_monster;
     else {
@@ -347,12 +391,7 @@ static void RenderMonInfo(monster_t* active_mon){
     }
 }
 
-static void BattleRenderMainMenu(){
-    SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-    SDL_RenderDrawRect(rend, &status_rect);
-    SDL_RenderDrawRect(rend, &menu_options_rect);
-    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-
+static void BattleMainMenuDrawArrow(){
     int menu_index = active_player->selected_menu_itm;
     int w,h;
     SDL_QueryTexture(arrow_texture, NULL, NULL, &w, &h);
@@ -360,8 +399,18 @@ static void BattleRenderMainMenu(){
         battle_menu->menu_items[menu_index].x - w - 5,
         battle_menu->menu_items[menu_index].y + battle_menu->menu_items[menu_index].h / 2 - h / 2,
         w,h
-    };
+    };    
+
     SDL_RenderCopy(rend, arrow_texture, NULL, &arrow_rect);
+}
+
+static void BattleRenderMainMenu(){
+    SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+    SDL_RenderDrawRect(rend, &status_rect);
+    SDL_RenderDrawRect(rend, &menu_options_rect);
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+
+    BattleMainMenuDrawArrow();
 
     BattleRenderMenuItem("SWITCH", &battle_menu->menu_items[SWITCH], game_font, 1, 0);
     BattleRenderMenuItem("ATTACK", &battle_menu->menu_items[ATTACK], game_font, 1, 0);
@@ -369,31 +418,33 @@ static void BattleRenderMainMenu(){
     BattleRenderMenuItem("RUN", &battle_menu->menu_items[RUN], game_font, 1, 0);
 
     if(message[0] != '\0'){
+        Uint64 current_time = SDL_GetTicks64();
+        int is_visible = (current_time / ARROW_BLINK_INTERVAL) % 2 == 0;
+
         BattleRenderInfo(message, &status_rect, 20, 20, 0);
-        BattleRenderInfo("->", &status_rect, status_rect.w - 50, status_rect.h - 50, 0);  
+        if(is_visible) BattleRenderInfo("->", &status_rect, status_rect.w - 50, status_rect.h - 50, 0);  
     }
 }
 
 // IMPORTANT
 // TODO : Re do the moves menu because the changes to main menu fucked it up
 static void MovesMenuDraw(monster_t* active_mon){
-    for(int i = 0; i < 4; i++){
+    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++){
+        SDL_Rect* menu_itm = &moves_menu->menu_items[i];
         if(active_mon->usable_moves[i].id != -1){
-            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, &battle_menu->menu_items[i], game_font, 0, 1);
+            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, menu_itm, game_font, 0, 1);
 
             char move_uses[12];
             sprintf(move_uses, "%d/%d", active_mon->usable_moves[i].available_uses,
                 active_mon->usable_moves[i].max_uses);
-            BattleRenderInfo(move_uses, &battle_menu->menu_items[i], 
-                battle_menu->menu_items[i].w - 85, battle_menu->menu_items[i].h - 30, 0);
+            BattleRenderInfo(move_uses, menu_itm, menu_itm->w - 85, menu_itm->h - 30, 0);
 
             char move_power[6];
             sprintf(move_power, "%dP", active_mon->usable_moves[i].damage);
-            BattleRenderInfo(move_power, &battle_menu->menu_items[i], 
-                20, battle_menu->menu_items[i].h - 30, 0);
+            BattleRenderInfo(move_power, menu_itm, 20, menu_itm->h - 30, 0);
         }
         else{
-            BattleRenderMenuItem("-", &battle_menu->menu_items[i], game_font, 0, 1);
+            BattleRenderMenuItem("-", menu_itm, game_font, 0, 1);
         }
     }
 }
@@ -695,6 +746,7 @@ void BattleMenuHandleSelect(){
         if(selected_btn == ATTACK){
             battle_state = MOVES_MENU;
             active_player->selected_menu_itm = 0;
+            active_player->current_menu = moves_menu;
         }
         else if(selected_btn == RUN){
             if(act_trainer) return;
@@ -764,9 +816,9 @@ void BattleMenuBack(){
     
     
     if(battle_state == MOVES_MENU){
-        MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
+        active_player->current_menu = battle_menu;
+        MenuDeHighlightBox(&moves_menu->menu_items[active_player->selected_menu_itm]);
         active_player->selected_menu_itm = ATTACK;
-        MenuHighlightBox(&battle_menu->menu_items[ATTACK]);
     }
     if(battle_state == INV_OPEN){
         active_player->inv_isOpen = 0;

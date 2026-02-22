@@ -8,6 +8,8 @@
 #define MAX_LEVEL 100
 #define LEARNABLE_MOVES_AMOUNT_PER_LEVEL 5
 
+#define USBALE_MOVES_AMOUNT 4
+
 // MONSTER RARITIES
 // These affect only the monster's spawning rate
 typedef enum Rarities{

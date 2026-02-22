@@ -211,7 +211,11 @@ void InventoryDraw(inventory_t* inv){
 
                     int count_w, count_h;
                     SDL_QueryTexture(count_texture, NULL, NULL, &count_w, &count_h);
-                    SDL_Rect count_rect = {item_box.x + 370, item_box.y + 18, count_w, count_h};
+                    SDL_Rect count_rect = {
+                        item_box.x + item_box.w - count_w - 10, 
+                        item_box.y + item_box.h / 2 - count_h / 2, 
+                        count_w, count_h
+                    };
                     
                     SDL_RenderCopy(rend, text_texture,  NULL, &text_rect);
                     SDL_RenderCopy(rend, count_texture, NULL, &count_rect);
