@@ -426,8 +426,6 @@ static void BattleRenderMainMenu(){
     }
 }
 
-// IMPORTANT
-// TODO : Re do the moves menu because the changes to main menu fucked it up
 static void MovesMenuDraw(monster_t* active_mon){
     for(int i = 0; i < USBALE_MOVES_AMOUNT; i++){
         SDL_Rect* menu_itm = &moves_menu->menu_items[i];
@@ -845,6 +843,11 @@ void BattleQuit(void){
         if(active_player) active_player->current_menu = NULL;
         MenuDestroy(switch_menu);
         switch_menu = NULL;
+    }
+    if(moves_menu){
+        if(active_player) active_player->current_menu = NULL;
+        MenuDestroy(moves_menu);
+        moves_menu = NULL;
     }
 
     if(info_font){

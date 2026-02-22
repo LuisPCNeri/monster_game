@@ -95,6 +95,9 @@ SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
     return map_texture;
 }
 
+/* IMPORTANT : Next in order of business -> Allocate the map in the heap and make it dynamic
+i.e. when a certain row/column exits the screen free that memory and when a new row/column enters the screen allocate it and render it */
+
 int GetCurrentTileType(int x_pos, int y_pos){
     // If somehow someway one of the positions is negative and we want to check the tile type
     // return an error value 
