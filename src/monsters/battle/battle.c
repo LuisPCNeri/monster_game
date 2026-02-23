@@ -208,47 +208,48 @@ static int BattleCheckIsOver(){
     monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
 
     if(enemy_mon->current_hp <= 0){
-        if(act_trainer){
-            if(!TrainerCheckPartyIsDead(act_trainer)){
-                for(int i = 0; i < PARTY_SIZE; i++){
-                    if(act_trainer->party[i].current_hp > 0){
-                        SDL_DestroyTexture(enemy_mon_tex);
-                        enemy_mon_tex = NULL;
-                        
-                        trainer_exp_rewards[defeated_trainer_mon_count].exp_amount += MonsterGetExpYield(enemy_mon, active_mon);
-                        trainer_exp_rewards[defeated_trainer_mon_count].monster = active_mon;
-                        defeated_trainer_mon_count++;
-
-                        enemy_mon = &act_trainer->party[i];
-                        MonsterResetBattleStats(enemy_mon);
-                        enemy_displayed_hp = (float)enemy_mon->current_hp;
-                        sprintf(message, "%s sent out %s!", act_trainer->name, enemy_mon->monster_name);
-                        battle_state = TRAINER_SWITCH;
-                        break;
-                    }
-                }
-                return 0;
-            }
-            else{
-                printf("TRAINER BATTLE OVER, ADDING EXP\n");
-                MonsterAddExp(active_mon, enemy_mon, 0);
-                for(int i = 0; i < PARTY_SIZE; i++){
-                    if(trainer_exp_rewards[i].exp_amount <= 0 || !trainer_exp_rewards[i].monster) continue;
-                    MonsterAddExp(trainer_exp_rewards[i].monster, NULL, trainer_exp_rewards[i].exp_amount);
-                }
-
-                act_trainer->was_defeated = 1;
-            }
-        }
-        else{
+        if(!act_trainer){
             MonsterAddExp(active_mon, enemy_mon, 0);
-        }
-        printf("Battle Won! Current Exp: %d/%d\n", 
+
+            printf("Battle Won! Current Exp: %d/%d\n", 
             active_mon->current_exp,
             active_mon->exp_to_next_level);
 
-        if(act_trainer) act_trainer = NULL;
-        return 1;
+            return 1;
+        }
+        if(TrainerCheckPartyIsDead(act_trainer)){
+            printf("TRAINER BATTLE OVER, ADDING EXP\n");
+            MonsterAddExp(active_mon, enemy_mon, 0);
+            for(int i = 0; i < PARTY_SIZE; i++){
+                if(trainer_exp_rewards[i].exp_amount <= 0 || !trainer_exp_rewards[i].monster) continue;
+                MonsterAddExp(trainer_exp_rewards[i].monster, NULL, trainer_exp_rewards[i].exp_amount);
+            }
+
+            act_trainer->was_defeated = 1;
+
+            printf("Battle Won! Current Exp: %d/%d\n", 
+            active_mon->current_exp,
+            active_mon->exp_to_next_level);
+
+            if(act_trainer) act_trainer = NULL;
+            return 1;
+        }
+        for(int i = 0; i < PARTY_SIZE; i++){
+            if(act_trainer->party[i].current_hp <= 0) continue;
+            SDL_DestroyTexture(enemy_mon_tex);
+            enemy_mon_tex = NULL;
+                
+            trainer_exp_rewards[defeated_trainer_mon_count].exp_amount += MonsterGetExpYield(enemy_mon, active_mon);
+            trainer_exp_rewards[defeated_trainer_mon_count].monster = active_mon;
+            defeated_trainer_mon_count++;
+
+            enemy_mon = &act_trainer->party[i];
+            MonsterResetBattleStats(enemy_mon);
+            enemy_displayed_hp = (float)enemy_mon->current_hp;
+            sprintf(message, "%s sent out %s!", act_trainer->name, enemy_mon->monster_name);
+            battle_state = TRAINER_SWITCH;
+            return 0;
+        }
     }
     else if(active_mon->current_hp <= 0 && has_mon_left){
         MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
