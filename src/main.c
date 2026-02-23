@@ -61,11 +61,21 @@ int main(int argc, char* argv[])
     InventoryAddItem(player->inv, &ball, 15);
     restore_item_t potion = {4, 1, 10, "Potion", ""};
     InventoryAddItem(player->inv, &potion, 5);
+    
+    FILE* map_file = fopen("map_file.txt", "r");
+    map_t* map = MapCreateFromFile(map_file, rend);
+    fclose(map_file);
 
-    SDL_Texture* map_tex = CreateGameMap(rend);
+    SDL_Rect viewport = {
+        0,
+        0,
+        screen_w,
+        screen_h
+    };
+    MapUpdateViewport(&viewport, player, map->width * TILE_SIZE, map->height * TILE_SIZE, screen_w, screen_h);
 
-    int map_w, map_h;
-    SDL_QueryTexture(map_tex, NULL, NULL, &map_w, &map_h);
+    int map_w = map->width * TILE_SIZE;
+    int map_h = map->height * TILE_SIZE;
 
     SDL_Surface* surface;
 
@@ -73,7 +83,7 @@ int main(int argc, char* argv[])
     if (!surface) {
         printf("Error loading image: %s\n", IMG_GetError());
         PlayerDestroy(player);
-        SDL_DestroyTexture(map_tex);
+        MapDestroy(map);
         TTF_CloseFont(game_font);
         SDL_DestroyRenderer(rend);
         SDL_DestroyWindow(win);
@@ -237,12 +247,13 @@ int main(int argc, char* argv[])
         // Set player's position to the center of it's sprite
         player->x_pos = world_x + (player_rect.w / 2);
         player->y_pos = world_y + (player_rect.h / 2);
-
+        
+        MapUpdateViewport(&viewport, player, map->width * TILE_SIZE, map->height * TILE_SIZE, screen_w, screen_h);
         SDL_RenderClear(rend);
 
         if(player->game_state == STATE_EXPLORING || player->game_state == STATE_AGGRO){
             SDL_Rect map_src = {-offset_x, -offset_y, screen_w, screen_h};
-            SDL_RenderCopy(rend, map_tex, &map_src, NULL);
+            MapDraw(map, rend, viewport);
 
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
             
@@ -298,7 +309,7 @@ int main(int argc, char* argv[])
     BattleQuit();
     PlayerDestroy(player);
 
-    SDL_DestroyTexture(map_tex);
+    MapDestroy(map);
     SDL_DestroyTexture(player_texture);
     SDL_DestroyRenderer(rend);
     TTF_CloseFont(game_font);

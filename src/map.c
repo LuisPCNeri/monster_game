@@ -10,17 +10,12 @@
 #include <SDL2/SDL_timer.h>
 
 #include "map.h"
+#include "player/player.h"
 
 int tile_map[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
 SDL_Rect select_tile[16];
 
-SDL_Texture* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
-    // Ensure we are at the start of the file
-    fseek(map_file, 0, SEEK_SET);
-
-    // Initialize tile_map to 0
-    memset(tile_map, 0, sizeof(tile_map));
-
+static void MapLoadSelectionTiles(){
     for(int i=0; i < 4; i++){
         for(int k=0; k < 4; k++){
             // Go row by row in the image
@@ -30,6 +25,26 @@ SDL_Texture* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
             select_tile[i*4 + k].h = TILE_SIZE;
         }
     }
+}
+
+map_t* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
+
+    map_t* map = (map_t*) malloc(sizeof(map_t));
+    map->height = TILE_MAP_MAX_Y;
+    map->width = TILE_MAP_MAX_X;
+
+    map->tile_data = malloc(map->width * sizeof(int*));
+    for(int i = 0; i < map->width; i++){
+        map->tile_data[i] = calloc(map->height, sizeof(int));
+    }
+
+    // Ensure we are at the start of the file
+    fseek(map_file, 0, SEEK_SET);
+
+    // Initialize tile_map to 0
+    memset(tile_map, 0, sizeof(tile_map));
+
+    MapLoadSelectionTiles();
 
     int row = 0;
     int max_col = 0;
@@ -43,7 +58,7 @@ SDL_Texture* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
         while(token){
             if(col < TILE_MAP_MAX_X){
                 // Store as [col][row] (x, y)
-                tile_map[col][row] = atoi(token);
+                map->tile_data[col][row] = atoi(token);
             }
             col++;
             token = strtok(NULL, " \n\r;,");
@@ -60,118 +75,62 @@ SDL_Texture* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
         return NULL;
     }
     // Create texture from surface
-    SDL_Texture* tile_texture = SDL_CreateTextureFromSurface(renderer, tile_map_surface);
+    map->tile_sheet = SDL_CreateTextureFromSurface(renderer, tile_map_surface);
     // Textures were loaded into GPU memory no need to keep them here
     SDL_FreeSurface(tile_map_surface);
-
-    // Calculate texture dimensions based on actual map size
-    if (max_col > TILE_MAP_MAX_X) max_col = TILE_MAP_MAX_X;
-    int w = max_col * TILE_SIZE;
-    int h = row * TILE_SIZE;
-    
-    // Create a target texture to draw the map onto
-    SDL_Texture* map_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
-    SDL_SetRenderTarget(renderer, map_texture);
-
-    SDL_RenderClear(renderer);
-
-    for(int x=0; x < max_col; x++){
-        for(int y=0; y < row; y++){
-            int tile_id = tile_map[x][y];
-            if(tile_id > 0 && tile_id <= 16) {
-                SDL_Rect dest_rect = { x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
-                SDL_RenderCopy(renderer, tile_texture, &select_tile[tile_id - 1], &dest_rect);
-            }
-        }
-    }
-
-    printf("TEXTURES COPIED\n");
-
-    // Reset render target to the window
-    SDL_SetRenderTarget(renderer, NULL);
-
-    SDL_DestroyTexture(tile_texture);
-    return map_texture;    
+    return map;    
 }
 
-SDL_Texture* CreateGameMap(SDL_Renderer* renderer){
-    // Set the map dimensions to acount for the number of tiles defined in the map.h file
-    int w = TILE_MAP_MAX_X * TILE_SIZE;
-    int h = TILE_MAP_MAX_Y * TILE_SIZE;
+void MapDraw(map_t* map, SDL_Renderer* rend, SDL_Rect viewport){
+    int start_col = viewport.x / 32;
+    int end_col = (viewport.x + viewport.w)/ 32;
+    int start_row = viewport.y / 32;
+    int end_row = (viewport.y + viewport.h) / 32;
 
-    printf("X TILES: %d\n", TILE_MAP_MAX_X);
-    printf("Y TILES: %d\n", TILE_MAP_MAX_Y);
+    if (start_col < 0) start_col = 0;
+    if (start_row < 0) start_row = 0;
+    if (end_col >= map->width) end_col = map->width - 1;
+    if (end_row >= map->height) end_row = map->height - 1;
 
-    for(int i=0; i < 4; i++){
-        for(int k=0; k < 4; k++){
-            // Go row by row in the image
-            select_tile[i*4 + k].x = TILE_SIZE * k;
-            select_tile[i*4 + k].y = TILE_SIZE * i;
-            select_tile[i*4 + k].w = TILE_SIZE;
-            select_tile[i*4 + k].h = TILE_SIZE;
+    for(int x = start_col; x <= end_col; x++){
+        for(int y = start_row; y <= end_col; y++){
+            if(x < 0 || x > map->width || y < 0 || y > map->height) continue;
+            int tile_id = map->tile_data[x][y];
+
+            if(tile_id <= 0 || tile_id > 16) continue;
+
+            SDL_Rect dst = {
+                (x * TILE_SIZE) - viewport.x,
+                (y * TILE_SIZE) - viewport.y,
+                TILE_SIZE, TILE_SIZE
+            };
+
+            SDL_RenderCopy(rend, map->tile_sheet, &select_tile[tile_id - 1], &dst);
         }
     }
+}
 
-    printf("SELECT TILE DONE\n");
+void MapUpdateViewport(SDL_Rect* viewport, player_t* player, int map_w_px, int map_h_px, int screen_w, int screen_h){
+    viewport->x = player->x_pos - (screen_w / 2);
+    viewport->y = player->y_pos - (screen_h / 2);
 
-    // Create surface for the tile examples
-    SDL_Surface* tile_map_surface = SDL_LoadBMP("./resources/tiles.bmp");
-    // Create texture from surface
-    SDL_Texture* tile_texture = SDL_CreateTextureFromSurface(renderer, tile_map_surface);
-    // Textures were loaded into GPU memory no need to keep them here
-    SDL_FreeSurface(tile_map_surface);
+    if(viewport->x < 0) viewport->x = 0;
+    if(viewport->y < 0) viewport->y = 0;
 
-    // PLACEHOLDER
-    // TODO : In theory I will have a file with the map's tile information (the tile type number)
-    // And will load the tiles based on what is in that file
+    if (viewport->x > map_w_px - viewport->w) viewport->x = map_w_px - viewport->w;
+    if (viewport->y > map_h_px - viewport->h) viewport->y = map_h_px - viewport->h;
+}
 
-    srand(time(NULL));
-    // 2D array with the tiles
-    // TODO : May be better off allocating the memory in the heap when populating the map
-    
-    
-    // Randomly assign the tiles
-    for(int x=0; x < TILE_MAP_MAX_X; x++){
-        for(int y=0; y < TILE_MAP_MAX_Y; y++){
-            // Assign values from 1 to 16 to the tile
-            tile_map[x][y] = rand() % 16 + 1;
-        }
+void MapDestroy(map_t* map){
+    if(!map) return;
+
+    for(int i = 0; i < map->width; i++){
+        free(map->tile_data[i]);
     }
 
-    printf("TILE MAP INSTANCIALIZED\n");
-    // Populate the actual screen with the tiles
-    SDL_Rect tile[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
-    for(int y=0; y < TILE_MAP_MAX_Y; y++){
-        for(int x=0; x < TILE_MAP_MAX_X; x++){
-            tile[x][y].x = x*TILE_SIZE;
-            tile[x][y].y = y*TILE_SIZE;
-            tile[x][y].w = TILE_SIZE;
-            tile[x][y].h = TILE_SIZE;
-        }
-    }
-
-    printf("SCREEN POPULATED\n");
-
-    // Create a target texture to draw the map onto
-    SDL_Texture* map_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
-    SDL_SetRenderTarget(renderer, map_texture);
-
-    SDL_RenderClear(renderer);
-    SDL_Delay(20);
-
-    for(int x=0; x < TILE_MAP_MAX_X; x++){
-        for(int y=0; y < TILE_MAP_MAX_Y; y++){
-            SDL_RenderCopy(renderer, tile_texture, &select_tile[tile_map[x][y] - 1], &tile[x][y]);
-        }
-    }
-
-    printf("TEXTURES COPIED\n");
-
-    // Reset render target to the window
-    SDL_SetRenderTarget(renderer, NULL);
-
-    SDL_DestroyTexture(tile_texture);
-    return map_texture;
+    free(map->tile_data);
+    SDL_DestroyTexture(map->tile_sheet);
+    free(map);
 }
 
 /* IMPORTANT : Next in order of business -> Allocate the map in the heap and make it dynamic
