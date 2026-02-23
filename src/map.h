@@ -21,6 +21,14 @@
 // SDL_Window* window is the window in which the map will be rendered on
 SDL_Texture* CreateGameMap(SDL_Renderer* renderer);
 
+/*
+    Returns a pointer to the map texture created from a file.
+    The caller is responsible for freeing the memory allocated for the map.
+    \param map_file File from which the map will be created
+    \param renderer SDL_Renderer for the window map is in
+*/
+SDL_Texture* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer);
+
 // Takes int x_pos and y_pos
 // Returns the int corresponding to the type of the tile x_pos and y_pos are in or -1 if it fails
 int GetCurrentTileType(int x_pos, int y_pos);
