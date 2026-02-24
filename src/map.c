@@ -3,7 +3,6 @@
 #include <string.h>
 #include <time.h>
 
-// SDL2 includes
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_keyboard.h>
@@ -12,7 +11,6 @@
 #include "map.h"
 #include "player/player.h"
 
-int tile_map[TILE_MAP_MAX_X][TILE_MAP_MAX_Y];
 SDL_Rect select_tile[16];
 
 static void MapLoadSelectionTiles(){
@@ -38,11 +36,7 @@ map_t* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
         map->tile_data[i] = calloc(map->height, sizeof(int));
     }
 
-    // Ensure we are at the start of the file
     fseek(map_file, 0, SEEK_SET);
-
-    // Initialize tile_map to 0
-    memset(tile_map, 0, sizeof(tile_map));
 
     MapLoadSelectionTiles();
 
@@ -57,26 +51,21 @@ map_t* MapCreateFromFile(FILE* map_file, SDL_Renderer* renderer){
         char* token = strtok(line, " \n\r;,");
         while(token){
             if(col < TILE_MAP_MAX_X){
-                // Store as [col][row] (x, y)
                 map->tile_data[col][row] = atoi(token);
             }
             col++;
             token = strtok(NULL, " \n\r;,");
         }
         if(col > max_col) max_col = col;
-        // Only increment row if we actually read something
         if(col > 0) row++;
     }
 
-    // Create surface for the tile examples
     SDL_Surface* tile_map_surface = SDL_LoadBMP("./resources/tiles.bmp");
     if(!tile_map_surface) {
         printf("Error loading tiles.bmp: %s\n", SDL_GetError());
         return NULL;
     }
-    // Create texture from surface
     map->tile_sheet = SDL_CreateTextureFromSurface(renderer, tile_map_surface);
-    // Textures were loaded into GPU memory no need to keep them here
     SDL_FreeSurface(tile_map_surface);
     return map;    
 }
@@ -136,10 +125,10 @@ void MapDestroy(map_t* map){
 /* IMPORTANT : Next in order of business -> Allocate the map in the heap and make it dynamic
 i.e. when a certain row/column exits the screen free that memory and when a new row/column enters the screen allocate it and render it */
 
-int GetCurrentTileType(int x_pos, int y_pos){
+int GetCurrentTileType(int x_pos, int y_pos, map_t* map){
     // If somehow someway one of the positions is negative and we want to check the tile type
     // return an error value 
     if(x_pos < 0 || y_pos < 0 || x_pos >= TILE_MAP_MAX_X || y_pos >= TILE_MAP_MAX_Y) return -1;
 
-    return tile_map[x_pos][y_pos];
+    return map->tile_data[x_pos][y_pos];
 }

@@ -10,6 +10,8 @@
 
 #define USBALE_MOVES_AMOUNT 4
 
+typedef struct map_t map_t;
+
 // MONSTER RARITIES
 // These affect only the monster's spawning rate
 typedef enum Rarities{
@@ -178,7 +180,7 @@ monster_t SpawnMonster(int tile_type, int avg_player_level);
 
 // Every time the player changes tiles it checks the tile_type
 // If monsters can spawn in that tile it tries to spawn one
-int TrySpawnMonster(player_t* player);
+int TrySpawnMonster(player_t* player, map_t* map);
 
 // Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
 float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);

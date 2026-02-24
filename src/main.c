@@ -24,7 +24,7 @@ TTF_Font* game_font;
 int screen_w;
 int screen_h;
 
-int main(int argc, char* argv[])
+int main()
 {
     MonstersInit();
     TrainersInit();
@@ -156,28 +156,28 @@ int main(int argc, char* argv[])
                             player->facing_direction = NORTH;
                             world_y -= CHARACTER_SPEED / 30;
                             player->y_pos = world_y + (player_rect.h / 2);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
                             break;
                         case SDL_SCANCODE_LEFT:
                             if(TrainerIsCollingWithPlayer(player) == WEST) break;
                             player->facing_direction = WEST;
                             world_x -= CHARACTER_SPEED / 30;
                             player->x_pos = world_x + (player_rect.w / 2);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
                             break;
                         case SDL_SCANCODE_DOWN:
                             if(TrainerIsCollingWithPlayer(player) == SOUTH) break;
                             player->facing_direction = SOUTH;
                             world_y += CHARACTER_SPEED / 30;
                             player->y_pos = world_y + (player_rect.h / 2);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
                             break;
                         case SDL_SCANCODE_RIGHT:
                             if(TrainerIsCollingWithPlayer(player) == EAST) break;
                             player->facing_direction = EAST;
                             world_x += CHARACTER_SPEED / 30;
                             player->x_pos = world_x + (player_rect.w / 2);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player);
+                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
                             break;
                         case SDL_SCANCODE_ESCAPE:
                             running = 0;
@@ -252,9 +252,7 @@ int main(int argc, char* argv[])
         SDL_RenderClear(rend);
 
         if(player->game_state == STATE_EXPLORING || player->game_state == STATE_AGGRO){
-            SDL_Rect map_src = {-offset_x, -offset_y, screen_w, screen_h};
             MapDraw(map, rend, viewport);
-
             SDL_RenderCopy(rend, player_texture, NULL, &player_rect);
             
             TrainerDraw(offset_x, offset_y);

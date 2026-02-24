@@ -57,6 +57,6 @@ void MapDestroy(map_t* map);
 
 // Takes int x_pos and y_pos
 // Returns the int corresponding to the type of the tile x_pos and y_pos are in or -1 if it fails
-int GetCurrentTileType(int x_pos, int y_pos);
+int GetCurrentTileType(int x_pos, int y_pos, map_t* map);
 
 #endif

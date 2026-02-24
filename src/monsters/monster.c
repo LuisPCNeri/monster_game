@@ -535,11 +535,11 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
     }
 }
 
-int TrySpawnMonster(player_t* player){            
+int TrySpawnMonster(player_t* player, map_t* map){            
     int current_x = player->x_pos / 32;
     int current_y = player->y_pos / 32;
 
-    int new_tile_type = GetCurrentTileType(current_x, current_y);
+    int new_tile_type = GetCurrentTileType(current_x, current_y, map);
 
     if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
         printf("NEW TILE TYPE: %d\n", new_tile_type);
