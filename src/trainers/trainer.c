@@ -213,6 +213,7 @@ int TrainerCheckAggro(player_t* player){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos > trainer_CoM_y){
             
+            TrainerPrint(closest);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -221,6 +222,7 @@ int TrainerCheckAggro(player_t* player){
         if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
         && player->y_pos < trainer_CoM_y){
 
+            TrainerPrint(closest);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -229,6 +231,7 @@ int TrainerCheckAggro(player_t* player){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos < trainer_CoM_x){
 
+            TrainerPrint(closest);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -237,6 +240,7 @@ int TrainerCheckAggro(player_t* player){
         if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
         && player->x_pos > trainer_CoM_x){
 
+            TrainerPrint(closest);
             TrainerAggro(player, closest);
             return 1;
         }
