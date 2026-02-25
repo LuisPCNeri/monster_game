@@ -122,9 +122,6 @@ void MapDestroy(map_t* map){
     free(map);
 }
 
-/* IMPORTANT : Next in order of business -> Allocate the map in the heap and make it dynamic
-i.e. when a certain row/column exits the screen free that memory and when a new row/column enters the screen allocate it and render it */
-
 int GetCurrentTileType(int x_pos, int y_pos, map_t* map){
     // If somehow someway one of the positions is negative and we want to check the tile type
     // return an error value 

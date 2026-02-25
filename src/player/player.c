@@ -7,6 +7,7 @@
 
 #include "monsters/monster.h"
 #include "menus/menu.h"
+#include "player/inventory.h"
 
 #define STARTER_NUM 3
 
@@ -16,6 +17,32 @@ static menu_t* starter_select_menu = NULL;
 static monster_t* starter_mons[STARTER_NUM];
 
 static player_t* active_player = NULL;
+
+static int starting_sprite_stage = 0;
+static int max_sprite_stage = 0;
+
+player_t* PlayerInit(){
+    player_t* player = (player_t*) calloc(1, sizeof(player_t));
+
+    SDL_Surface* player_sprite_sheet_surf = IMG_Load("resources/player_sheet_overworld.png");
+    if(!player_sprite_sheet_surf) printf("Error loading image: %s\n", IMG_GetError());
+    SDL_Texture* player_sprite_sheet = SDL_CreateTextureFromSurface(rend, player_sprite_sheet_surf);
+    SDL_FreeSurface(player_sprite_sheet_surf);
+
+    player->x_pos = 0;
+    player->y_pos = 0;
+    player->inv_isOpen = 0;
+    player->inv = InventoryCreateEmpty();
+    player->sprite_sheet = player_sprite_sheet;
+    player->sprite_stage = 1;
+
+    player->sprite_rect.x = 0;
+    player->sprite_rect.y = 0;
+    player->sprite_rect.w = PLAYER_SPRITE_SIZE;
+    player->sprite_rect.h = PLAYER_SPRITE_SIZE;
+
+    return player;
+}
 
 void PlayerStarterMenuDraw(Uint32 dt){
     (void)dt;
@@ -138,8 +165,77 @@ void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 d
     blink_timer += dt;
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
-    SDL_Rect notif_box = {.x = player->x_pos + offset_x - (16/2), .y = player->y_pos + offset_y - (PLAYER_SPRITE_SIZE / 2) - 16 - 4, .w = 16, .h = 16};
+    SDL_Rect notif_box = {
+        .x = player->x_pos + offset_x - (16/2), 
+        .y = player->y_pos + offset_y - (PLAYER_SPRITE_SIZE / 2) - 16 - 4, 
+        .w = 16, .h = 16
+    };
     if(notif_text) SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
+}
+
+SDL_Rect PlayerGetSheetWindow(player_t* p){
+    SDL_Rect window = {
+        // There is one pixel between every 16x16 px sprite in the sprite sheet
+        // The + sprite_stage takes that into account
+        p->sprite_stage * 16 + p->sprite_stage, 
+        0,
+        16, 16
+    };
+
+    return window;
+}
+
+static void UpdateBaseSpriteStages(player_t* player){
+    switch (player->facing_direction){
+        case NORTH:
+        starting_sprite_stage = 3;
+        max_sprite_stage = 5;
+        break;
+        case SOUTH:
+        starting_sprite_stage = 0;
+        max_sprite_stage = 2;
+        break;
+        case WEST:
+        starting_sprite_stage = 6;
+        max_sprite_stage = 7;
+        break;
+        case EAST:
+        starting_sprite_stage = 8;
+        max_sprite_stage = 9;
+    }
+}
+
+void PlayerMove(player_t* player, Orientation direction, int* world_pos){
+
+    if(player->facing_direction == direction){
+        int range = max_sprite_stage - starting_sprite_stage + 1;
+        if (range > 0) {
+            player->sprite_stage = starting_sprite_stage + (SDL_GetTicks64() / 200) % range;
+        }
+    }else{
+        player->facing_direction = direction;
+        UpdateBaseSpriteStages(player);
+        player->sprite_stage = starting_sprite_stage;
+    }
+
+    switch (player->facing_direction){
+        case NORTH:
+        *world_pos -= CHARACTER_SPEED / 30;
+        player->y_pos = *world_pos + (player->sprite_rect.h / 2);
+        break;
+        case SOUTH:
+        *world_pos += CHARACTER_SPEED / 30;
+        player->y_pos = *world_pos + (player->sprite_rect.h / 2);
+        break;
+        case WEST:
+        *world_pos -= CHARACTER_SPEED / 30;
+        player->x_pos = *world_pos + (player->sprite_rect.h / 2);
+        break;
+        case EAST:
+        *world_pos += CHARACTER_SPEED / 30;
+        player->x_pos = *world_pos + (player->sprite_rect.h / 2);
+        break;
+    }
 }
 
 void PlayerDestroy(player_t* p){
@@ -147,6 +243,7 @@ void PlayerDestroy(player_t* p){
         if(p->monster_party[i]) free(p->monster_party[i]);
     }
 
+    if(p->sprite_sheet) SDL_DestroyTexture(p->sprite_sheet);
     if(p->current_menu) MenuDestroy(p->current_menu);
     InventoryDestroy(p->inv);
     free(p);

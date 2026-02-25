@@ -1,12 +1,14 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
+#include <SDL2/SDL.h>
 #include "monsters/monster.h"
 #include "inventory.h"
 
 #define PARTY_SIZE 5
 #define BLINK_FRAMES 500
-#define PLAYER_SPRITE_SIZE 32
+#define CHARACTER_SPEED 300
+#define PLAYER_SPRITE_SIZE 64
 #define PLAYER_AGGRO_TIMER 1500
 
 // Forward declaration to allow pointer usage without circular dependency
@@ -14,10 +16,10 @@ typedef struct menu_t menu_t;
 typedef struct trainer_t trainer_t;
 
 typedef enum Orientation{
-    NORTH,
     SOUTH,
+    NORTH,
+    WEST,
     EAST,
-    WEST
 } Orientation;
 
 typedef enum GameState{
@@ -49,11 +51,20 @@ typedef struct player_t{
     trainer_t* aggro_trainer;
     monster_t* aggro_monster;
 
+    int sprite_stage;
+    SDL_Rect sprite_rect;
+    SDL_Texture* sprite_sheet;
+
     menu_t* current_menu;
     inventory_t* inv;
     // Pointers to the monsters the player keeps with him and can use for battles
     monster_t* monster_party[5];
 } player_t;
+
+/*
+    Returns a pointer to a newly created player struct. The caller ir responsible for freeing the allocate memory.
+*/
+player_t* PlayerInit();
 
 // This function is called once and used to have the player chose a starter
 // Returns the monster the player chooses
@@ -75,6 +86,16 @@ int PlayerAddMonsterToParty(monster_t* monster);
 int PlayerCheckIsPartyDead(player_t* player);
 
 void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 dt);
+
+/*
+    Makes the player character move i.e. Player Character Controller
+    \param player Active player struct
+    \param direction Direction the player character will move
+    \param *world_pos A pointer to the variable holding either the world_x pos or world_y pos of the player
+*/
+void PlayerMove(player_t* player, Orientation direction, int* world_pos);
+
+SDL_Rect PlayerGetSheetWindow(player_t* player);
 
 void PlayerDestroy(player_t* p);
 
