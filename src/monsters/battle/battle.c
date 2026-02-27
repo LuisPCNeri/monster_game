@@ -67,6 +67,10 @@ static char message[4096];
 static BattleQueueItem trainer_exp_rewards[PARTY_SIZE];
 static int defeated_trainer_mon_count = 0;
 
+static float anim_exp[PARTY_SIZE];
+static int anim_level[PARTY_SIZE];
+static int anim_max_exp[PARTY_SIZE];
+
 static SDL_Texture* arrow_texture = NULL;
 
 typedef enum BattleState{
@@ -77,7 +81,8 @@ typedef enum BattleState{
     INV_OPEN,
     MESSAGE_DISPLAYED,
     MONSTER_CAUGHT,
-    TRAINER_SWITCH
+    TRAINER_SWITCH,
+    BATTLE_END
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
@@ -146,6 +151,17 @@ static void BattleSwitchMenuCreate(){
     switch_menu->back = BattleMenuBack;
 }
 
+static void InitExpAnimation(){
+    for(int i = 0; i < PARTY_SIZE; i++){
+        monster_t* m = active_player->monster_party[i];
+        if(m){
+            anim_exp[i] = (float)m->current_exp;
+            anim_level[i] = m->level;
+            anim_max_exp[i] = m->exp_to_next_level;
+        }
+    }
+}
+
 void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
     printf("BATTLE STARTING\n");
     if(!player || !player->monster_party[0]) return;
@@ -209,15 +225,19 @@ static int BattleCheckIsOver(){
 
     if(enemy_mon->current_hp <= 0){
         if(!act_trainer){
+            battle_state = BATTLE_END;
+            InitExpAnimation();
             MonsterAddExp(active_mon, enemy_mon, 0);
 
             printf("Battle Won! Current Exp: %d/%d\n", 
             active_mon->current_exp,
             active_mon->exp_to_next_level);
-
-            return 1;
+            
+            return 0;
         }
         if(TrainerCheckPartyIsDead(act_trainer)){
+            battle_state = BATTLE_END;
+            InitExpAnimation();
             printf("TRAINER BATTLE OVER, ADDING EXP\n");
             MonsterAddExp(active_mon, enemy_mon, 0);
             for(int i = 0; i < PARTY_SIZE; i++){
@@ -232,7 +252,7 @@ static int BattleCheckIsOver(){
             active_mon->exp_to_next_level);
 
             if(act_trainer) act_trainer = NULL;
-            return 1;
+            return 0;
         }
         for(int i = 0; i < PARTY_SIZE; i++){
             if(act_trainer->party[i].current_hp <= 0) continue;
@@ -345,7 +365,7 @@ static void RenderHpBar(int current_hp, int max_hp, SDL_Rect hp_bar){
     hp_bar.w = (int)(hp_bar.w * hp_percent);
 
     if(current_hp < max_hp){
-        SDL_Rect rem_hp = {hp_bar.x + hp_bar.w, hp_bar.y, max_size - hp_bar.w, hp_bar.h};// Render almost balck opaque
+        SDL_Rect rem_hp = {hp_bar.x + hp_bar.w, hp_bar.y, max_size - hp_bar.w, hp_bar.h};
         SDL_SetRenderDrawColor(rend, 22, 22, 22, 255);
         SDL_RenderFillRect(rend, &rem_hp);
     }
@@ -353,6 +373,22 @@ static void RenderHpBar(int current_hp, int max_hp, SDL_Rect hp_bar){
     // Render color to green
     SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
     SDL_RenderFillRect(rend, &hp_bar);
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+}
+
+static void RenderExpBar(int c_exp, int m_exp, SDL_Rect exp_bar){
+    float exp_percent = (float)c_exp / (float)m_exp;
+    int max_size = exp_bar.w;
+    exp_bar.w = (int)(exp_bar.w * exp_percent);
+
+    if(c_exp < m_exp){
+        SDL_Rect rem_exp = {exp_bar.x + exp_bar.w, exp_bar.y, max_size - exp_bar.w, exp_bar.h};
+        SDL_SetRenderDrawColor(rend, 22, 22, 22, 255);
+        SDL_RenderFillRect(rend, &rem_exp);
+    }
+
+    SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+    SDL_RenderFillRect(rend, &exp_bar);
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 }
 
@@ -477,6 +513,68 @@ static void SwitchMenuDraw(){
     }
 }
 
+// Draws a simple menu showing the exp gain for all monsters
+static void BattleEndMenuDraw(){
+    int box_w = 400;
+    int box_h = 500;
+    SDL_Rect main_box = {
+        (screen_w / 2) - (box_w / 2),
+        (screen_h / 2) - (box_h / 2),
+        box_w, box_h
+    };
+
+    SDL_RenderDrawRect(rend, &main_box);
+
+    for(int i = 0; i < PARTY_SIZE; i++){
+        SDL_Rect monster_rect = {
+            main_box.x,
+            main_box.y + ( ( main_box.h / PARTY_SIZE ) * i ),
+            main_box.w,
+            main_box.h / PARTY_SIZE
+        };
+
+        monster_t* mon = active_player->monster_party[i];
+        if(!mon) break;
+
+        Uint64 dt = SDL_GetTicks64() / 1000;
+        // Animation Logic
+        if(anim_level[i] < mon->level || (anim_level[i] == mon->level && anim_exp[i] < mon->current_exp)){
+            float growth_speed = (float)anim_max_exp[i] * 0.5f;
+            anim_exp[i] += growth_speed * (dt / 1000.0f);
+            
+            if(anim_exp[i] >= anim_max_exp[i]){
+                if(anim_level[i] < mon->level){
+                    anim_level[i]++;
+                    anim_exp[i] = 0;
+                    anim_max_exp[i] = (anim_level[i] * anim_level[i] * 10) + (anim_level[i] * 50);
+                } else {
+                    anim_exp[i] = (float)mon->current_exp;
+                }
+            }
+        }
+
+        BattleRenderInfo(mon->monster_name, &monster_rect, 10, 20, 0);
+
+        char exp_info[32];
+        sprintf(exp_info, "%d/%d", (int)anim_exp[i], anim_max_exp[i]);
+        BattleRenderInfo(exp_info, &monster_rect, 10, 20, 1);
+
+        int w = 300;
+        int h = 10;
+        SDL_Rect exp_bar = {
+            monster_rect.x + 10,
+            monster_rect.y + (monster_rect.h / 2) - (h / 2),
+            w, h
+        };
+
+        RenderExpBar((int)anim_exp[i], anim_max_exp[i], exp_bar);
+
+        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        SDL_RenderDrawRect(rend, &monster_rect);
+        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+    }
+}
+
 static void BattleExecuteTurns(monster_t* player_mon){
     // STAGE 0: First Attacker Pre-Check & Attack
     if(turn_stage == 0){
@@ -578,7 +676,8 @@ static void BattleExecuteTurns(monster_t* player_mon){
         battle_state = MAIN_MENU;
         active_player->is_player_turn = 1;
         active_player->current_menu = battle_menu;
-        if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
+        BattleCheckIsOver();
+        //if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
     }
 }
 
@@ -603,7 +702,8 @@ void BattleDraw(Uint32 dt){
     enemy_displayed_hp += (enemy_target - enemy_displayed_hp) * factor;
     if(fabs(enemy_target - enemy_displayed_hp) < 0.5f) enemy_displayed_hp = enemy_target;
 
-    if(battle_state == MAIN_MENU || battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT || battle_state == TRAINER_SWITCH || battle_state == EXECUTING_TURN){
+    if(battle_state == MAIN_MENU || battle_state == MESSAGE_DISPLAYED || battle_state == MONSTER_CAUGHT 
+        || battle_state == TRAINER_SWITCH || battle_state == EXECUTING_TURN){
         BattleRenderMainMenu();
     }
 
@@ -630,7 +730,8 @@ void BattleDraw(Uint32 dt){
     RenderMonInfo(active_mon);
     
     if(battle_state == SWITCH_MENU) SwitchMenuDraw();
-    if(battle_state == INV_OPEN) InventoryDraw(active_player->inv);
+    if(battle_state == INV_OPEN)    InventoryDraw(active_player->inv);
+    if(battle_state == BATTLE_END)  BattleEndMenuDraw(dt);
 }
 
 static void HandleMovesMenuSelect(monster_t* active_mon){
@@ -755,7 +856,6 @@ void BattleMenuHandleSelect(){
             battle_state = INV_OPEN;
             active_player->inv_isOpen = 1;
             active_player->current_menu->select_routine = BattleMenuHandleSelect;
-            active_player->current_menu->draw = BattleDraw;
             active_player->current_menu->back = BattleMenuBack;
         }
         else if(selected_btn == SWITCH){
@@ -785,6 +885,9 @@ void BattleMenuHandleSelect(){
         MenuDeHighlightBox(&battle_menu->menu_items[active_player->selected_menu_itm]);
         MenuHighlightBox(&battle_menu->menu_items[ATTACK]);
     }
+    else if(battle_state == BATTLE_END){
+        BattleQuit();
+    }
     else if(battle_state == MESSAGE_DISPLAYED){
         active_player->is_player_turn = 0;
         // Enemy must take an action after the player
@@ -812,6 +915,7 @@ void BattleMenuHandleSelect(){
 void BattleMenuBack(){
     if(battle_state == MAIN_MENU) return;
     if(battle_state == EXECUTING_TURN) return;
+    if(battle_state == BATTLE_END) BattleQuit();
     
     
     if(battle_state == MOVES_MENU){

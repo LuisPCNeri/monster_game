@@ -25,22 +25,6 @@ int screen_h;
 
 int main()
 {
-    SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                       SDL_WINDOWPOS_CENTERED,
-                                       SDL_WINDOWPOS_CENTERED,
-                                       1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP);
-
-    // Frame rate is capped at the monitor's refresh rate because of SDL_RENDERER_PRESENTVSYNC
-    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC;
-    rend = SDL_CreateRenderer(win, -1, render_flags);
-    
-    MonstersInit();
-    TrainersInit();
-    player_t* player = PlayerInit();
-    
-    // Player's absolute position in the world
-    int world_x = 0, world_y = 0;
-    
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0) 
         printf("error initializing SDL: %s\n", SDL_GetError());
     if( TTF_Init() != 0 )            
@@ -48,11 +32,25 @@ int main()
     if( MIX_INIT_MP3 != Mix_Init(MIX_INIT_MP3)) 
         printf("ERROR on MIXER: %s\n", Mix_GetError());
 
+    SDL_Window* win = SDL_CreateWindow("GAME",
+                                       SDL_WINDOWPOS_CENTERED,
+                                       SDL_WINDOWPOS_CENTERED,
+                                       1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
+    // Frame rate is capped at the monitor's refresh rate because of SDL_RENDERER_PRESENTVSYNC
+    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC;
+    rend = SDL_CreateRenderer(win, -1, render_flags);
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
-    // Set up TTF
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
     Mix_OpenAudio(22050, AUDIO_S16SYS, 1, 1024);
+    
+    MonstersInit();
+    TrainersInit();
+    player_t* player = PlayerInit();
+    
+    // Player's absolute position in the world
+    int world_x = 0, world_y = 0;
 
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
     InventoryAddItem(player->inv, &ball, 15);
@@ -69,7 +67,6 @@ int main()
     int map_w = map->width * TILE_SIZE;
     int map_h = map->height * TILE_SIZE;
 
-    int screen_w, screen_h;
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
     // sets initial position of object in the world
@@ -178,7 +175,8 @@ int main()
             }
         }
 
-        SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
+        viewport.w = screen_w;
+        viewport.h = screen_h;
 
         // Clamp player to map boundaries
         if (world_x < 0) world_x = 0;
@@ -249,15 +247,9 @@ int main()
         }
 
         SDL_RenderFillRect(rend, &fps_box);
-
         SDL_RenderCopy(rend, fps_text, NULL, &fps_rect);
-
-        // triggers the double buffers
-        // for multiple rendering
         SDL_RenderPresent(rend);
 
-        // calculates to 60 fps
-        //SDL_Delay(1000 / 30);
     }
 
     player->running = 0;
