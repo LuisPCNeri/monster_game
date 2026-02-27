@@ -82,7 +82,7 @@ void MapDraw(map_t* map, SDL_Renderer* rend, SDL_Rect viewport){
     if (end_row >= map->height) end_row = map->height - 1;
 
     for(int x = start_col; x <= end_col; x++){
-        for(int y = start_row; y <= end_col; y++){
+        for(int y = start_row; y <= end_row; y++){
             if(x < 0 || x > map->width || y < 0 || y > map->height) continue;
             int tile_id = map->tile_data[x][y];
 
