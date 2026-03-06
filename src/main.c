@@ -53,9 +53,12 @@ int main()
     int world_x = 0, world_y = 0;
 
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
-    InventoryAddItem(player->inv, &ball, 15);
+    union item_t ball_union = {.catch_device = &ball};
+    InventoryAddItem(player->inv, ball_union, 15);
+
     restore_item_t potion = {4, 1, 10, "Potion", ""};
-    InventoryAddItem(player->inv, &potion, 5);
+    union item_t pot_union = {.restore_item = &potion};
+    InventoryAddItem(player->inv, pot_union, 5);
     
     FILE* map_file = fopen("map_file.txt", "r");
     map_t* map = MapCreateFromFile(map_file, rend);

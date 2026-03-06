@@ -25,6 +25,25 @@ extern int screen_h;
 
 static TTF_Font* info_font;
 
+static item_header_t* GetItemHeader(union item_t item){
+    item_header_t* header = (item_header_t*) malloc(sizeof(item_header_t));
+
+    if(item.catch_device){
+        header->id = item.catch_device->id;
+        header->type = item.catch_device->type;
+    }
+    else if(item.restore_item){
+        header->id = item.restore_item->id;
+        header->type = item.restore_item->type;
+    }
+    else{
+        header->id = -1;
+        header->type = -1;
+    }
+
+    return header;
+}
+
 inventory_t* InventoryCreateEmpty(){
     
     inventory_t* inv = (inventory_t*) malloc(sizeof(inventory_t));
@@ -44,29 +63,36 @@ inventory_t* InventoryCreateEmpty(){
     return inv;
 }
 
-inventory_item_t* InventorySearch(inventory_t* inv, void* item){
-    if (!inv || !item) return NULL;
+inventory_item_t* InventorySearch(inventory_t* inv, union item_t item){
+    if (!inv) return NULL;
     
+    item_header_t* header = GetItemHeader(item);
+
     // Cast to header to get ID safely (assuming common memory layout)
-    int search_id = ((item_header_t*)item)->id;
+    int search_id = header->id;
     inventory_item_t* itm_ptr = inv->head;
 
     while(itm_ptr){
-        if(itm_ptr->id == search_id) return itm_ptr;
+        if(itm_ptr->id == search_id){
+            free(header);
+            return itm_ptr;
+        }
         itm_ptr = itm_ptr->next_item;
     }
     
+    free(header);
     return NULL;
 }
-void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
-    if (!inv || !item) return;
+void InventoryAddItem(inventory_t* inv, union item_t item, unsigned int count){
+    if (!inv) return;
 
-    item_header_t* header = (item_header_t*)item;
+    item_header_t* header = GetItemHeader(item);
     
     // Check if item already exists to stack it
     inventory_item_t* existing = InventorySearch(inv, item);
     if(existing){
         existing->count += count;
+        free(header);
         return;
     }
     
@@ -95,10 +121,12 @@ void InventoryAddItem(inventory_t* inv, void* item, unsigned int count){
     itm->menu_item.y = 200 + (itm->index * 50);
     itm->menu_item.w = 400;
     itm->menu_item.h = 50;
+
+    free(header);
 }
 
-void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count){
-    if (!inv || !item) return;
+void InventoryRemoveItem(inventory_t* inv, union item_t item, unsigned int count){
+    if (!inv) return;
     
     // Check if item already exists to stack it
     inventory_item_t* existing = InventorySearch(inv, item);
@@ -179,11 +207,11 @@ void InventoryDraw(inventory_t* inv){
             // Type 0 would be catch_device_t type so cast current item to it
             switch(itm->type){
                 case 0:
-                    catch_device_t* device = (catch_device_t*) itm->item;
+                    catch_device_t* device = itm->item.catch_device;
                     item_name = device->name;
                     break;
                 case 1:
-                    restore_item_t* pot = (restore_item_t*) itm->item;
+                    restore_item_t* pot = itm->item.restore_item;
                     item_name = pot->name;
                     break;
                 default:

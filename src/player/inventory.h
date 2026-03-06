@@ -2,14 +2,19 @@
 #define __INVENTORY_H__
 
 // A struct to make the inventory a linked list
+
+union item_t {
+    catch_device_t* catch_device;
+    restore_item_t* restore_item;
+};
 typedef struct inventory_item_t{
     int id;
     int type;
 
     int index;
-    // As the item can be a capture device, healing item, or any other item type
-    // it shall be considered a void*
-    void* item;
+    
+    union item_t item;
+
     unsigned int count;
 
     SDL_Rect menu_item;
@@ -34,14 +39,14 @@ typedef struct inventory_t{
 inventory_t* InventoryCreateEmpty();
 // Adds an item to the inventory
 // If the item already exists in the inventory increases it's count
-void InventoryAddItem(inventory_t* inv, void* item, unsigned int count);
+void InventoryAddItem(inventory_t* inv, union item_t item, unsigned int count);
 // Removes an item of the inventory
 // If the item already exists decreases it's count
-void InventoryRemoveItem(inventory_t* inv, void* item, unsigned int count);
+void InventoryRemoveItem(inventory_t* inv, union item_t item, unsigned int count);
 
 // Searches the inventory struct for an item that matches void* item
 // Returns a pointer to the found item or NULL if it finds nothing
-inventory_item_t* InventorySearch(inventory_t* inv, void* item);
+inventory_item_t* InventorySearch(inventory_t* inv, union item_t item);
 
 void InventoryMoveForward(inventory_t* inv);
 void InventoryMoveBack(inventory_t* inv);

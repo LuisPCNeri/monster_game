@@ -82,7 +82,8 @@ typedef enum BattleState{
     MESSAGE_DISPLAYED,
     MONSTER_CAUGHT,
     TRAINER_SWITCH,
-    BATTLE_END
+    BATTLE_END,
+    LEARN_MOVE
 } BattleState;
 
 static BattleState battle_state = MAIN_MENU;
@@ -676,8 +677,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
         battle_state = MAIN_MENU;
         active_player->is_player_turn = 1;
         active_player->current_menu = battle_menu;
-        BattleCheckIsOver();
-        //if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
+        if(BattleCheckIsOver()) active_player->game_state = STATE_EXPLORING;
     }
 }
 
@@ -773,7 +773,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         printf("Used catch_device with id: %d\n", item->id);
                 
         InventoryRemoveItem(active_player->inv, item->item, 1);
-        catch_device_t* device = (catch_device_t*) item->item;
+        catch_device_t* device = item->item.catch_device;
         int has_caught = MonsterTryCatch(active_player, enemy_mon, device);
         if(has_caught){
             sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
@@ -800,7 +800,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         if(item->count <= 0 || item->id == -1) return;
         printf("Used healing item with id: %d\n", item->id);
 
-        restore_item_t* pot = (restore_item_t*) item->item;
+        restore_item_t* pot = item->item.restore_item;
         int has_healed = MonsterHeal(active_mon, pot->restore_amount);
         if(has_healed){
             InventoryRemoveItem(active_player->inv, item->item, 1);
