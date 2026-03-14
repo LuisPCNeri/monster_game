@@ -631,10 +631,12 @@ static monster_t* MonsterEvolve(monster_t* monster){
 
     // TODO : Check for evolution unlocked moves
     for(int i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
+        printf("%d", monster->level_up_table[monster->level][i]);
         if(monster->level_up_table[monster->level][i] == -1) break;
 
+        printf("STARTING LEARN MOVE...\n");
         move_t* move_to_learn = GetMoveById(monster->level_up_table[monster->level][i]);
-        // IMPORTANT : LEARN MOVE
+        BattleSetupLearnMove(monster, move_to_learn);
     }
 
     return monster;
@@ -687,6 +689,15 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int exp_amou
 
         // Quadratic growth: 10 * Level^2 + 50 * Level
         monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
+
+        // Check for new moves upon leveling up ig
+        for(int i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
+            if(monster->level_up_table[monster->level][i] == -1) break;
+
+            printf("STARTING LEARN MOVE...\n");
+            move_t* move_to_learn = GetMoveById(monster->level_up_table[monster->level][i]);
+            BattleSetupLearnMove(monster, move_to_learn);
+        }
     }
 }
 
