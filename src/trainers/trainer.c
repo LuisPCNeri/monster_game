@@ -56,11 +56,12 @@ static char* LoadFileToString(char* file_path){
 
 static void TrainerPrint(trainer_t* t){
     printf(
-        "Name: %s\r\n"
-        "Orientation: %d\r\n"
-        "x:    %d\r\n"
-        "y:    %d\r\n",
-        t->name, t->facing_direction, t->x_pos, t->y_pos
+        "Name: %s \r\n"
+        "Orientation: %d \r\n"
+        "x:    %d \r\n"
+        "y:    %d \r\n"
+        "defeated:      %d \r\n",
+        t->name, t->facing_direction, t->x_pos, t->y_pos, t->was_defeated
     );
 }
 
@@ -264,6 +265,7 @@ void TrainerUpdateAggro(player_t* player, Uint32 dt){
 }
 
 int TrainerCheckPartyIsDead(trainer_t* trainer){
+    if(!trainer) return 0;
     for(int i = 0; i < PARTY_SIZE; i++){
         if(trainer->party[i].current_hp > 0) return 0;
     }

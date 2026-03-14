@@ -3,6 +3,8 @@
 
 // A struct to make the inventory a linked list
 
+#include "items/item.h"
+
 union item_t {
     catch_device_t* catch_device;
     restore_item_t* restore_item;

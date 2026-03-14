@@ -119,6 +119,14 @@ void PlayerMenuHandleSelect(){
     
     MenuDestroy(starter_select_menu);
     active_player->current_menu = NULL;
+
+    // Prints the level up table for the chosen starter for debug purposes
+    for(int i = 0; i < MAX_LEVEL; i++){
+        for(int k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
+            if(active_player->monster_party[0]->level_up_table[i][k] != -1)
+                printf("lvl: %d, move: %d\n", i, active_player->monster_party[0]->level_up_table[i][k]);
+        }
+    }
 }
 
 int PlayerAddMonsterToParty(monster_t* monster){
