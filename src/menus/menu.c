@@ -59,7 +59,6 @@ void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect){
     SDL_DestroyTexture(text_texture);
 }
 
-// IMPORTANT : Add highlighting to the inventory items
 void MenuHighlightBox(SDL_Rect* rect){
     rect->w += 20;
     rect->h += 20;
