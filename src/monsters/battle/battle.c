@@ -20,8 +20,8 @@
 // Renderer created in main
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
-extern int screen_w;
-extern int screen_h;
+extern int32_t screen_w;
+extern int32_t screen_h;
 
 static TTF_Font* info_font = NULL;
 
@@ -55,7 +55,7 @@ static SDL_Texture* player_mon_tex = NULL;
 
 static trainer_t* act_trainer = NULL;
 
-static int turn_stage = 0;
+static int8_t turn_stage = 0;
 static monster_t* first_attacker = NULL;
 static monster_t* second_attacker = NULL;
 
@@ -70,11 +70,11 @@ static SDL_Rect switch_hp_bars[PARTY_SIZE];
 
 static char message[4096];
 
-static int defeated_trainer_mon_count = 0;
+static int8_t defeated_trainer_mon_count = 0;
 
 static float anim_exp[PARTY_SIZE];
-static int anim_level[PARTY_SIZE];
-static int anim_max_exp[PARTY_SIZE];
+static int32_t anim_level[PARTY_SIZE];
+static int32_t anim_max_exp[PARTY_SIZE];
 
 static SDL_Texture* arrow_texture = NULL;
 static move_t* move_to_learn = NULL;
@@ -101,20 +101,20 @@ static void BattleMainMenuCreate(){
 }
 
 static void BattleMovesMenuCreate(){
-    int w,h;
+    int32_t w,h;
     SDL_GetRendererOutputSize(rend, &w, &h);
 
     moves_menu = MenuCreate(USBALE_MOVES_AMOUNT, 1, 1, BattleDraw, BattleMenuHandleSelect);
     moves_menu->back = BattleMenuBack;
 
-    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++){
-        int offset_x = 50;
-        int offset_y = h - 150;
+    for(int8_t i = 0; i < USBALE_MOVES_AMOUNT; i++){
+        int32_t offset_x = 50;
+        int32_t offset_y = h - 150;
         if( i & 1 ) offset_x += 450;
         if( i < 2 ) offset_y -= 150;
 
-        int box_w = 400;
-        int box_h = 100;
+        int32_t box_w = 400;
+        int32_t box_h = 100;
 
         if( i == 0 ){
             offset_x -= 10;
@@ -134,10 +134,10 @@ static void BattleMovesMenuCreate(){
 }
 
 static void BattleSwitchMenuCreate(){
-    int w, h;
+    int32_t w, h;
     SDL_GetRendererOutputSize(rend, &w, &h);
     switch_menu = MenuCreate(PARTY_SIZE, 1, 1, BattleDraw, BattleMenuHandleSelect);
-    for(int i = 0; i < switch_menu->items_amount; i++){
+    for(int8_t i = 0; i < switch_menu->items_amount; i++){
         if( !(i & 1) ) switch_menu->menu_items[i].x = (w/2)-420;
         else           switch_menu->menu_items[i].x = (w/2)+20;
         switch_menu->menu_items[i].y = 350 + i*100;
@@ -157,7 +157,7 @@ static void BattleLearnMoveMenuCreate(){
 
     SDL_FreeSurface(yes_surf);
 
-    int yes_w, yes_h = 0;
+    int32_t yes_w, yes_h = 0;
     SDL_QueryTexture(yes_texture, NULL, NULL, &yes_w, &yes_h);
     SDL_DestroyTexture(yes_texture);
 
@@ -173,7 +173,7 @@ static void BattleLearnMoveMenuCreate(){
 }
 
 static void InitExpAnimation(){
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         monster_t* m = active_player->monster_party[i];
         if(m){
             anim_exp[i] = (float)m->current_exp;
@@ -183,8 +183,8 @@ static void InitExpAnimation(){
     }
 }
 
-static int BattleIsExpAnimating() {
-    int i = active_player->active_mon_index;
+static int8_t BattleIsExpAnimating() {
+    int8_t i = active_player->active_mon_index;
     monster_t* active_mon = active_player->monster_party[i];
     return (anim_level[i] < active_mon->level || 
            (anim_level[i] == active_mon->level && anim_exp[i] < (float)active_mon->current_exp));
@@ -248,8 +248,8 @@ void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
 // Checks if battle is over (enemy monster is dead)
 // If so calls other functions such as increase exp
 // Returns 1 if battle is over and 0 if not
-static int BattleCheckIsOver(){
-    int has_mon_left = !PlayerCheckIsPartyDead(active_player);
+static int8_t BattleCheckIsOver(){
+    int8_t has_mon_left = !PlayerCheckIsPartyDead(active_player);
     monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
 
     if(enemy_mon->current_hp <= 0){
@@ -269,7 +269,7 @@ static int BattleCheckIsOver(){
             battle_state = BATTLE_END_MSG;
             return 0;
         } else if (act_trainer) {
-            for(int i = 0; i < PARTY_SIZE; i++){
+            for(int8_t i = 0; i < PARTY_SIZE; i++){
                 if(act_trainer->party[i].current_hp <= 0) continue;
                 SDL_DestroyTexture(enemy_mon_tex);
                 enemy_mon_tex = NULL;
@@ -313,7 +313,7 @@ void BattleSetupLearnMove(monster_t* monster, move_t* move){
 // \param is_borderless Set to 0 if you want the rect to have borders showing
 // \param is_x_centered Dictates if the text is center aligned (1) or left aligned (0)
 // TODO : Change from the draw rect to a custom texture
-static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_Font* font, int is_borderless, int is_x_centered){
+static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_Font* font, int8_t is_borderless, int8_t is_x_centered){
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     if(!is_borderless) SDL_RenderDrawRect(rend, dst_rect);
 
@@ -323,7 +323,7 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_F
 
     SDL_FreeSurface(text_surface);
 
-    int text_w, text_h;
+    int32_t text_w, text_h;
     SDL_QueryTexture(text_texture, NULL, NULL, &text_w, &text_h);
 
     SDL_Rect text_rect;
@@ -342,21 +342,21 @@ static void BattleRenderMenuItem(const char* btn_text, SDL_Rect* dst_rect, TTF_F
     SDL_DestroyTexture(text_texture);
 }
 
-static void BattleRenderInfo(const char* btn_text, SDL_Rect* dst_rect, int x_offset, int y_offset, int is_right_aligned){
+static void BattleRenderInfo(const char* btn_text, SDL_Rect* dst_rect, int32_t x_offset, int32_t y_offset, int8_t is_right_aligned){
     if(!info_font) return;
 
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(rend, dst_rect);
 
     SDL_Color text_color = {255, 255, 255, 255};
-    int wrap_limit = (is_right_aligned) ? (dst_rect->w - x_offset) : (dst_rect->w - x_offset*2);
+    int32_t wrap_limit = (is_right_aligned) ? (dst_rect->w - x_offset) : (dst_rect->w - x_offset*2);
     SDL_Surface* text_surface = TTF_RenderUTF8_Solid_Wrapped(info_font, btn_text, text_color, (wrap_limit > 0) ? wrap_limit : dst_rect->w);
     if(!text_surface) return;
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
 
     SDL_FreeSurface(text_surface);
 
-    int text_w, text_h;
+    int32_t text_w, text_h;
     SDL_QueryTexture(text_texture, NULL, NULL, &text_w, &text_h);
 
     SDL_Rect text_rect;
@@ -382,9 +382,9 @@ static void BattleRenderInfo(const char* btn_text, SDL_Rect* dst_rect, int x_off
     SDL_DestroyTexture(text_texture);
 }
 
-static void RenderHpBar(int current_hp, int max_hp, SDL_Rect hp_bar){
+static void RenderHpBar(int16_t current_hp, int16_t max_hp, SDL_Rect hp_bar){
     float hp_percent = (float)current_hp / (float)max_hp;
-    int max_size = hp_bar.w;
+    int32_t max_size = hp_bar.w;
     hp_bar.w = (int)(hp_bar.w * hp_percent);
 
     if(current_hp < max_hp){
@@ -399,9 +399,9 @@ static void RenderHpBar(int current_hp, int max_hp, SDL_Rect hp_bar){
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 }
 
-static void RenderExpBar(int c_exp, int m_exp, SDL_Rect exp_bar){
+static void RenderExpBar(int32_t c_exp, int32_t m_exp, SDL_Rect exp_bar){
     float exp_percent = (float)c_exp / (float)m_exp;
-    int max_size = exp_bar.w;
+    int32_t max_size = exp_bar.w;
     exp_bar.w = (int)(exp_bar.w * exp_percent);
 
     if(c_exp < m_exp){
@@ -440,7 +440,7 @@ static void RenderMonInfo(monster_t* active_mon){
     RenderHpBar((int)player_displayed_hp, active_mon->max_hp, player_hp_rect);
     RenderHpBar((int)enemy_displayed_hp, enemy_mon->max_hp, enemy_hp_rect);
 
-    int i = active_player->active_mon_index;
+    int8_t i = active_player->active_mon_index;
     RenderExpBar((int)anim_exp[i], anim_max_exp[i], player_exp_bar);
 
     char c_status_fx[128];
@@ -455,8 +455,8 @@ static void RenderMonInfo(monster_t* active_mon){
 }
 
 static void BattleMenuDrawArrow(menu_t* menu){
-    int menu_index = active_player->selected_menu_itm;
-    int w,h;
+    int8_t menu_index = active_player->selected_menu_itm;
+    int32_t w,h;
     SDL_QueryTexture(arrow_texture, NULL, NULL, &w, &h);
     SDL_Rect arrow_rect = {
         menu->menu_items[menu_index].x - w - 5,
@@ -482,7 +482,7 @@ static void BattleRenderMainMenu(){
 
     if(message[0] != '\0'){
         Uint64 current_time = SDL_GetTicks64();
-        int is_visible = (current_time / ARROW_BLINK_INTERVAL) % 2 == 0;
+        int8_t is_visible = (current_time / ARROW_BLINK_INTERVAL) % 2 == 0;
 
         BattleRenderInfo(message, &status_rect, 20, 20, 0);
         if(is_visible) BattleRenderInfo("->", &status_rect, 50, status_rect.h - 50, 1);  
@@ -490,7 +490,7 @@ static void BattleRenderMainMenu(){
 }
 
 static void MovesMenuDraw(monster_t* active_mon){
-    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++){
+    for(int8_t i = 0; i < USBALE_MOVES_AMOUNT; i++){
         SDL_Rect* menu_itm = &moves_menu->menu_items[i];
         if(active_mon->usable_moves[i].id != -1){
             BattleRenderMenuItem(active_mon->usable_moves[i].move_name, menu_itm, game_font, 0, 1);
@@ -500,7 +500,7 @@ static void MovesMenuDraw(monster_t* active_mon){
                 active_mon->usable_moves[i].max_uses);
             BattleRenderInfo(move_uses, menu_itm, menu_itm->w - 85, menu_itm->h - 30, 0);
 
-            char move_power[6];
+            char move_power[8];
             sprintf(move_power, "%dP", active_mon->usable_moves[i].damage);
             BattleRenderInfo(move_power, menu_itm, 20, menu_itm->h - 30, 0);
         }
@@ -511,7 +511,7 @@ static void MovesMenuDraw(monster_t* active_mon){
 }
 
 static void SwitchMenuDraw(){
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         SDL_Rect cItem = switch_menu->menu_items[i];
         switch_hp_bars[i].x = cItem.x + 20; 
         switch_hp_bars[i].y = cItem.y + 52; 
@@ -519,15 +519,15 @@ static void SwitchMenuDraw(){
         switch_hp_bars[i].h = 10;
     }
     
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(active_player->monster_party[i]){
             BattleRenderInfo(active_player->monster_party[i]->monster_name, &switch_menu->menu_items[i], 20, 20, 0);
 
-            char lvl_info[12];
+            char lvl_info[16];
             sprintf(lvl_info, "lvl: %d", active_player->monster_party[i]->level);
             BattleRenderInfo(lvl_info, &switch_menu->menu_items[i], 20, 20, 1);
 
-            char hp_info[12];
+            char hp_info[16];
             sprintf(hp_info, "%d/%d", active_player->monster_party[i]->current_hp,
                 active_player->monster_party[i]->max_hp);
             BattleRenderInfo(hp_info, &switch_menu->menu_items[i], 20, 50, 1);
@@ -562,7 +562,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
     // STAGE 0: First Attacker Pre-Check & Attack
     if(turn_stage == 0){
         message[0] = '\0';
-        int can_move = MonsterCheckCanMove(first_attacker, message);
+        int8_t can_move = MonsterCheckCanMove(first_attacker, message);
         
         if(can_move && fst_atck_move){
             monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
@@ -611,7 +611,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
         }
 
         message[0] = '\0';
-        int can_move = MonsterCheckCanMove(second_attacker, message);
+        int8_t can_move = MonsterCheckCanMove(second_attacker, message);
         
         if(can_move && scnd_atck_move){
             monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
@@ -682,7 +682,7 @@ void BattleDraw(Uint32 dt){
     if(fabs(enemy_target - enemy_displayed_hp) < 0.5f) enemy_displayed_hp = enemy_target;
 
     // EXP BAR Animation Logic
-    int i = active_player->active_mon_index;
+    int8_t i = active_player->active_mon_index;
     if(anim_level[i] < active_mon->level || (anim_level[i] == active_mon->level && anim_exp[i] < active_mon->current_exp)){
         float growth_speed = (float)anim_max_exp[i] * 0.7f;
         anim_exp[i] += growth_speed * (dt / 1000.0f);
@@ -813,7 +813,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
                 
         InventoryRemoveItem(active_player->inv, item->item, 1);
         catch_device_t* device = item->item.catch_device;
-        int has_caught = MonsterTryCatch(active_player, enemy_mon, device);
+        int8_t has_caught = MonsterTryCatch(active_player, enemy_mon, device);
         if(has_caught){
             sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
 
@@ -840,7 +840,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         printf("Used healing item with id: %d\n", item->id);
 
         restore_item_t* pot = item->item.restore_item;
-        int has_healed = MonsterHeal(active_mon, pot->restore_amount);
+        int8_t has_healed = MonsterHeal(active_mon, pot->restore_amount);
         if(has_healed){
             InventoryRemoveItem(active_player->inv, item->item, 1);
             sprintf(message, "Used a %s on %s", pot->name, active_mon->monster_name);
@@ -856,7 +856,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
     }
 }
 
-static int HandleSwitchMenuSelect(monster_t* active_mon){
+static int8_t HandleSwitchMenuSelect(monster_t* active_mon){
     if(!active_player->monster_party[active_player->selected_menu_itm]) return 0;
     if(active_player->monster_party[active_player->selected_menu_itm]->current_hp <= 0) return 0;
     if(active_player->monster_party[active_player->selected_menu_itm] == active_player->monster_party[active_player->active_mon_index]) return 0;
@@ -884,7 +884,7 @@ void BattleMenuHandleSelect(){
     else if(battle_state == MOVES_MENU)  HandleMovesMenuSelect(active_mon);
     else if(battle_state == INV_OPEN)    HandleInvOpenSelect(active_mon);
     else if(battle_state == SWITCH_MENU){
-        int has_switched = HandleSwitchMenuSelect(active_mon);
+        int8_t has_switched = HandleSwitchMenuSelect(active_mon);
         
         if(has_switched){
             MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);

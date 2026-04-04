@@ -3,6 +3,7 @@
 
 // A struct to make the inventory a linked list
 
+#include <stdint.h>
 #include "items/item.h"
 
 union item_t {
@@ -10,18 +11,16 @@ union item_t {
     restore_item_t* restore_item;
 };
 typedef struct inventory_item_t{
-    int id;
-    int type;
-
-    int index;
-    
-    union item_t item;
-
-    unsigned int count;
-
     SDL_Rect menu_item;
+
     struct inventory_item_t* next_item;
     struct inventory_item_t* prev_item;
+    union item_t item;
+
+    uint32_t count;
+    int16_t type;
+    int16_t index;
+    int8_t id;
 
 } inventory_item_t;
 
@@ -29,7 +28,7 @@ typedef struct inventory_item_t{
 // It is a Doubly Linked List that CANNOT have repeated items
 // So a Doubly Linked Set or something like that
 typedef struct inventory_t{
-    int item_count;
+    int32_t item_count;
     inventory_item_t* current;
     inventory_item_t* head;
     inventory_item_t* tail;
@@ -41,10 +40,10 @@ typedef struct inventory_t{
 inventory_t* InventoryCreateEmpty();
 // Adds an item to the inventory
 // If the item already exists in the inventory increases it's count
-void InventoryAddItem(inventory_t* inv, union item_t item, unsigned int count);
+void InventoryAddItem(inventory_t* inv, union item_t item, uint32_t count);
 // Removes an item of the inventory
 // If the item already exists decreases it's count
-void InventoryRemoveItem(inventory_t* inv, union item_t item, unsigned int count);
+void InventoryRemoveItem(inventory_t* inv, union item_t item, uint32_t count);
 
 // Searches the inventory struct for an item that matches void* item
 // Returns a pointer to the found item or NULL if it finds nothing

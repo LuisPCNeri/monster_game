@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
@@ -46,12 +48,12 @@ void TrainerBattleDraw(Uint32 dt){
         SDL_FreeSurface(s);
     }
 
-    int w_empty, h_empty;
-    int w_full, h_full;
+    int32_t w_empty, h_empty;
+    int32_t w_full, h_full;
 
-    int start = 1450;
-    int step = 400 / PARTY_SIZE;
-    for(int i = 0; i < PARTY_SIZE; i++){
+    int32_t start = 1450;
+    int32_t step = 400 / PARTY_SIZE;
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(trainer->party[i].id == -1){
             SDL_QueryTexture(empty_notch, NULL, NULL, &w_empty, &h_empty);
 
@@ -96,7 +98,7 @@ void TrainerBattleInitMessageDraw(){
 
     // Message from the trainer when starting the battle
     if(intro_msg_tex){
-        int w, h;
+        int32_t w, h;
         SDL_QueryTexture(intro_msg_tex, NULL, NULL, &w, &h);
         SDL_Rect text_rect = {.x = 50 + 20, .y = player->current_menu->menu_items[0].y + 20, .w = w, .h = h};
         SDL_RenderCopy(rend, intro_msg_tex, NULL, &text_rect);
@@ -107,7 +109,7 @@ void TrainerBattleInitMessageDraw(){
     SDL_RenderDrawRect(rend, &trainer_info_rect);
 
     if(intro_name_tex){
-        int w, h;
+        int32_t w, h;
         SDL_QueryTexture(intro_name_tex, NULL, NULL, &w, &h);
         SDL_Rect trainer_name_rect = {
             .x = trainer_info_rect.x + (trainer_info_rect.w - w) / 2,
@@ -157,7 +159,7 @@ void TrainerBattleInit(player_t* active_player, trainer_t* active_trainer){
 
     if(!info_font) info_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", 16);
 
-    int w, h;
+    int32_t w, h;
     SDL_GetRendererOutputSize(rend, &w, &h);
 
     SDL_Color white = {255, 255, 255, 255};
@@ -189,7 +191,7 @@ void TrainerBattleInit(player_t* active_player, trainer_t* active_trainer){
 move_t* TrainerBattleChooseMove(monster_t* player_monster, monster_t* enemy){
     
     move_t* highest_dmg = NULL;
-    for(unsigned int i = 0; i < 4; i++){
+    for(int8_t i = 0; i < 4; i++){
         if(enemy->usable_moves[i].id == -1) continue;
         if(!highest_dmg) highest_dmg = &enemy->usable_moves[i];
         

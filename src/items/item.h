@@ -1,15 +1,17 @@
 #ifndef __ITEM_H__
 #define __ITEM_H__
 
+#include <stdint.h>
+
 typedef struct monster_t monster_t;
 typedef struct player_t player_t;
 // Struct to keep all of the catching device properties
 // These will be loaded/created when reading the items.json file
 typedef struct catch_device_t{
-    int id;
-    int type;
+    int8_t id;
+    int16_t type;
     // Multiplier for the catch rate associated with this device.
-    int catch_rate_mult;
+    int8_t catch_rate_mult;
 
     // Name of the catching device
     char name[128];
@@ -19,10 +21,10 @@ typedef struct catch_device_t{
 } catch_device_t;
 
 typedef struct restore_item_t{
-    int id;
-    int type;
+    int8_t id;
+    int16_t type;
 
-    int restore_amount;
+    int16_t restore_amount;
 
     // Name of the catching device
     char name[128];

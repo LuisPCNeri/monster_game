@@ -1,6 +1,7 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
+#include <stdint.h>
 #include <SDL2/SDL.h>
 #include "monsters/monster.h"
 #include "inventory.h"
@@ -32,33 +33,32 @@ typedef enum GameState{
 } GameState;
 
 typedef struct player_t{
-    int inv_isOpen;
-    
-    int x_pos;
-    int y_pos;
+    // Pointers to the monsters the player keeps with him and can use for battles
+    monster_t* monster_party[5];
 
-    // The index of the monster the player is currently using
-    int active_mon_index;
-    // Supposed to help see if in a battle it is the player's turn or not
-    int is_player_turn;
-
-    int selected_menu_itm;
-    int running;
-    GameState game_state;
-
-    int aggro_timer;
-    Orientation facing_direction;
+    SDL_Texture* sprite_sheet;
+    menu_t* current_menu;
+    inventory_t* inv;
     trainer_t* aggro_trainer;
     monster_t* aggro_monster;
 
-    int sprite_stage;
-    SDL_Rect sprite_rect;
-    SDL_Texture* sprite_sheet;
+    GameState game_state;
+    Orientation facing_direction;
 
-    menu_t* current_menu;
-    inventory_t* inv;
-    // Pointers to the monsters the player keeps with him and can use for battles
-    monster_t* monster_party[5];
+    int32_t aggro_timer;
+    int32_t x_pos;
+    int32_t y_pos;
+
+    SDL_Rect sprite_rect;
+
+    int8_t inv_isOpen;
+    // The index of the monster the player is currently using
+    int8_t active_mon_index;
+    // Supposed to help see if in a battle it is the player's turn or not
+    int8_t is_player_turn;
+    int8_t selected_menu_itm;
+    int8_t running;
+    int8_t sprite_stage;
 } player_t;
 
 /*
@@ -80,12 +80,12 @@ void PlayerMenuHandleSelect();
 
 // Adds a monster to the player's party or the PC if the party is full
 // Returns 0 if the party is full
-int PlayerAddMonsterToParty(monster_t* monster);
+int8_t PlayerAddMonsterToParty(monster_t* monster);
 
 // Returns 1 if all of the player's monsters are dead and 0 if there is at least one alive
-int PlayerCheckIsPartyDead(player_t* player);
+int8_t PlayerCheckIsPartyDead(player_t* player);
 
-void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 dt);
+void PlayerRenderNotifBox(player_t* player, int32_t offset_x, int32_t offset_y, Uint32 dt);
 
 /*
     Makes the player character move i.e. Player Character Controller

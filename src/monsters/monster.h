@@ -68,70 +68,40 @@ typedef enum MonsterTypes{
 
 // A move that can be used by a monster
 typedef struct move_t{
-    // States if this move's modifier applies to self or enemy
-    int is_modify_self;
-    // id to lookup the move
-    int id;
-    // The level at which a monster can learn this move
-    // If it is 0 the monster can always learn it
-    int required_level;
-    // Max amount of times move can be use => PP
-    int max_uses;
-    // Amount of times move can still be used
-    int available_uses;
-
-    // Percentage of times move will hit enemy
-    int acc_percent;
-    // Amount of damage enemy will take (can be 0)
-    int damage;
-    
+    char* move_description;
+    char* move_name;
     StatType stat_to_modify;
-    int stat_stage_change;
-
     // Moves can only have one type
     MonsterTypes attack_type;
     // Status effect the move may apply on hit
     StatusEffects status_effect;
-
-    char move_name[256];
-    char move_description[4096];
+    // id to lookup the move
+    int16_t id;
+    int16_t damage;
+    // The level at which a monster can learn this move
+    // If it is 0 the monster can always learn it
+    int16_t required_level;
+    // Max amount of times move can be use => PP
+    int8_t max_uses;
+    // Amount of times move can still be used
+    int8_t available_uses;
+    // Percentage of times move will hit enemy
+    int8_t acc_percent;
+    // Amount of damage enemy will take (can be 0)
+    // States if this move's modifier applies to self or enemy
+    int8_t is_modify_self;
+    int8_t stat_stage_change;
 } move_t;
 
 // Monster with all it's data
-typedef struct monster_t {      
-    // id to lookup the monster
-    int id;
-
-    // Current monster level
-    int level;
-
-    int status_fx_durantion;
-
-    // Level at which monster will evolve for the first time
-    // If monster has no evolution set to -1
-    int evo_1_level;
-    // Level at which monster will evolve for the second time
-    // If monster has no second evolution set to -1
-    int evo_2_level;
-
-    // Max amount of hitpoints for monster
-    int max_hp;
-    // Current amount of hitpoints monster has
-    int current_hp;
-
-    // Amount of attack points monster has
-    int attack;
-    // Amount of defense points monster has
-    int defense;
-    // Amount of speed points monster has
-    int speed;
+typedef struct monster_t {
+    char* monster_description;
+    char* monster_name;
+    // Path to the monter's sprite
+    char* sprite_path;
     
-    int atk_stage;
-    int def_stage;
-    int spd_stage;
-
-    int current_exp;
-    int exp_to_next_level;
+    int32_t current_exp;
+    int32_t exp_to_next_level;
     // Monster's main type
     MonsterTypes type_1;
     // Monster's secondary type
@@ -144,18 +114,40 @@ typedef struct monster_t {
     // To specify no status applied, set current_status_fx to NONE
     StatusEffects current_status_fx;
 
+    // An array that has the ids of all the moves learnable from leveling up for a monster
+    // All monsters are hardcapped to this
+    int16_t level_up_table[MAX_LEVEL][LEARNABLE_MOVES_AMOUNT_PER_LEVEL];
+
     // Just here to keep track of what moves the monster can use in battle
     // When a move is learned one of these 4 moves will be changed
     // Moves the monster can currently use in battle
     move_t usable_moves[4];
-    // An array that has the ids of all the moves learnable from leveling up for a monster
-    // All monsters are hardcapped to this
-    int level_up_table[MAX_LEVEL][LEARNABLE_MOVES_AMOUNT_PER_LEVEL];
 
-    char monster_name[256];
-    // Path to the monter's sprite
-    char sprite_path[256];
-    char monster_description[4096];
+    // id to lookup the monster
+    int16_t id;
+    // Max amount of hitpoints for monster
+    int16_t max_hp;
+    // Current amount of hitpoints monster has
+    int16_t current_hp;
+    // Amount of attack points monster has
+    int16_t attack;
+    // Amount of defense points monster has
+    int16_t defense;
+    // Amount of speed points monster has
+    int16_t speed;
+
+    // Current monster level MAX LEVEL 100
+    int8_t level;
+    int8_t status_fx_durantion;
+    // Level at which monster will evolve for the first time
+    // If monster has no evolution set to -1
+    int8_t evo_1_level;
+    // Level at which monster will evolve for the second time
+    // If monster has no second evolution set to -1
+    int8_t evo_2_level;
+    int8_t atk_stage;
+    int8_t def_stage;
+    int8_t spd_stage;
 } monster_t;
 
 // Initializes all the monster's data
@@ -171,16 +163,16 @@ void MoveParseJSON(cJSON* entry, move_t* m);
 
 // Returns 1 if a monster can spawn and 0 if not
 // The monster spawning or not depends on the tile_type
-int CheckMonsterCanSpawn(int tile_type);
+int8_t CheckMonsterCanSpawn(int8_t tile_type);
 
 // "Spawns" a monster that immediatly tries to fight the player
 // Takes in an int representing the tile_type to choose the monster's type
 // Returns a pointer to the monster's data
-monster_t SpawnMonster(int tile_type, int avg_player_level);
+monster_t SpawnMonster(int8_t tile_type, int8_t avg_player_level);
 
 // Every time the player changes tiles it checks the tile_type
 // If monsters can spawn in that tile it tries to spawn one
-int TrySpawnMonster(player_t* player, map_t* map);
+int8_t TrySpawnMonster(player_t* player, map_t* map);
 
 // Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
 float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);
@@ -195,13 +187,13 @@ MonsterTypes MonsterGetTypeFromString(const char* type_name);
     \param *attacked monster who is targeted by the attack
     \param *return_msg pointer to a char that will store the message correspondant to the attack.
 */
-int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg);
+int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg);
 
 // Checks if the monster can move this turn (handles Sleep, Freeze, etc.)
-int MonsterCheckCanMove(monster_t* m, char* msg);
+int8_t MonsterCheckCanMove(monster_t* m, char* msg);
 
 // Applies status damage (Poison, Burn) and returns 1 if damage was taken
-int MonsterApplyStatusDamage(monster_t* m, char* msg);
+int8_t MonsterApplyStatusDamage(monster_t* m, char* msg);
 
 // Return char* correspondant to the status effect applied on monster
 char* MonsterGetSFXString(monster_t* m);
@@ -222,7 +214,7 @@ void MonsterPrint(monster_t* monster);
 
     \param id Id of the move to get
 */
-move_t* GetMoveById(int id); 
+move_t* GetMoveById(int16_t id); 
 
 /*
     Returns a pointer to the base template of the monster with a given id.
@@ -231,7 +223,7 @@ move_t* GetMoveById(int id);
 
     \param id Id of the monster to get
 */
-monster_t* GetMonsterById(int id);
+monster_t* GetMonsterById(int16_t id);
 
 /*
     Increments the monsters' current exp by either the amount provided by enemy_monster or in exp.
@@ -240,14 +232,14 @@ monster_t* GetMonsterById(int id);
     \param *enemy_monster Either a pointer to the defeated monster that will be used for exp calculations or NULL to use the int exp parameter.
     \param exp Amount of exp to add to monster. Will only be used if enemy_monster is NULL.
 */
-void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int exp);
+void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int32_t exp);
 
-int MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster);
+int32_t MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster);
 
 // Has the player try to catch a monster.
 // Uses the rarity modifiers to calculate the chance.
 // If it hits the monster will go to the player's party. If the party is full goes to the storage.
-int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device);
+int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device);
 
 // Sets the stats of a monster to have some rng
 // Used when a monster spawns and when choosing a starter
@@ -259,7 +251,7 @@ void MonsterResetBattleStats(monster_t* monster);
 
 // Heal a monster through moves, items or idk anything else
 // Returns 1 if the monster was healed 0 if not
-int MonsterHeal(monster_t* monster, unsigned int heal_amount);
+int8_t MonsterHeal(monster_t* monster, uint16_t heal_amount);
 
 void MonsterUpdateAggro(player_t* player, Uint32 dt);
 

@@ -14,14 +14,14 @@
 // Helper struct to safely check item ID and Type
 // Assumes all item structs in the game start with 'int id' and 'int type'
 typedef struct {
-    int id;
-    int type;
+    int8_t id;
+    int16_t type;
 } item_header_t;
 
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
-extern int screen_w;
-extern int screen_h;
+extern int32_t screen_w;
+extern int32_t screen_h;
 
 static TTF_Font* info_font;
 
@@ -69,7 +69,7 @@ inventory_item_t* InventorySearch(inventory_t* inv, union item_t item){
     item_header_t* header = GetItemHeader(item);
 
     // Cast to header to get ID safely (assuming common memory layout)
-    int search_id = header->id;
+    int8_t search_id = header->id;
     inventory_item_t* itm_ptr = inv->head;
 
     while(itm_ptr){
@@ -83,7 +83,7 @@ inventory_item_t* InventorySearch(inventory_t* inv, union item_t item){
     free(header);
     return NULL;
 }
-void InventoryAddItem(inventory_t* inv, union item_t item, unsigned int count){
+void InventoryAddItem(inventory_t* inv, union item_t item, u_int32_t count){
     if (!inv) return;
 
     item_header_t* header = GetItemHeader(item);
@@ -125,7 +125,7 @@ void InventoryAddItem(inventory_t* inv, union item_t item, unsigned int count){
     free(header);
 }
 
-void InventoryRemoveItem(inventory_t* inv, union item_t item, unsigned int count){
+void InventoryRemoveItem(inventory_t* inv, union item_t item, u_int32_t count){
     if (!inv) return;
     
     // Check if item already exists to stack it
@@ -233,11 +233,11 @@ void InventoryDraw(inventory_t* inv){
                     SDL_FreeSurface(count_surface);
 
                     
-                    int w, h;
+                    int32_t w, h;
                     SDL_QueryTexture(text_texture, NULL, NULL, &w, &h);
                     SDL_Rect text_rect = {item_box.x + 20, item_box.y + 18, w, h};
 
-                    int count_w, count_h;
+                    int32_t count_w, count_h;
                     SDL_QueryTexture(count_texture, NULL, NULL, &count_w, &count_h);
                     SDL_Rect count_rect = {
                         item_box.x + item_box.w - count_w - 10, 
@@ -256,7 +256,7 @@ void InventoryDraw(inventory_t* inv){
         itm = itm->next_item;
     }
 
-    int w,h;
+    int32_t w,h;
     SDL_QueryTexture(inv->arrow_texture, NULL, NULL ,&w, &h);
     
     double time = (double) SDL_GetTicks()/1000;

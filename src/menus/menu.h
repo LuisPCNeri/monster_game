@@ -1,6 +1,7 @@
 #ifndef __MENU_H__
 #define __MENU_H__
 
+#include <stdint.h>
 #include <SDL2/SDL.h>
 #include "player/player.h"
 
@@ -8,12 +9,12 @@ typedef struct player_t player_t;
 
 typedef struct menu_t{
     SDL_Rect* menu_items;
-    int items_amount;
+    int32_t items_amount;
 
     // If there is more than one row this should be >= 1
-    int has_rows;
+    int8_t has_rows;
     // If there is more than one column this should be >= 1
-    int has_columns;
+    int8_t has_columns;
 
     // Draw function that takes dt as argument
     void (*draw)(Uint32 dt);
@@ -31,7 +32,7 @@ typedef struct menu_t{
 // If the menu has more than one column has_columns >= 1
 // void* draw will be used as the function to draw the menu on the screen
 // void* select_func will be the function called when the ENTER key is pressed and the menu is open 
-menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func, void* select_func);
+menu_t* MenuCreate(int32_t item_num, int8_t has_rows, int8_t has_columns, void* draw_func, void* select_func);
 
 // Frees the space allocated for menu_t menu
 void MenuDestroy(menu_t* menu);

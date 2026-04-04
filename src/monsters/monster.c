@@ -20,20 +20,20 @@
 
 // GLOBAL array for this file that has IN MEMORY all the monsters (indexed by their order)
 static monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
-static int monster_count = 0;
+static int16_t monster_count = 0;
 
 static move_t ALL_MOVES[MAX_GAME_MOVES];
-static int MoveLibraryCount = 0;
+static int16_t MoveLibraryCount = 0;
 
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
 
-static int old_x, old_y = 0;
+static int32_t old_x, old_y = 0;
 
 static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
 static Mix_Music* notif_sound = NULL;
 
-move_t* GetMoveById(int id) {
-    for(int i = 0; i < MoveLibraryCount; i++) {
+move_t* GetMoveById(int16_t id) {
+    for(int16_t i = 0; i < MoveLibraryCount; i++) {
         if(ALL_MOVES[i].id == id) {
             return &ALL_MOVES[i];
         }
@@ -41,8 +41,8 @@ move_t* GetMoveById(int id) {
     return NULL;
 }
 
-monster_t* GetMonsterById(int id){
-    for(int i=0; i < monster_count; i++){
+monster_t* GetMonsterById(int16_t id){
+    for(int16_t i=0; i < monster_count; i++){
         if(ALL_MONSTERS[i].id == id) return &ALL_MONSTERS[i];
     }
     return NULL;
@@ -115,9 +115,9 @@ MonsterTypes MonsterGetTypeFromString(const char* type_name){
 void MonsterParseJSON(cJSON* entry, monster_t* mon){
     // Load Basic Info
     mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
-    strcpy(mon->sprite_path, cJSON_GetObjectItem(entry, "sprite")->valuestring);
-    strcpy(mon->monster_name, cJSON_GetObjectItem(entry, "name")->valuestring);
-    strcpy(mon->monster_description, cJSON_GetObjectItem(entry, "description")->valuestring);
+    mon->sprite_path         = SDL_strdup(cJSON_GetObjectItem(entry, "sprite")->valuestring);
+    mon->monster_name        = SDL_strdup(cJSON_GetObjectItem(entry, "name")->valuestring);
+    mon->monster_description = SDL_strdup(cJSON_GetObjectItem(entry, "description")->valuestring);
 
     // Load Stats
     cJSON* stats = cJSON_GetObjectItem(entry, "stats");
@@ -144,10 +144,10 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
     // Load the USABLE MOVES for this monster
     cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
     cJSON* moveIdVal = NULL;
-    int slot = 0;
+    int8_t slot = 0;
 
     // Initialize slots to empty values first
-    for(int k=0; k<4; k++) {
+    for(int8_t k=0; k<4; k++) {
         // -1 FOR EMPTY SLOT
         mon->usable_moves[k].id = -1;
         mon->usable_moves[k].damage = 0;
@@ -156,7 +156,7 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
     // Loop through the JSON array
     cJSON_ArrayForEach(moveIdVal, movesArray) {
         if(slot >= 4) break;
-        int idToFind = moveIdVal->valueint;
+        int16_t idToFind = moveIdVal->valueint;
                 
         move_t* foundMove = GetMoveById(idToFind);
         if(foundMove != NULL) {
@@ -170,22 +170,22 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
         }
     }
 
-    for(int i = 0; i < MAX_LEVEL; i++){
-        for(int k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
+    for(int8_t i = 0; i < MAX_LEVEL; i++){
+        for(int8_t k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
             mon->level_up_table[i][k] = -1;
         }
     }
 
     cJSON* lvl_up_table = cJSON_GetObjectItem(entry, "level_up_table");
     slot = 0;
-    for(int i = 0; i < MAX_LEVEL; i++){
+    for(int8_t i = 0; i < MAX_LEVEL; i++){
         char lvl[8];
         sprintf(lvl, "%d", i);
 
         cJSON* move_lvl = cJSON_GetObjectItem(lvl_up_table, lvl);
         cJSON* move_id = NULL;
         if(move_lvl){
-            int k = 0;
+            int8_t k = 0;
             cJSON_ArrayForEach(move_id, move_lvl){
                 mon->level_up_table[i][k] = move_id->valueint;
                 k++;
@@ -197,7 +197,7 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
 void MoveParseJSON(cJSON* entry, move_t* m){
     // Load basic data
     m->id = cJSON_GetObjectItem(entry, "id")->valueint;
-    strcpy(m->move_name, cJSON_GetObjectItem(entry, "name")->valuestring);
+    m->move_name = SDL_strdup(cJSON_GetObjectItem(entry, "name")->valuestring);
     m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
     m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
     m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
@@ -236,8 +236,8 @@ void MonstersInit() {
 
     // LOAD ALL TYPE ADVANTAGES INTO THE LIBRARY
     // Initialize all values to 1 as the default mult
-    for(unsigned int i = 0; i < TYPE_COUNT; i++){
-        for(unsigned int k = 0; k < TYPE_COUNT; k++){
+    for(uint8_t i = 0; i < TYPE_COUNT; i++){
+        for(uint8_t k = 0; k < TYPE_COUNT; k++){
             TypeChart[i][k] = 1.0f;
         }
     }
@@ -306,7 +306,7 @@ void MonstersInit() {
 
 // MONSTER SPAWNING LOGIC
 
-int CheckMonsterCanSpawn(int tile_type){
+int8_t CheckMonsterCanSpawn(int8_t tile_type){
     switch (tile_type)
     {
     case SPAWNABLE_TALL_GRASS:
@@ -353,9 +353,9 @@ void MonsterSetStats(monster_t* monster){
 }
 
 // Takes in a template monster and sets the spawned monster similar to the player's average level
-static int MonsterSetSpawnLevel(int avg_player_level){
-    int spawn_level = avg_player_level;
-    int rng = rand() % 100;
+static int8_t MonsterSetSpawnLevel(int8_t avg_player_level){
+    int8_t spawn_level = avg_player_level;
+    int8_t rng = rand() % 100;
 
     if(avg_player_level < 10){
         if(rng < 80){
@@ -378,15 +378,15 @@ static int MonsterSetSpawnLevel(int avg_player_level){
     return spawn_level;
 }
 
-monster_t SpawnMonster(int tile_type, int avg_player_level){
+monster_t SpawnMonster(int8_t tile_type, int8_t avg_player_level){
     printf("MONSTER SPAWNED\n");
     
     char* tiles_file_data = LoadFileToString("data/tile_data.json");
     if (!tiles_file_data) return ALL_MONSTERS[0];
 
     // Array to store the id of all the spawnable monsters on this tile
-    int spawnable_mons_ids[150];
-    int count = 0;
+    int16_t spawnable_mons_ids[150];
+    int16_t count = 0;
 
     cJSON* tiles_json = cJSON_Parse(tiles_file_data);
     if (!tiles_json) {
@@ -400,7 +400,7 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
         cJSON* t_item = cJSON_GetObjectItem(tile_data, "tile_type");
         if (!t_item) continue;
 
-        int tile_type_json = t_item->valueint;
+        int8_t tile_type_json = t_item->valueint;
         if(tile_type_json == tile_type){
             // Load the spawnable monsters to the array
             cJSON* spawnable_mons = cJSON_GetObjectItem(tile_data, "spawnable_monsters");
@@ -428,14 +428,14 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
     //=================================================================
 
     // This number will represent the rarity of the spawned monster
-    int spawned_rarity = rand() % (100 + 1);
+    int8_t spawned_rarity = rand() % (100 + 1);
     printf("RARITY: %d\n", spawned_rarity);
     if(spawned_rarity < 70){
         // COMMON SPAWN
         // Infinite loop to try to keep spawning
         while(1){
-            int random_id = rand() % (count + 1);
-            int rndm_m_id = spawnable_mons_ids[random_id];
+            int16_t random_id = rand() % (count + 1);
+            int16_t rndm_m_id = spawnable_mons_ids[random_id];
 
             monster_t* monster = GetMonsterById(rndm_m_id);
             if(monster && monster->rarity == COMMON){
@@ -456,8 +456,8 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
         // UNCOMMON SPAWN
         // Infinite loop to try to keep spawning
         while(1){
-            int random_id = rand() % (count + 1);
-            int rndm_m_id = spawnable_mons_ids[random_id];
+            int16_t random_id = rand() % (count + 1);
+            int16_t rndm_m_id = spawnable_mons_ids[random_id];
 
             monster_t* monster = GetMonsterById(rndm_m_id);
             if(monster && monster->rarity == UNCOMMON){
@@ -478,8 +478,8 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
         // RARE SPAWN
         // Infinite loop to try to keep spawning
         while(1){
-            int random_id = rand() % (count + 1);
-            int rndm_m_id = spawnable_mons_ids[random_id];
+            int16_t random_id = rand() % (count + 1);
+            int16_t rndm_m_id = spawnable_mons_ids[random_id];
 
             monster_t* monster = GetMonsterById(rndm_m_id);
             if(monster && monster->rarity == RARE){
@@ -499,8 +499,8 @@ monster_t SpawnMonster(int tile_type, int avg_player_level){
         // VERY RARE SPAWN (Mostly evolutions of starters or starters themselves)
         // Infinite loop to try to keep spawning
         while(1){
-            int random_id = rand() % (count + 1);
-            int rndm_m_id = spawnable_mons_ids[random_id];
+            int16_t random_id = rand() % (count + 1);
+            int16_t rndm_m_id = spawnable_mons_ids[random_id];
 
             monster_t* monster = GetMonsterById(rndm_m_id);
             if(monster && monster->rarity == VERY_RARE){
@@ -535,28 +535,28 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
     }
 }
 
-int TrySpawnMonster(player_t* player, map_t* map){            
-    int current_x = player->x_pos / 32;
-    int current_y = player->y_pos / 32;
+int8_t TrySpawnMonster(player_t* player, map_t* map){            
+    int32_t current_x = player->x_pos / 32;
+    int32_t current_y = player->y_pos / 32;
 
-    int new_tile_type = GetCurrentTileType(current_x, current_y, map);
+    int8_t new_tile_type = GetCurrentTileType(current_x, current_y, map);
 
     if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
         printf("NEW TILE TYPE: %d\n", new_tile_type);
 
         // Every time player changes tile 20% chance to spawn
-        int spawn_num = rand() % (100 + 1);
+        int8_t spawn_num = rand() % (100 + 1);
 
         if(spawn_num <= 20){
-            int total_level = 0;
-            int count = 0;
-            for(int i = 0; i < 5; i++){
+            int16_t total_level = 0;
+            int8_t count = 0;
+            for(int8_t i = 0; i < 5; i++){
                 if(player->monster_party[i]){
                     total_level += player->monster_party[i]->level;
                     count++;
                 }
             }
-            int avg_level = (count > 0) ? total_level / count : 5;
+            int8_t avg_level = (count > 0) ? total_level / count : 5;
 
             printf("AVG LEVEL DONE\n");
 
@@ -589,17 +589,17 @@ static void MonsterLevelUpStats(monster_t* monster){
 
     // TODO : Learn new moves based on level
     
-    int hp_gain = (base->max_hp / 50) + 1 + (rand() % 3);
+    int8_t hp_gain = (base->max_hp / 50) + 1 + (rand() % 3);
     monster->max_hp += hp_gain;
     monster->current_hp = monster->max_hp;
 
-    int atk_gain = (base->attack / 50) + 1 + (rand() % 2);
+    int8_t atk_gain = (base->attack / 50) + 1 + (rand() % 2);
     monster->attack += atk_gain;
 
-    int def_gain = (base->defense / 50) + 1 + (rand() % 2);
+    int8_t def_gain = (base->defense / 50) + 1 + (rand() % 2);
     monster->defense += def_gain;
 
-    int spd_gain = (base->speed / 50) + 1 + (rand() % 2);
+    int8_t spd_gain = (base->speed / 50) + 1 + (rand() % 2);
     monster->speed += spd_gain;
 
     printf("%s leveled up to %d! (+%d HP, +%d Atk, +%d Def, +%d Spd)\n", 
@@ -630,7 +630,7 @@ static monster_t* MonsterEvolve(monster_t* monster){
     monster->evo_2_level = evo_monster->evo_2_level;
 
     // TODO : Check for evolution unlocked moves
-    for(int i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
+    for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
         printf("%d", monster->level_up_table[monster->level][i]);
         if(monster->level_up_table[monster->level][i] == -1) break;
 
@@ -642,7 +642,7 @@ static monster_t* MonsterEvolve(monster_t* monster){
     return monster;
 }
 
-int MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster){
+int32_t MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster){
     float multiplier = 1.0f;
 
     if(defeated_monster->level > player_monster->level){
@@ -651,23 +651,23 @@ int MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster){
 
     // Quadratic formula to scale with the XP requirement curve
     // (Level^2 / 2) + 10*Level + 10
-    int base_yield = (defeated_monster->level * defeated_monster->level / 2) + (defeated_monster->level * 10) + 100;
+    int32_t base_yield = (defeated_monster->level * defeated_monster->level / 2) + (defeated_monster->level * 10) + 100;
     
     // Bonus for rarity (Common=0, Uncommon=1, etc.)
     // Adds 20% per rarity tier
-    int rarity_bonus = (base_yield * player_monster->rarity) / 5;
+    int32_t rarity_bonus = (base_yield * player_monster->rarity) / 5;
     
     return (int)((base_yield + rarity_bonus) * multiplier);
 }
 
 static void MonsterRestoreMoves(monster_t* monster){
-    for(unsigned int i = 0; i < 4; i++){
+    for(uint8_t i = 0; i < 4; i++){
         monster->usable_moves[i].available_uses = monster->usable_moves[i].max_uses;
     }
 }
 
 
-void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int exp_amount){
+void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int32_t exp_amount){
     if(defeated_monster) monster->current_exp += MonsterGetExpYield(defeated_monster, monster);
     else monster->current_exp += exp_amount;
 
@@ -691,7 +691,7 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int exp_amou
         monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
 
         // Check for new moves upon leveling up ig
-        for(int i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
+        for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
             if(monster->level_up_table[monster->level][i] == -1) break;
 
             printf("STARTING LEARN MOVE...\n");
@@ -701,7 +701,7 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int exp_amou
     }
 }
 
-int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device){
+int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device){
 
     // Initially set the catch_rate to the default
     float catch_rate = BASE_CATCH_RATE;
@@ -716,7 +716,7 @@ int MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device
     catch_rate = catch_rate - level_debuff + remaining_hp_buff;
     catch_rate *= device->catch_rate_mult;
 
-    int rnd_catch = rand() % (100 + 1);
+    int8_t rnd_catch = rand() % (100 + 1);
     
     if(rnd_catch <= catch_rate || catch_rate >= 100){
         PlayerAddMonsterToParty(monster);
@@ -767,7 +767,7 @@ char* MonsterGetSFXString(monster_t* m){
     }
 }
 
-int MonsterCheckCanMove(monster_t* m, char* msg){
+int8_t MonsterCheckCanMove(monster_t* m, char* msg){
     if(m->current_status_fx == NONE) return 1;
     
     m->status_fx_durantion--;
@@ -792,7 +792,7 @@ int MonsterCheckCanMove(monster_t* m, char* msg){
     }
 }
 
-int MonsterApplyStatusDamage(monster_t* m, char* msg){
+int8_t MonsterApplyStatusDamage(monster_t* m, char* msg){
     if(m->current_status_fx == NONE) return 0;
     
     float dmg = 0.0f;
@@ -819,11 +819,11 @@ int MonsterApplyStatusDamage(monster_t* m, char* msg){
     }
 }
 
-int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
+int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
     move->available_uses--;
     sprintf(return_msg, "%s used %s!", attacker->monster_name, move->move_name);
 
-    int move_hit = rand() % 100;
+    int8_t move_hit = rand() % 100;
     if(move->acc_percent != 100 && move_hit >= move->acc_percent){
         strcat(return_msg, " But missed!");
         printf("%s\n", return_msg);
@@ -881,7 +881,7 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
     }
 
     if(move->damage > 0){
-        int final_damage = (int)(base_damage * modifier);
+        int16_t final_damage = (int)(base_damage * modifier);
         if (final_damage < 1) final_damage = 1;
 
         // Apply Damage
@@ -899,7 +899,7 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
 
 
     if(move->status_effect > 0){
-        int rng = rand() % 3 + 1;
+        int8_t rng = rand() % 3 + 1;
         if(rng == 1){
             MonsterAddStatusFx(attacked, move->status_effect);
             printf("STATUS FX APPLIED: %d\n", move->status_effect);
@@ -909,7 +909,7 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
     // Apply Stat Changes
     if(move->stat_to_modify != STAT_NONE){
         monster_t* target = move->is_modify_self ? attacker : attacked;
-        int* stage = NULL;
+        int8_t* stage = NULL;
         char* stat_name = NULL;
 
         switch(move->stat_to_modify){
@@ -929,7 +929,7 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
         }
 
         if(stage){
-            int change = move->stat_stage_change;
+            int8_t change = move->stat_stage_change;
             char stat_msg[512];
             // Initialize to empty string to prevent gibberish if change is 0
             stat_msg[0] = '\0';
@@ -958,7 +958,7 @@ int MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, cha
     return 1;
 }
 
-int MonsterHeal(monster_t* monster, unsigned int heal_amount){
+int8_t MonsterHeal(monster_t* monster, uint16_t heal_amount){
     // Has fainted so does not heal
     if(monster->current_hp <= 0) return 0;
 
@@ -968,6 +968,6 @@ int MonsterHeal(monster_t* monster, unsigned int heal_amount){
 }
 
 move_t* MonsterChooseEnemyAttack(monster_t* enemy){
-    int rnd = rand() % 4;
+    int32_t rnd = rand() % 4;
     return &enemy->usable_moves[rnd];
 }

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -20,8 +21,8 @@
 
 SDL_Renderer* rend;
 TTF_Font* game_font;
-int screen_w;
-int screen_h;
+int32_t screen_w;
+int32_t screen_h;
 
 int main()
 {
@@ -50,7 +51,7 @@ int main()
     player_t* player = PlayerInit();
     
     // Player's absolute position in the world
-    int world_x = 0, world_y = 0;
+    int32_t world_x = 0, world_y = 0;
 
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
     union item_t ball_union = {.catch_device = &ball};
@@ -67,8 +68,8 @@ int main()
     SDL_Rect viewport = { 0, 0, screen_w, screen_h };
     MapUpdateViewport(&viewport, player, map->width * TILE_SIZE, map->height * TILE_SIZE, screen_w, screen_h);
 
-    int map_w = map->width * TILE_SIZE;
-    int map_h = map->height * TILE_SIZE;
+    int32_t map_w = map->width * TILE_SIZE;
+    int32_t map_h = map->height * TILE_SIZE;
 
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
@@ -80,11 +81,11 @@ int main()
 
     PlayerSetStarters(player);
 
-    int running = 1;
+    int8_t running = 1;
     Uint32 last_time = SDL_GetTicks();
-    int frame_count = 0;
+    int32_t frame_count = 0;
     Uint32 last_frame_time = SDL_GetTicks();
-    int fps = 0;
+    int32_t fps = 0;
     char fps_str[32] = "0";
 
     SDL_Rect fps_rect = {5, 5, 0, 0};
@@ -188,8 +189,8 @@ int main()
         if (world_y > map_h - player->sprite_rect.h) world_y = map_h - player->sprite_rect.h;
 
         // Calculate camera offset to center the player
-        int offset_x = (screen_w / 2) - (player->sprite_rect.w / 2) - world_x;
-        int offset_y = (screen_h / 2) - (player->sprite_rect.h / 2) - world_y;
+        int32_t offset_x = (screen_w / 2) - (player->sprite_rect.w / 2) - world_x;
+        int32_t offset_y = (screen_h / 2) - (player->sprite_rect.h / 2) - world_y;
 
         // Set boundaries for the camera
         if (offset_x > 0) offset_x = 0;

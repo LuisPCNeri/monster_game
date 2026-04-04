@@ -1,6 +1,8 @@
 #ifndef __MAP_H__
 #define __MAP_H__
 
+#include <stdint.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_keyboard.h>
@@ -13,10 +15,10 @@
 #define TILE_SIZE 32
 
 typedef struct map_t{
-    int** tile_data;
-    int height;
-    int width;
     SDL_Texture* tile_sheet;
+    int32_t height;
+    int32_t width;
+    int8_t** tile_data;
 } map_t;
 
 // TILE TYPE DEFENITIONS
@@ -50,13 +52,14 @@ void MapDraw(map_t* map, SDL_Renderer* rend, SDL_Rect viewport);
     \param screen_w Screen witdh in pixels
     \param screen_h Screen height in pixels
 */
-void MapUpdateViewport(SDL_Rect* viewport, player_t* player, int map_w_px, int map_h_px, int screen_w, int screen_h);
+void MapUpdateViewport(SDL_Rect* viewport, player_t* player, int32_t map_w_px, int32_t map_h_px, 
+    int32_t screen_w, int32_t screen_h);
 
 // Frees memory allocated for map
 void MapDestroy(map_t* map);
 
 // Takes int x_pos and y_pos
 // Returns the int corresponding to the type of the tile x_pos and y_pos are in or -1 if it fails
-int GetCurrentTileType(int x_pos, int y_pos, map_t* map);
+int8_t GetCurrentTileType(int32_t x_pos, int32_t y_pos, map_t* map);
 
 #endif

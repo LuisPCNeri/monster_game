@@ -18,8 +18,8 @@ static monster_t* starter_mons[STARTER_NUM];
 
 static player_t* active_player = NULL;
 
-static int starting_sprite_stage = 0;
-static int max_sprite_stage = 0;
+static int8_t starting_sprite_stage = 0;
+static int8_t max_sprite_stage = 0;
 
 player_t* PlayerInit(){
     player_t* player = (player_t*) calloc(1, sizeof(player_t));
@@ -48,7 +48,7 @@ void PlayerStarterMenuDraw(Uint32 dt){
     (void)dt;
     if(!starter_select_menu) return;
 
-    for(int i = 0; i < STARTER_NUM; i++){
+    for(int16_t i = 0; i < STARTER_NUM; i++){
         if(starter_mons[i]) MenuRenderItem(starter_mons[i]->monster_name, &starter_select_menu->menu_items[i]);
     }
 }
@@ -63,20 +63,20 @@ void PlayerSetStarters(player_t* player){
     starter_select_menu = MenuCreate(3, 0, 1, &PlayerStarterMenuDraw, &PlayerMenuHandleSelect);
 
     // Get the screen size
-    int screen_w, screen_h;
+    int32_t screen_w, screen_h;
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
     // btn size variables
-    int btn_w = 400;
-    int btn_h = 100;
-    int gap = 50;
+    int32_t btn_w = 400;
+    int32_t btn_h = 100;
+    int32_t gap = 50;
     // Calculate where buttons should start appearing at to be centered
-    int total_width = (STARTER_NUM * btn_w) + ((STARTER_NUM - 1) * gap);
+    int32_t total_width = (STARTER_NUM * btn_w) + ((STARTER_NUM - 1) * gap);
     // First button coordinates
-    int start_x = (screen_w - total_width) / 2;
-    int start_y = (screen_h - btn_h) / 2;
+    int32_t start_x = (screen_w - total_width) / 2;
+    int32_t start_y = (screen_h - btn_h) / 2;
 
-    for(int i = 0; i < STARTER_NUM; i++){
+    for(int16_t i = 0; i < STARTER_NUM; i++){
         SDL_Rect starter_rect = {start_x + i * (btn_w + gap), start_y, btn_w, btn_h};
         // The first button is selected so make it appear so
         if(i == 0) {
@@ -99,7 +99,7 @@ void PlayerSetStarters(player_t* player){
 }
 
 void PlayerMenuHandleSelect(){
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         // INITIALIZEALL PLAYER PARTY VALUES TO NULL
         active_player->monster_party[i] = NULL;
     }
@@ -121,18 +121,18 @@ void PlayerMenuHandleSelect(){
     active_player->current_menu = NULL;
 
     // Prints the level up table for the chosen starter for debug purposes
-    for(int i = 0; i < MAX_LEVEL; i++){
-        for(int k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
+    for(int16_t i = 0; i < MAX_LEVEL; i++){
+        for(int16_t k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
             if(active_player->monster_party[0]->level_up_table[i][k] != -1)
                 printf("lvl: %d, move: %d\n", i, active_player->monster_party[0]->level_up_table[i][k]);
         }
     }
 }
 
-int PlayerAddMonsterToParty(monster_t* monster){
-    int has_space = 0;
+int8_t PlayerAddMonsterToParty(monster_t* monster){
+    int8_t has_space = 0;
     
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(!active_player->monster_party[i]){
             active_player->monster_party[i] = (monster_t*) malloc(sizeof(monster_t));
 
@@ -148,8 +148,8 @@ int PlayerAddMonsterToParty(monster_t* monster){
     return has_space;
 }
 
-int PlayerCheckIsPartyDead(player_t* player){
-    for(int i = 0; i < PARTY_SIZE; i++){
+int8_t PlayerCheckIsPartyDead(player_t* player){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(player->monster_party[i]){
             if(player->monster_party[i]->current_hp > 0) return 0;
         }
@@ -158,7 +158,7 @@ int PlayerCheckIsPartyDead(player_t* player){
     return 1;
 }
 
-void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 dt){
+void PlayerRenderNotifBox(player_t* player, int32_t offset_x, int32_t offset_y, Uint32 dt){
     static SDL_Texture* notif_text = NULL;
     if(!notif_text) {
         SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");
@@ -169,7 +169,7 @@ void PlayerRenderNotifBox(player_t* player, int offset_x, int offset_y, Uint32 d
     }
 
     // blink blink fucker
-    static int blink_timer = 0;
+    static int32_t blink_timer = 0;
     blink_timer += dt;
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
@@ -216,7 +216,7 @@ static void UpdateBaseSpriteStages(player_t* player){
 void PlayerMove(player_t* player, Orientation direction, int* world_pos){
 
     if(player->facing_direction == direction){
-        int range = max_sprite_stage - starting_sprite_stage + 1;
+        int32_t range = max_sprite_stage - starting_sprite_stage + 1;
         if (range > 0) {
             player->sprite_stage = starting_sprite_stage + (SDL_GetTicks64() / 200) % range;
         }
@@ -247,7 +247,7 @@ void PlayerMove(player_t* player, Orientation direction, int* world_pos){
 }
 
 void PlayerDestroy(player_t* p){
-    for(unsigned int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(p->monster_party[i]) free(p->monster_party[i]);
     }
 

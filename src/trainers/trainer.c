@@ -7,6 +7,7 @@
 // availability to use items
 // and in general a weight system that would result in a MUCH harder battle
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -25,10 +26,10 @@
 
 extern SDL_Renderer* rend;
 
-static int world_offset_x, world_offset_y;
+static int32_t world_offset_x, world_offset_y;
 // Number of trainers is arbitrary and can me increased or decreased at any time
 static trainer_t TRAINERS[100];
-static unsigned int current_trainers = 0;
+static u_int32_t current_trainers = 0;
 
 static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
 static Mix_Music* notif_sound = NULL;
@@ -82,9 +83,9 @@ void TrainersInit(){
     cJSON* entry = NULL;
     cJSON_ArrayForEach(entry, trainers){
         trainer_t* t = &TRAINERS[current_trainers];
-        strcpy(t->name, cJSON_GetObjectItem(entry, "name")->valuestring);
-        strcpy(t->sprite_path, cJSON_GetObjectItem(entry, "sprite")->valuestring);
-        strcpy(t->intro_msg, cJSON_GetObjectItem(entry, "intro_msg")->valuestring);
+        t->name         = SDL_strdup(cJSON_GetObjectItem(entry, "name")->valuestring);
+        t->sprite_path  = SDL_strdup(cJSON_GetObjectItem(entry, "sprite")->valuestring);
+        t->intro_msg    = SDL_strdup(cJSON_GetObjectItem(entry, "intro_msg")->valuestring);
         t->type = MonsterGetTypeFromString(cJSON_GetObjectItem(entry, "type")->valuestring);
         t->facing_direction = GetOrientationFromString(cJSON_GetObjectItem(entry, "orientation")->valuestring);
         t->x_pos = cJSON_GetObjectItem(entry, "x")->valueint;
@@ -94,9 +95,9 @@ void TrainersInit(){
 
         cJSON* party = cJSON_GetObjectItem(entry, "party");
         cJSON* monster = NULL;
-        int slot = 0;
+        int32_t slot = 0;
         
-        for(int i = 0; i < PARTY_SIZE; i++) t->party[i].id = -1;
+        for(int8_t i = 0; i < PARTY_SIZE; i++) t->party[i].id = -1;
 
         cJSON_ArrayForEach(monster, party){
             if(slot > PARTY_SIZE) break;
@@ -113,22 +114,22 @@ void TrainersInit(){
     free(file);
 }
 
-int TrainerIsVisible(trainer_t* t, int offset_x, int offset_y){
-    int screen_w, screen_h;
+int8_t TrainerIsVisible(trainer_t* t, int32_t offset_x, int32_t offset_y){
+    int32_t screen_w, screen_h;
     SDL_GetRendererOutputSize(rend , &screen_w, &screen_h);
 
-    int draw_x = t->x_pos + offset_x;
-    int draw_y = t->y_pos + offset_y;
+    int32_t draw_x = t->x_pos + offset_x;
+    int32_t draw_y = t->y_pos + offset_y;
 
     return (draw_x + TRAINER_SPRITE_SIZE > 0 && draw_x < screen_w &&
             draw_y + TRAINER_SPRITE_SIZE > 0 && draw_y < screen_h);
 }
 
-void TrainerDraw(int offset_x, int offset_y){
+void TrainerDraw(int32_t offset_x, int32_t offset_y){
     world_offset_x = offset_x;
     world_offset_y = offset_y;
 
-    for(unsigned int i = 0; i < current_trainers; i++){
+    for(uint32_t i = 0; i < current_trainers; i++){
         if(!TrainerIsVisible(&TRAINERS[i], offset_x, offset_y)) continue;
 
         if(TRAINERS[i].texture == NULL){
@@ -173,11 +174,11 @@ static trainer_t* TrainerGetClosest(player_t* p){
     if(current_trainers < 2) return &TRAINERS[0];
 
     trainer_t* closest = NULL;
-    int closest_dist = INT32_MAX;
-    for(unsigned int i = 0; i < current_trainers; i++){
-        int dx = p->x_pos - TRAINERS[i].x_pos;
-        int dy = p->y_pos - TRAINERS[i].y_pos;
-        int dist = dx*dx + dy*dy;
+    int32_t closest_dist = INT32_MAX;
+    for(uint32_t i = 0; i < current_trainers; i++){
+        int32_t dx = p->x_pos - TRAINERS[i].x_pos;
+        int32_t dy = p->y_pos - TRAINERS[i].y_pos;
+        int32_t dist = dx*dx + dy*dy;
         if(closest_dist > dist){
             closest_dist = dist;
             closest = &TRAINERS[i];
@@ -196,17 +197,17 @@ static void TrainerAggro(player_t* p, trainer_t* t){
     p->aggro_timer = PLAYER_AGGRO_TIMER;
 }
 
-int TrainerCheckAggro(player_t* player){
+int8_t TrainerCheckAggro(player_t* player){
     trainer_t* closest = TrainerGetClosest(player);
 
     if(closest->was_defeated) return 0;
     if(PlayerCheckIsPartyDead(player)) return 0;
 
-    int dist = sqrt(pow(player->x_pos - closest->x_pos, 2) + pow(player->y_pos - closest->y_pos, 2));
+    int32_t dist = sqrt(pow(player->x_pos - closest->x_pos, 2) + pow(player->y_pos - closest->y_pos, 2));
 
     // Position of the center of the closest trainer's sprite
-    int trainer_CoM_x = closest->x_pos + (TRAINER_SPRITE_SIZE / 2);
-    int trainer_CoM_y = closest->y_pos + (TRAINER_SPRITE_SIZE / 2);
+    int32_t trainer_CoM_x = closest->x_pos + (TRAINER_SPRITE_SIZE / 2);
+    int32_t trainer_CoM_y = closest->y_pos + (TRAINER_SPRITE_SIZE / 2);
 
     if(dist / TILE_SIZE > MAX_AGGRO_DIST) return 0;
 
@@ -264,9 +265,9 @@ void TrainerUpdateAggro(player_t* player, Uint32 dt){
     }
 }
 
-int TrainerCheckPartyIsDead(trainer_t* trainer){
+int8_t TrainerCheckPartyIsDead(trainer_t* trainer){
     if(!trainer) return 0;
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(trainer->party[i].current_hp > 0) return 0;
     }
 
@@ -274,7 +275,7 @@ int TrainerCheckPartyIsDead(trainer_t* trainer){
 }
 
 void TrainerRestoreParty(trainer_t* trainer){
-    for(int i = 0; i < PARTY_SIZE; i++){
+    for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(trainer->party[i].id == -1) continue;
 
         monster_t* mon = &trainer->party[i];
@@ -284,13 +285,13 @@ void TrainerRestoreParty(trainer_t* trainer){
         mon->def_stage = 0;
         mon->current_status_fx = NONE;
         // k < amount of moves per monster
-        for(int k = 0; k < 4; k++){
+        for(int8_t k = 0; k < 4; k++){
             mon->usable_moves[i].available_uses = mon->usable_moves[i].max_uses;
         }
     }
 }
 
-void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt){
+void TrainerRenderNotifBox(trainer_t* t, int32_t offset_x, int32_t offset_y, Uint32 dt){
     static SDL_Texture* notif_text = NULL;
     if(!notif_text) {
         SDL_Surface* notif_surf = IMG_Load("resources/player_notif.png");
@@ -301,7 +302,7 @@ void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt){
     }
 
     // blink blink fucker
-    static int blink_timer = 0;
+    static int32_t blink_timer = 0;
     blink_timer += dt;
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
@@ -312,29 +313,29 @@ void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt){
     if(notif_text) SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
 }
 
-int TrainerIsCollingWithPlayer(player_t* player){
+int8_t TrainerIsCollingWithPlayer(player_t* player){
     trainer_t* closest = TrainerGetClosest(player);
     
-    int player_half = PLAYER_SPRITE_SIZE / 2;
-    int player_bottom = player->y_pos + player_half;
-    int player_right = player->x_pos + player_half;
-    int player_left = player->x_pos - player_half;
-    int player_top = player->y_pos - player_half;
+    int32_t player_half = PLAYER_SPRITE_SIZE / 2;
+    int32_t player_bottom = player->y_pos + player_half;
+    int32_t player_right = player->x_pos + player_half;
+    int32_t player_left = player->x_pos - player_half;
+    int32_t player_top = player->y_pos - player_half;
 
-    int trainer_right = closest->x_pos + TRAINER_SPRITE_SIZE;
-    int trainer_bottom = closest->y_pos + TRAINER_SPRITE_SIZE;
+    int32_t trainer_right = closest->x_pos + TRAINER_SPRITE_SIZE;
+    int32_t trainer_bottom = closest->y_pos + TRAINER_SPRITE_SIZE;
 
     if(player_left < closest->x_pos || player_top <= closest->y_pos || player_right >= trainer_right || player_bottom >= trainer_bottom )
         return 5;
 
-    int overlap_left = player_right - closest->x_pos;
-    int overlap_right = trainer_right - player_left;
-    int overlap_top = player_bottom - closest->y_pos;
-    int overlap_bottom = trainer_bottom - player_top;
+    int32_t overlap_left = player_right - closest->x_pos;
+    int32_t overlap_right = trainer_right - player_left;
+    int32_t overlap_top = player_bottom - closest->y_pos;
+    int32_t overlap_bottom = trainer_bottom - player_top;
 
     // As a default, consider player is coming from the left of the trainer
-    int min_overlap = overlap_left;
-    int direction = EAST;
+    int32_t min_overlap = overlap_left;
+    int32_t direction = EAST;
 
     // Whatever overlap is the highest is returned
     if(overlap_right < min_overlap){

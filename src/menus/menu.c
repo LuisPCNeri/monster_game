@@ -12,7 +12,7 @@
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
 
-menu_t* MenuCreate(int item_num, int has_rows, int has_columns, void* draw_func, void* select_func){
+menu_t* MenuCreate(int32_t item_num, int8_t has_rows, int8_t has_columns, void* draw_func, void* select_func){
     menu_t* menu = (menu_t*) malloc(sizeof(menu_t));
 
     menu->menu_items = (SDL_Rect*) malloc(sizeof(SDL_Rect)*item_num);
@@ -41,7 +41,7 @@ void MenuRenderItem(const char* btn_text, SDL_Rect* dst_rect){
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
     SDL_FreeSurface(text_surface);
 
-    int text_w, text_h;
+    int32_t text_w, text_h;
     SDL_QueryTexture(text_texture, NULL, NULL, &text_w, &text_h);
 
     SDL_Rect text_rect;
@@ -77,7 +77,7 @@ void MenuItemKeyUp(player_t* player){
     menu_t* menu = player->current_menu;
     if(menu->items_amount <= 1) return;
 
-    int stride = (menu->has_columns) ? 2 : 1;
+    int8_t stride = (menu->has_columns) ? 2 : 1;
 
     if(player->inv_isOpen){
         if(!player->inv->current->prev_item || player->inv->current->prev_item->id == -1) return;
@@ -96,7 +96,7 @@ void MenuItemKeyDown(player_t* player){
     menu_t* menu = player->current_menu;
     if(menu->items_amount <= 1) return;
 
-    int stride = (menu->has_columns) ? 2 : 1;
+    int8_t stride = (menu->has_columns) ? 2 : 1;
 
     if(player->inv_isOpen){
         if(!player->inv->current->next_item || player->inv->current->next_item->id == -1) return;

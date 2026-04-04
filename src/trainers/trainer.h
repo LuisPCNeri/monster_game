@@ -1,6 +1,7 @@
 #ifndef __TRAINER_H__
 #define __TRAINER_H__
 
+#include <stdint.h>
 #include <SDL2/SDL.h>
 #include "player/player.h"
 #include "monsters/monster.h"
@@ -14,20 +15,21 @@ typedef enum FacingDirection{
     LEFT
 } FacingDirection;
 
-typedef struct trainer_t
-{   
-    int x_pos;
-    int y_pos;
-    int was_defeated;
-    FacingDirection facing_direction;
-
-    MonsterTypes type;
-
-    char sprite_path[256];
-    char name[512];
-    char intro_msg[1024];
-    SDL_Texture* texture;
+typedef struct trainer_t{
     monster_t party[PARTY_SIZE];
+
+    char* intro_msg;
+    char* name;
+    char* sprite_path;
+    SDL_Texture* texture;
+    
+    int32_t x_pos;
+    int32_t y_pos;
+
+    FacingDirection facing_direction;
+    MonsterTypes type;  
+
+    int8_t was_defeated;  
 } trainer_t;
 
 // Load trainers into memory
@@ -39,14 +41,14 @@ void TrainersInit();
     \param offset_x Camera's offset on the x axis.
     \param offset_y Camera's offset on the y axis.
 */
-int TrainerIsVisible(trainer_t* t, int offset_x, int offset_y);
-void TrainerDraw(int offset_x, int offset_y);
+int8_t TrainerIsVisible(trainer_t* t, int32_t offset_x, int32_t offset_y);
+void TrainerDraw(int32_t offset_x, int32_t offset_y);
 
 /*
     Returns 1 if player is in LoS of the trainer and 0 if not.
     \param player Active player to track.
 */
-int TrainerCheckAggro(player_t* player);
+int8_t TrainerCheckAggro(player_t* player);
 
 /*
     Takes care of carrying out the little animation that shows the exclamation mark above the trainer when it sees you.
@@ -54,9 +56,9 @@ int TrainerCheckAggro(player_t* player);
     \param dt Time difference in between frames.
 */
 void TrainerUpdateAggro(player_t* player, Uint32 dt);
-int TrainerCheckPartyIsDead(trainer_t* trainer);
+int8_t TrainerCheckPartyIsDead(trainer_t* trainer);
 void TrainerRestoreParty(trainer_t* trainer);
-void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt);
+void TrainerRenderNotifBox(trainer_t* t, int32_t offset_x, int32_t offset_y, Uint32 dt);
 
 /*
     Returns 1 if player is overlapping with the closest trainer's rectangle.
@@ -64,6 +66,6 @@ void TrainerRenderNotifBox(trainer_t* t, int offset_x, int offset_y, Uint32 dt);
 
     \param *player Pointer to current active player.
 */
-int TrainerIsCollingWithPlayer(player_t* player);
+int8_t TrainerIsCollingWithPlayer(player_t* player);
 
 #endif
