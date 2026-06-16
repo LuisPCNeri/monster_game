@@ -15,6 +15,7 @@
 #include "monsters/monster.h"
 #include "monsters/battle/battle.h"
 #include "trainers/trainer.h"
+#include "utils/glbl_asset_manager.h"
 
 #define WINDOW_TITLE "WINDOW"
 #define FONT_SIZE 32
@@ -23,6 +24,8 @@ SDL_Renderer* rend;
 TTF_Font* game_font;
 int32_t screen_w;
 int32_t screen_h;
+
+glbl_asset_manager* asset_manager = NULL;
 
 int main()
 {
@@ -46,6 +49,8 @@ int main()
     game_font = TTF_OpenFont("resources/fonts/8bitOperatorPlus8-Regular.ttf", FONT_SIZE);
     Mix_OpenAudio(22050, AUDIO_S16SYS, 1, 1024);
     
+    asset_manager = (glbl_asset_manager *) malloc(sizeof(glbl_asset_manager));
+
     MonstersInit();
     TrainersInit();
     player_t* player = PlayerInit();
