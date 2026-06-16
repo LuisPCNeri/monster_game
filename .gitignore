@@ -1,9 +1,14 @@
 # Compiled files
 *.o
 
+# data
+*.json
+
 # Resources
 *.png
 *.mp3
+
+TO-DO.md
 
 # The main executable file
 main
