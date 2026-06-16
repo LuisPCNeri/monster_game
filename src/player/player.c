@@ -49,7 +49,7 @@ void PlayerStarterMenuDraw(Uint32 dt){
     if(!starter_select_menu) return;
 
     for(int16_t i = 0; i < STARTER_NUM; i++){
-        if(starter_mons[i]) MenuRenderItem(starter_mons[i]->monster_name, &starter_select_menu->menu_items[i]);
+        if(starter_mons[i]) MenuRenderItem(starter_mons[i]->name, &starter_select_menu->menu_items[i]);
     }
 }
 
@@ -88,9 +88,9 @@ void PlayerSetStarters(player_t* player){
         starter_select_menu->menu_items[i] = starter_rect;
     }
 
-    starter_mons[0] = GetMonsterById(1);
-    starter_mons[1] = GetMonsterById(4);
-    starter_mons[2] = GetMonsterById(7);
+    starter_mons[0] = GetMonsterById(2);
+    starter_mons[1] = GetMonsterById(5);
+    starter_mons[2] = GetMonsterById(8);
 
     player->current_menu = starter_select_menu;
     player->selected_menu_itm = 0;
@@ -127,6 +127,8 @@ void PlayerMenuHandleSelect(){
                 printf("lvl: %d, move: %d\n", i, active_player->monster_party[0]->level_up_table[i][k]);
         }
     }
+
+    MonsterPrint(active_player->monster_party[0]);
 }
 
 int8_t PlayerAddMonsterToParty(monster_t* monster){
@@ -151,7 +153,7 @@ int8_t PlayerAddMonsterToParty(monster_t* monster){
 int8_t PlayerCheckIsPartyDead(player_t* player){
     for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(player->monster_party[i]){
-            if(player->monster_party[i]->current_hp > 0) return 0;
+            if(player->monster_party[i]->hp > 0) return 0;
         }
     }
 

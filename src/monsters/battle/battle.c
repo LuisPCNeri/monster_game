@@ -12,6 +12,7 @@
 #include "player/monsterdex.h"
 #include "menus/menu.h"
 #include "battle.h"
+#include "utils/glbl_asset_manager.h"
 
 #define TURN_LENGTH 1000
 // IN MILLISECONDS (ms)
@@ -22,6 +23,11 @@ extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
 extern int32_t screen_w;
 extern int32_t screen_h;
+extern glbl_asset_manager* asset_manager;
+
+#define MON_FRONT_SPRITE_SIZE 96
+#define SHEET_VERT_PADDING 7
+#define SHEET_COLS 8
 
 static TTF_Font* info_font = NULL;
 
@@ -176,9 +182,9 @@ static void InitExpAnimation(){
     for(int8_t i = 0; i < PARTY_SIZE; i++){
         monster_t* m = active_player->monster_party[i];
         if(m){
-            anim_exp[i] = (float)m->current_exp;
+            anim_exp[i] = (float)m->exp;
             anim_level[i] = m->level;
-            anim_max_exp[i] = m->exp_to_next_level;
+            anim_max_exp[i] = m->max_xp;
         }
     }
 }
@@ -187,7 +193,7 @@ static int8_t BattleIsExpAnimating() {
     int8_t i = active_player->active_mon_index;
     monster_t* active_mon = active_player->monster_party[i];
     return (anim_level[i] < active_mon->level || 
-           (anim_level[i] == active_mon->level && anim_exp[i] < (float)active_mon->current_exp));
+           (anim_level[i] == active_mon->level && anim_exp[i] < (float)active_mon->exp));
 }
 
 void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
@@ -234,8 +240,8 @@ void BattleInit(player_t* player, monster_t* enemy_monster, trainer_t* trainer){
     MonsterResetBattleStats(player->monster_party[0]);
     MonsterResetBattleStats(enemy_mon);
 
-    player_displayed_hp = (float)player->monster_party[0]->current_hp;
-    enemy_displayed_hp = (float)enemy_mon->current_hp;
+    player_displayed_hp = (float)player->monster_party[0]->hp;
+    enemy_displayed_hp = (float)enemy_mon->hp;
 
     InitExpAnimation();
     player->selected_menu_itm = ATTACK;
@@ -252,7 +258,7 @@ static int8_t BattleCheckIsOver(){
     int8_t has_mon_left = !PlayerCheckIsPartyDead(active_player);
     monster_t* active_mon = active_player->monster_party[active_player->active_mon_index];
 
-    if(enemy_mon->current_hp <= 0){
+    if(enemy_mon->hp <= 0){
 
         InitExpAnimation();
         MonsterAddExp(active_mon, enemy_mon, 0);
@@ -270,23 +276,23 @@ static int8_t BattleCheckIsOver(){
             return 0;
         } else if (act_trainer) {
             for(int8_t i = 0; i < PARTY_SIZE; i++){
-                if(act_trainer->party[i].current_hp <= 0) continue;
+                if(act_trainer->party[i].hp <= 0) continue;
                 SDL_DestroyTexture(enemy_mon_tex);
                 enemy_mon_tex = NULL;
                 enemy_mon = &act_trainer->party[i];
                 MonsterResetBattleStats(enemy_mon);
-                enemy_displayed_hp = (float)enemy_mon->current_hp;
-                sprintf(message, "%s sent out %s!", act_trainer->name, enemy_mon->monster_name);
+                enemy_displayed_hp = (float)enemy_mon->hp;
+                sprintf(message, "%s sent out %s!", act_trainer->name, enemy_mon->name);
                 battle_state = TRAINER_SWITCH;
                 return 0;
             }
         } else {
-            sprintf(message, "Wild %s fainted!", enemy_mon->monster_name);
+            sprintf(message, "Wild %s fainted!", enemy_mon->name);
             battle_state = BATTLE_END_MSG;
             return 0;
         }
     }
-    else if(active_mon->current_hp <= 0 && has_mon_left){
+    else if(active_mon->hp <= 0 && has_mon_left){
         MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
         active_player->selected_menu_itm = SWITCH;
         MenuHighlightBox(&active_player->current_menu->menu_items[SWITCH]);
@@ -294,7 +300,7 @@ static int8_t BattleCheckIsOver(){
         battle_state = MAIN_MENU;
         BattleMenuHandleSelect();
     }
-    else if(active_mon->current_hp <= 0 && !has_mon_left){
+    else if(active_mon->hp <= 0 && !has_mon_left){
         if(act_trainer) TrainerRestoreParty(act_trainer);
         return 1;
     }
@@ -416,8 +422,8 @@ static void RenderExpBar(int32_t c_exp, int32_t m_exp, SDL_Rect exp_bar){
 }
 
 static void RenderMonInfo(monster_t* active_mon){
-    BattleRenderInfo(enemy_mon->monster_name, &enemy_rect, 20, 20, 0);
-    BattleRenderInfo(active_mon->monster_name, &player_rect, 20, 20, 0);
+    BattleRenderInfo(enemy_mon->name, &enemy_rect, 20, 20, 0);
+    BattleRenderInfo(active_mon->name, &player_rect, 20, 20, 0);
 
     char enemy_lvl_info[12];
     sprintf(enemy_lvl_info, "lvl: %d", enemy_mon->level);
@@ -444,11 +450,11 @@ static void RenderMonInfo(monster_t* active_mon){
     RenderExpBar((int)anim_exp[i], anim_max_exp[i], player_exp_bar);
 
     char c_status_fx[128];
-    if(active_mon->current_status_fx){
+    if(active_mon->current_sfx){
         strcpy(c_status_fx, MonsterGetSFXString(active_mon));
         BattleRenderMenuItem(c_status_fx, &player_sfx_rect, info_font, 0, 1);
     }
-    if(enemy_mon->current_status_fx){
+    if(enemy_mon->current_sfx){
         strcpy(c_status_fx, MonsterGetSFXString(enemy_mon));
         BattleRenderMenuItem(c_status_fx, &enemy_sfx_rect, info_font, 0, 1);
     }
@@ -492,16 +498,16 @@ static void BattleRenderMainMenu(){
 static void MovesMenuDraw(monster_t* active_mon){
     for(int8_t i = 0; i < USBALE_MOVES_AMOUNT; i++){
         SDL_Rect* menu_itm = &moves_menu->menu_items[i];
-        if(active_mon->usable_moves[i].id != -1){
-            BattleRenderMenuItem(active_mon->usable_moves[i].move_name, menu_itm, game_font, 0, 1);
+        if(active_mon->moves[i].id != -1){
+            BattleRenderMenuItem(active_mon->moves[i].move_name, menu_itm, game_font, 0, 1);
 
             char move_uses[12];
-            sprintf(move_uses, "%d/%d", active_mon->usable_moves[i].available_uses,
-                active_mon->usable_moves[i].max_uses);
+            sprintf(move_uses, "%d/%d", active_mon->moves[i].available_uses,
+                active_mon->moves[i].max_uses);
             BattleRenderInfo(move_uses, menu_itm, menu_itm->w - 85, menu_itm->h - 30, 0);
 
             char move_power[8];
-            sprintf(move_power, "%dP", active_mon->usable_moves[i].damage);
+            sprintf(move_power, "%dP", active_mon->moves[i].damage);
             BattleRenderInfo(move_power, menu_itm, 20, menu_itm->h - 30, 0);
         }
         else{
@@ -521,18 +527,18 @@ static void SwitchMenuDraw(){
     
     for(int8_t i = 0; i < PARTY_SIZE; i++){
         if(active_player->monster_party[i]){
-            BattleRenderInfo(active_player->monster_party[i]->monster_name, &switch_menu->menu_items[i], 20, 20, 0);
+            BattleRenderInfo(active_player->monster_party[i]->name, &switch_menu->menu_items[i], 20, 20, 0);
 
             char lvl_info[16];
             sprintf(lvl_info, "lvl: %d", active_player->monster_party[i]->level);
             BattleRenderInfo(lvl_info, &switch_menu->menu_items[i], 20, 20, 1);
 
             char hp_info[16];
-            sprintf(hp_info, "%d/%d", active_player->monster_party[i]->current_hp,
+            sprintf(hp_info, "%d/%d", active_player->monster_party[i]->hp,
                 active_player->monster_party[i]->max_hp);
             BattleRenderInfo(hp_info, &switch_menu->menu_items[i], 20, 50, 1);
 
-            RenderHpBar(active_player->monster_party[i]->current_hp, active_player->monster_party[i]->max_hp, switch_hp_bars[i]);
+            RenderHpBar(active_player->monster_party[i]->hp, active_player->monster_party[i]->max_hp, switch_hp_bars[i]);
         }
         else
             BattleRenderMenuItem("-", &switch_menu->menu_items[i], game_font, 0, 1);
@@ -540,19 +546,19 @@ static void SwitchMenuDraw(){
 }
 
 static void SetFaintMsg(monster_t* player_mon){
-    if(first_attacker->current_hp <= 0) {
-        snprintf(message, 1024, "%s has fainted! ", first_attacker->monster_name);
+    if(first_attacker->hp <= 0) {
+        snprintf(message, 1024, "%s has fainted! ", first_attacker->name);
         if(second_attacker == player_mon){
             char exp_msg[512];
-            sprintf(exp_msg, "%s gained %d exp!", player_mon->monster_name, MonsterGetExpYield(enemy_mon, player_mon));
+            sprintf(exp_msg, "%s gained %d exp!", player_mon->name, MonsterGetExpYield(enemy_mon, player_mon));
             strcat(message, exp_msg);
         }
     }
-    else if(second_attacker->current_hp <= 0){
-        snprintf(message, 1024, "%s has fainted! ", second_attacker->monster_name);
+    else if(second_attacker->hp <= 0){
+        snprintf(message, 1024, "%s has fainted! ", second_attacker->name);
         if(first_attacker == player_mon){
             char exp_msg[512];
-            sprintf(exp_msg, "%s gained %d exp!", player_mon->monster_name, MonsterGetExpYield(enemy_mon, player_mon));
+            sprintf(exp_msg, "%s gained %d exp!", player_mon->name, MonsterGetExpYield(enemy_mon, player_mon));
             strcat(message, exp_msg);
         }
     }
@@ -567,7 +573,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
         if(can_move && fst_atck_move){
             monster_t* target = (first_attacker == player_mon) ? enemy_mon : player_mon;
             MonsterUseMoveOn(first_attacker, fst_atck_move, target, message);
-            if(message[0] == '\0') snprintf(message, 1024, "%s USED %s", first_attacker->monster_name, fst_atck_move->move_name);
+            if(message[0] == '\0') snprintf(message, 1024, "%s USED %s", first_attacker->name, fst_atck_move->move_name);
         }
         turn_stage = 1;
     }
@@ -605,7 +611,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
     // STAGE 6: Second Attacker Pre-Check & Attack
     else if(turn_stage == 6){
         // If anyone fainted, stop turn
-        if(first_attacker->current_hp <= 0 || second_attacker->current_hp <= 0){
+        if(first_attacker->hp <= 0 || second_attacker->hp <= 0){
             turn_stage = 12; // Skip to end
             return;
         }
@@ -616,7 +622,7 @@ static void BattleExecuteTurns(monster_t* player_mon){
         if(can_move && scnd_atck_move){
             monster_t* target = (second_attacker == player_mon) ? enemy_mon : player_mon;
             MonsterUseMoveOn(second_attacker, scnd_atck_move, target, message);
-            if(message[0] == '\0') snprintf(message, 1024, "%s USED %s", second_attacker->monster_name, scnd_atck_move->move_name);
+            if(message[0] == '\0') snprintf(message, 1024, "%s USED %s", second_attacker->name, scnd_atck_move->move_name);
         }
         turn_stage = 7;
     }
@@ -673,17 +679,17 @@ void BattleDraw(Uint32 dt){
     float factor = speed * dt_sec;
     if (factor > 1.0f) factor = 1.0f;
 
-    float player_target = (float)active_mon->current_hp;
+    float player_target = (float)active_mon->hp;
     player_displayed_hp += (player_target - player_displayed_hp) * factor;
     if(fabs(player_target - player_displayed_hp) < 0.5f) player_displayed_hp = player_target;
 
-    float enemy_target = (float)enemy_mon->current_hp;
+    float enemy_target = (float)enemy_mon->hp;
     enemy_displayed_hp += (enemy_target - enemy_displayed_hp) * factor;
     if(fabs(enemy_target - enemy_displayed_hp) < 0.5f) enemy_displayed_hp = enemy_target;
 
     // EXP BAR Animation Logic
     int8_t i = active_player->active_mon_index;
-    if(anim_level[i] < active_mon->level || (anim_level[i] == active_mon->level && anim_exp[i] < active_mon->current_exp)){
+    if(anim_level[i] < active_mon->level || (anim_level[i] == active_mon->level && anim_exp[i] < active_mon->exp)){
         float growth_speed = (float)anim_max_exp[i] * 0.7f;
         anim_exp[i] += growth_speed * (dt / 1000.0f);
             
@@ -694,7 +700,7 @@ void BattleDraw(Uint32 dt){
                 anim_max_exp[i] = (anim_level[i] * anim_level[i] * 10) + (anim_level[i] * 50);
             } 
             else {
-                anim_exp[i] = (float)active_mon->current_exp;
+                anim_exp[i] = (float)active_mon->exp;
             }
         }
     }
@@ -707,24 +713,23 @@ void BattleDraw(Uint32 dt){
 
     if(battle_state == MOVES_MENU)     MovesMenuDraw(active_mon);
     else if(battle_state == EXECUTING_TURN) BattleExecuteTurns(active_mon);
+    
+    SDL_Rect player_mon_src_rect = GetFromSpriteSheet(
+        MON_FRONT_SPRITE_SIZE, SHEET_VERT_PADDING, 0, SHEET_COLS, active_mon->sprite_idx
+    );
 
-    if (!enemy_mon_tex) {
-        SDL_Surface* enemy_mon_surf = IMG_Load(enemy_mon->sprite_path);
-        enemy_mon_tex = SDL_CreateTextureFromSurface(rend, enemy_mon_surf);
-        SDL_FreeSurface(enemy_mon_surf);
-    }
-    if (!player_mon_tex) {
-        char tex_name[512];
-        sprintf(tex_name, "resources/monster_sprites/PLAYER_%s.png",
-            active_player->monster_party[active_player->active_mon_index]->monster_name);
-
-        SDL_Surface* player_mon_surf = IMG_Load(tex_name);
-        player_mon_tex = SDL_CreateTextureFromSurface(rend, player_mon_surf);
-        SDL_FreeSurface(player_mon_surf);
+    if (SDL_RenderCopy(rend, asset_manager->mon_back_sheet, &player_mon_src_rect, &player_mon_sprite) != 0) {
+        printf("battle.c, BattleDraw: SDL_RenderCopy Error: %s\n", SDL_GetError());
     }
 
-    SDL_RenderCopy(rend, player_mon_tex, NULL, &player_mon_sprite);
-    SDL_RenderCopy(rend, enemy_mon_tex, NULL, &enemy_mon_sprite);
+    SDL_Rect enemy_mon_src = GetFromSpriteSheet(
+        MON_FRONT_SPRITE_SIZE, SHEET_VERT_PADDING, 0, SHEET_COLS, enemy_mon->sprite_idx
+    );
+
+    if (SDL_RenderCopy(rend, asset_manager->mon_front_sheet, &enemy_mon_src, &enemy_mon_sprite) != 0) {
+        printf("battle.c, BattleDraw: SDL_RenderCopy Error: %s\n", SDL_GetError());
+    }
+
     RenderMonInfo(active_mon);
     
     if(battle_state == SWITCH_MENU) SwitchMenuDraw();
@@ -735,7 +740,7 @@ void BattleDraw(Uint32 dt){
         SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 
         sprintf(message, "%s wants to learn %s! Would you like %s to forget an old move and learn %s?", 
-            active_mon->monster_name, move_to_learn->move_name, active_mon->monster_name, move_to_learn->move_name);
+            active_mon->name, move_to_learn->move_name, active_mon->name, move_to_learn->move_name);
         
         BattleRenderInfo(message, &status_rect, 20, 20, 0);
         
@@ -744,7 +749,7 @@ void BattleDraw(Uint32 dt){
 
         BattleMenuDrawArrow(learn_move_menu);
     }
-    if(battle_state == LEARN_MOVE_MENU) DexDrawMonsterInfo(active_mon, screen_w, screen_h, 0);
+    if(battle_state == LEARN_MOVE_MENU) DexDrawMonsterInfo(active_player, active_mon, screen_w, screen_h, 0);
 }
 
 static void HandleMainMenuSelect(){
@@ -776,7 +781,7 @@ static void HandleMainMenuSelect(){
 static void HandleMovesMenuSelect(monster_t* active_mon){
     active_player->is_player_turn = 0;
 
-    player_move_ptr = &active_mon->usable_moves[active_player->selected_menu_itm];
+    player_move_ptr = &active_mon->moves[active_player->selected_menu_itm];
     if(player_move_ptr->available_uses > 0){
         if(active_mon->speed >= enemy_mon->speed){
             first_attacker = active_mon;
@@ -815,21 +820,21 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         catch_device_t* device = item->item.catch_device;
         int8_t has_caught = MonsterTryCatch(active_player, enemy_mon, device);
         if(has_caught){
-            sprintf(message,"You caught a(n) %s!", enemy_mon->monster_name);
+            sprintf(message,"You caught a(n) %s!", enemy_mon->name);
 
             fflush(stdout);
 
             // Battle over add exp
             MonsterAddExp(active_mon, enemy_mon, 0);
             printf("Battle Won! Current Exp: %d/%d\n", 
-            active_player->monster_party[active_player->active_mon_index]->current_exp,
-            active_player->monster_party[active_player->active_mon_index]->exp_to_next_level);
+            active_player->monster_party[active_player->active_mon_index]->exp,
+            active_player->monster_party[active_player->active_mon_index]->max_xp);
 
             active_player->inv_isOpen = 0;
             if(battle_state != LEARN_MOVE) battle_state = MONSTER_CAUGHT;
         }
         else{
-            sprintf(message,"%s broke free!", enemy_mon->monster_name);
+            sprintf(message,"%s broke free!", enemy_mon->name);
             active_player->inv_isOpen = 0;
             battle_state = MESSAGE_DISPLAYED;
         }
@@ -843,7 +848,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         int8_t has_healed = MonsterHeal(active_mon, pot->restore_amount);
         if(has_healed){
             InventoryRemoveItem(active_player->inv, item->item, 1);
-            sprintf(message, "Used a %s on %s", pot->name, active_mon->monster_name);
+            sprintf(message, "Used a %s on %s", pot->name, active_mon->name);
                     
             battle_state = MESSAGE_DISPLAYED;
         }
@@ -858,7 +863,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
 
 static int8_t HandleSwitchMenuSelect(monster_t* active_mon){
     if(!active_player->monster_party[active_player->selected_menu_itm]) return 0;
-    if(active_player->monster_party[active_player->selected_menu_itm]->current_hp <= 0) return 0;
+    if(active_player->monster_party[active_player->selected_menu_itm]->hp <= 0) return 0;
     if(active_player->monster_party[active_player->selected_menu_itm] == active_player->monster_party[active_player->active_mon_index]) return 0;
 
     player_mon_tex = NULL;
@@ -866,8 +871,8 @@ static int8_t HandleSwitchMenuSelect(monster_t* active_mon){
     active_mon = active_player->monster_party[active_player->active_mon_index];
     MonsterResetBattleStats(active_mon);
     
-    player_displayed_hp = (float)active_mon->current_hp;
-    sprintf(message, "Sent out %s!", active_mon->monster_name);
+    player_displayed_hp = (float)active_mon->hp;
+    sprintf(message, "Sent out %s!", active_mon->name);
 
     battle_state = MESSAGE_DISPLAYED;
     return 1;
@@ -931,7 +936,7 @@ void BattleMenuHandleSelect(){
         // Player has selected the NO option
         else if(active_player->selected_menu_itm == 1){
             sprintf(message, "%s gave up on learning %s!", 
-                active_mon->monster_name, move_to_learn->move_name);
+                active_mon->name, move_to_learn->move_name);
             battle_state = BATTLE_END_MSG;
         }
     }

@@ -216,6 +216,7 @@ int8_t TrainerCheckAggro(player_t* player){
         && player->y_pos > trainer_CoM_y){
             
             TrainerPrint(closest);
+            MonsterPrint(&closest->party[0]);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -225,6 +226,7 @@ int8_t TrainerCheckAggro(player_t* player){
         && player->y_pos < trainer_CoM_y){
 
             TrainerPrint(closest);
+            MonsterPrint(&closest->party[0]);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -234,6 +236,7 @@ int8_t TrainerCheckAggro(player_t* player){
         && player->x_pos < trainer_CoM_x){
 
             TrainerPrint(closest);
+            MonsterPrint(&closest->party[0]);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -243,6 +246,7 @@ int8_t TrainerCheckAggro(player_t* player){
         && player->x_pos > trainer_CoM_x){
 
             TrainerPrint(closest);
+            MonsterPrint(&closest->party[0]);
             TrainerAggro(player, closest);
             return 1;
         }
@@ -268,7 +272,7 @@ void TrainerUpdateAggro(player_t* player, Uint32 dt){
 int8_t TrainerCheckPartyIsDead(trainer_t* trainer){
     if(!trainer) return 0;
     for(int8_t i = 0; i < PARTY_SIZE; i++){
-        if(trainer->party[i].current_hp > 0) return 0;
+        if(trainer->party[i].hp > 0) return 0;
     }
 
     return 1;
@@ -279,14 +283,14 @@ void TrainerRestoreParty(trainer_t* trainer){
         if(trainer->party[i].id == -1) continue;
 
         monster_t* mon = &trainer->party[i];
-        mon->current_hp = mon->max_hp;
+        mon->hp = mon->max_hp;
         mon->spd_stage = 0;
         mon->atk_stage = 0;
         mon->def_stage = 0;
-        mon->current_status_fx = NONE;
+        mon->current_sfx = NONE;
         // k < amount of moves per monster
         for(int8_t k = 0; k < 4; k++){
-            mon->usable_moves[i].available_uses = mon->usable_moves[i].max_uses;
+            mon->moves[i].available_uses = mon->moves[i].max_uses;
         }
     }
 }

@@ -12,14 +12,19 @@
 #include "items/item.h"
 #include "monster.h"
 #include "battle/battle.h"
+#include "utils/glbl_asset_manager.h"
 
 #define MAX_GAME_MOVES 500
-#define MAX_GAME_MONSTERS 150
+#define MAX_GAME_MONSTERS 160
 
 #define BASE_CATCH_RATE 25
 
+#define FRONT_MON_SHEET "resources/MON_FRONT_SHEET.png"
+#define BACK_MON_SHEET "resources/MON_BACK_SHEET.png"
+
 // GLOBAL array for this file that has IN MEMORY all the monsters (indexed by their order)
 static monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
+
 static int16_t monster_count = 0;
 
 static move_t ALL_MOVES[MAX_GAME_MOVES];
@@ -31,6 +36,9 @@ static int32_t old_x, old_y = 0;
 
 static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
 static Mix_Music* notif_sound = NULL;
+
+extern SDL_Renderer* rend;
+extern glbl_asset_manager* asset_manager;
 
 move_t* GetMoveById(int16_t id) {
     for(int16_t i = 0; i < MoveLibraryCount; i++) {
@@ -51,7 +59,7 @@ monster_t* GetMonsterById(int16_t id){
 // Takes in the path to a file and reads it to a string
 // Returns a pointer to the string or NULL if it fails
 // The caller is responsible for freeing the string
-static char* LoadFileToString(char* file_path){
+static char* LoadFileToString(const char* file_path){
     FILE* fptr;
     if(!(fptr = fopen(file_path, "r"))){
         perror("Open JSON Monster File: ");
@@ -75,13 +83,11 @@ static char* LoadFileToString(char* file_path){
 void MonsterPrint(monster_t* m){
     printf(
         "ID: %d\r\n"
-        "SPRITE PATH: %s\r\n"
         "NAME: %s\r\n"
         "DESCRIPTION: %s\r\n"
         "RARITY: %d\r\n"
         "LEVEL: %d\r\n"
         "EVO 1: %d\r\n"
-        "EVO 2: %d\r\n"
         "TYPE 1: %d\r\n"
         "TYPE 2: %d\r\n"
         "HP: %d\r\n"
@@ -90,8 +96,8 @@ void MonsterPrint(monster_t* m){
         "SPEED: %d\r\n"
         "MOVE 1: %s\r\n"
         "MOVE 2: %s\r\n\n\n",
-        m->id, m->sprite_path, m->monster_name, m->monster_description, m->rarity, m->level, m->evo_1_level, m->evo_2_level, m->type_1, m->type_2,
-        m->current_hp, m->attack, m->defense, m->speed, m->usable_moves[0].move_name, m->usable_moves[1].move_name
+        m->id, m->name, m->description, m->rarity, m->level, m->evo_table[0][1], m->types[0], m->types[1],
+        m->hp, m->attack, m->defense, m->speed, m->moves[0].move_name, m->moves[1].move_name
     );
 }
 
@@ -112,45 +118,153 @@ MonsterTypes MonsterGetTypeFromString(const char* type_name){
     return NONE_TYPE;
 }
 
-void MonsterParseJSON(cJSON* entry, monster_t* mon){
+SDL_Rect GetFromSpriteSheet(uint16_t sprite_size, uint16_t vertical_padding, uint16_t horizontal_padding, uint8_t col_num, uint16_t idx) {
+    
+    uint32_t col = idx % col_num;
+    uint32_t row = idx / col_num;
+
+    uint32_t x = col * (sprite_size + horizontal_padding);
+    uint32_t y = row * (sprite_size + vertical_padding);
+
+    SDL_Rect src_rect = {.x = x, .y = y, .w = sprite_size, .h = sprite_size};
+    return src_rect;
+}
+
+
+/// \brief Loads the JSON entry to the correct place in the Mons array
+/// \param entry The JSON entry
+/// \param mon The pointer to the mon in the array
+uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
+        if (!entry || !mon) return 0;
+    
     // Load Basic Info
-    mon->id = cJSON_GetObjectItem(entry, "id")->valueint;
-    mon->sprite_path         = SDL_strdup(cJSON_GetObjectItem(entry, "sprite")->valuestring);
-    mon->monster_name        = SDL_strdup(cJSON_GetObjectItem(entry, "name")->valuestring);
-    mon->monster_description = SDL_strdup(cJSON_GetObjectItem(entry, "description")->valuestring);
+    cJSON *id_item = cJSON_GetObjectItem(entry, "id");
+    if (id_item && id_item->type == cJSON_Number) mon->id = id_item->valueint;
+    else return 0;
 
+    cJSON* sprite_idx_item = cJSON_GetObjectItem(entry, "sprite_idx");
+    if(sprite_idx_item && sprite_idx_item->type == cJSON_Number) mon->sprite_idx = sprite_idx_item->valueint;
+    
+    cJSON *name_item = cJSON_GetObjectItem(entry, "name");
+    if (name_item && name_item->type == cJSON_String) mon->name = SDL_strdup(name_item->valuestring);
+    else return 0;
+    
+    cJSON *desc_item = cJSON_GetObjectItem(entry, "description");
+    if (desc_item && desc_item->type == cJSON_String) mon->description = SDL_strdup(desc_item->valuestring);
+    else return 0;
+
+    cJSON* rarity = cJSON_GetObjectItem(entry, "rarity");
+    if(rarity && rarity->type == cJSON_Number) mon->rarity = rarity->valueint;
+
+    cJSON* level_item = cJSON_GetObjectItem(entry, "level");
+    if(level_item && level_item->type == cJSON_Number) mon->level = level_item->valueint;
+ 
     // Load Stats
-    cJSON* stats = cJSON_GetObjectItem(entry, "stats");
-    mon->max_hp = cJSON_GetObjectItem(stats, "hp")->valueint;
-    mon->current_hp = mon->max_hp;
-
-    mon->rarity = cJSON_GetObjectItem(entry, "rarity")->valueint;
-
-    mon->level = cJSON_GetObjectItem(entry, "level")->valueint;
-    mon->evo_1_level = cJSON_GetObjectItem(entry, "evo_1")->valueint;
-    mon->evo_2_level = cJSON_GetObjectItem(entry, "evo_2")->valueint;
-
-    char* type_1 = cJSON_GetObjectItem(entry, "type_1")->valuestring;
-    mon->type_1 = MonsterGetTypeFromString(type_1);
-    char* type_2 = cJSON_GetObjectItem(entry, "type_2")->valuestring;;
-    mon->type_2 = MonsterGetTypeFromString(type_2);
-
-    mon->attack = cJSON_GetObjectItem(stats, "atk")->valueint;
-    mon->defense = cJSON_GetObjectItem(stats, "def")->valueint;
-    mon->speed = cJSON_GetObjectItem(stats, "spd")->valueint;
-
-    mon->current_exp = 0;
+    cJSON* base_stats = cJSON_GetObjectItem(entry, "base");
+    if (base_stats && base_stats->type == cJSON_Object) {
+        cJSON *hp_item = cJSON_GetObjectItem(base_stats, "HP");
+        if (hp_item) {
+            mon->max_hp = hp_item->valueint;
+            mon->hp = mon->max_hp;
+        }
+ 
+        cJSON *atk_item = cJSON_GetObjectItem(base_stats, "Attack");
+        if (atk_item) mon->attack = atk_item->valueint;
+ 
+        cJSON *sp_atk_item = cJSON_GetObjectItem(base_stats, "Sp. Attack");
+        if (sp_atk_item) mon->sp_atk = sp_atk_item->valueint;
+ 
+        cJSON *def_item = cJSON_GetObjectItem(base_stats, "Defense");
+        if (def_item) mon->defense = def_item->valueint;
+ 
+        cJSON *sp_def_item = cJSON_GetObjectItem(base_stats, "Sp. Defense");
+        if (sp_def_item) mon->sp_def = sp_def_item->valueint;
+ 
+        cJSON *spd_item = cJSON_GetObjectItem(base_stats, "Speed");
+        if (spd_item) mon->speed = spd_item->valueint;
+    }
+ 
+    // Parse types array
+    cJSON *types_array = cJSON_GetObjectItem(entry, "type");
+    if (types_array && types_array->type == cJSON_Array) {
+        int type_count = cJSON_GetArraySize(types_array);
+        for (int i = 0; i < 2 && i < type_count; i++) {
+            cJSON *type_item = cJSON_GetArrayItem(types_array, i);
+            if (type_item && type_item->type == cJSON_String) {
+                if (i == 0) {
+                    mon->types[0] = MonsterGetTypeFromString(type_item->valuestring);
+                } else {
+                    mon->types[1] = MonsterGetTypeFromString(type_item->valuestring);
+                }
+            }
+        }
+    }
+ 
+    // Parse evolution data
+    cJSON *evolution = cJSON_GetObjectItem(entry, "evolution");
+    if (evolution && evolution->type == cJSON_Object) {
+        int evo_idx = 0;
+        
+        // Check for "next" evolution (evolves into)
+        cJSON *next_evo = cJSON_GetObjectItem(evolution, "next");
+        if (next_evo && next_evo->type == cJSON_Array && evo_idx < 2) {
+            cJSON *evo_id = cJSON_GetArrayItem(next_evo, 0);
+            cJSON *evo_method = cJSON_GetArrayItem(next_evo, 1);
+            
+            if (evo_id && evo_id->type == cJSON_Number) {
+                mon->evo_table[evo_idx][0] = evo_id->valueint;
+            }
+            
+            if (evo_method && evo_method->type == cJSON_String) {
+                int level = 0;
+                int matched = sscanf(evo_method->valuestring, "Level %d", &level);
+                if (matched == 1) {
+                    mon->evo_table[evo_idx][1] = level;
+                } else {
+                    mon->evo_table[evo_idx][1] = 255; // Marker for item-based evolution
+                }
+            }
+            evo_idx++;
+        }
+        
+        // Check for "prev" evolution (evolved from)
+        cJSON *prev_evo = cJSON_GetObjectItem(evolution, "prev");
+        if (prev_evo && prev_evo->type == cJSON_Array && evo_idx < 2) {
+            cJSON *evo_id = cJSON_GetArrayItem(prev_evo, 0);
+            cJSON *evo_method = cJSON_GetArrayItem(prev_evo, 1);
+            
+            if (evo_id && evo_id->type == cJSON_Number) {
+                mon->evo_table[evo_idx][0] = evo_id->valueint;
+            }
+            
+            if (evo_method && evo_method->type == cJSON_String) {
+                int level = 0;
+                int matched = sscanf(evo_method->valuestring, "Level %d", &level);
+                if (matched == 1) {
+                    mon->evo_table[evo_idx][1] = level;
+                } else {
+                    mon->evo_table[evo_idx][1] = 255;
+                }
+            }
+            evo_idx++;
+        }
+    }
             
     // Load the USABLE MOVES for this monster
     cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
+    if(!movesArray) {
+        printf("NO MOVES ARRAY\n");
+        return 0;
+    }
+
     cJSON* moveIdVal = NULL;
     int8_t slot = 0;
 
     // Initialize slots to empty values first
     for(int8_t k=0; k<4; k++) {
         // -1 FOR EMPTY SLOT
-        mon->usable_moves[k].id = -1;
-        mon->usable_moves[k].damage = 0;
+        mon->moves[k].id = -1;
+        mon->moves[k].damage = 0;
     }
 
     // Loop through the JSON array
@@ -160,13 +274,13 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
                 
         move_t* foundMove = GetMoveById(idToFind);
         if(foundMove != NULL) {
-            mon->usable_moves[slot] = *foundMove;         
-            mon->usable_moves[slot].available_uses = foundMove->max_uses;
+            mon->moves[slot] = *foundMove;         
+            mon->moves[slot].available_uses = foundMove->max_uses;
                     
             slot++;
         } 
         else {
-            printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->monster_name, idToFind);
+            printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->name, idToFind);
         }
     }
 
@@ -177,6 +291,11 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
     }
 
     cJSON* lvl_up_table = cJSON_GetObjectItem(entry, "level_up_table");
+    if(!lvl_up_table) {
+        printf("NO LVL UP TABLE\n");
+        return 0;
+    }
+
     slot = 0;
     for(int8_t i = 0; i < MAX_LEVEL; i++){
         char lvl[8];
@@ -192,6 +311,8 @@ void MonsterParseJSON(cJSON* entry, monster_t* mon){
             };
         }
     }
+
+    return 1;
 }
 
 void MoveParseJSON(cJSON* entry, move_t* m){
@@ -231,8 +352,55 @@ void MoveParseJSON(cJSON* entry, move_t* m){
     m->available_uses = m->max_uses; 
 }
 
+/// \brief Loads the Unova Dex into and array in memory. Mons are indexed by ther id - 1.
+/// \return 0 On failure, 1 on success
+static uint8_t MonstersLoad() {
+    const char* fpath = "data/unova_pokedex_indexed.json";
+
+    char* monster_data = LoadFileToString(fpath);
+    if(!monster_data) return 0;
+
+    cJSON* jsonMons = cJSON_Parse(monster_data);
+        cJSON* entry = NULL;
+
+        cJSON_ArrayForEach(entry, jsonMons) {
+        if(monster_count >= MAX_GAME_MONSTERS) break;
+
+        // Monsters are to be indexed by ther id
+        // Makes the attributing them much easier and as the monster number is fixed it is relativelly safe
+        monster_t* mon = &ALL_MONSTERS[monster_count];
+        MonsterParseJSON(entry, mon);
+        monster_count++;
+    }
+    cJSON_Delete(jsonMons);
+    free(monster_data);
+    printf("Loaded %d monsters.\n", monster_count);
+
+    return 1;
+}
+
 void MonstersInit() {
     srand(time(NULL));
+
+    SDL_Surface* surf = IMG_Load(FRONT_MON_SHEET);
+    if(!surf) {
+        printf("monster.c, MonstersInit: IMG_LOAD ERROR: %s\n", IMG_GetError());
+    }
+    if ( !(asset_manager->mon_front_sheet = SDL_CreateTextureFromSurface(rend, surf)) ) {
+        printf("monster.c, MonstersInit: SDL_CreateTextureFromSurface ERROR: %s\n", SDL_GetError());
+    }
+    SDL_FreeSurface(surf);
+
+    SDL_Surface* surf2 = IMG_Load(BACK_MON_SHEET);
+    if(!surf2) {
+        printf("monster.c, MonstersInit: IMG_LOAD ERROR: %s\n", IMG_GetError());
+    }
+    if ( !(asset_manager->mon_back_sheet = SDL_CreateTextureFromSurface(rend, surf2)) ) {
+        printf("monster.c, MonstersInit: SDL_CreateTextureFromSurface ERROR: %s\n", SDL_GetError());
+    }
+    SDL_FreeSurface(surf2);
+
+    printf("MON Front Sheet Loaded!\n");
 
     // LOAD ALL TYPE ADVANTAGES INTO THE LIBRARY
     // Initialize all values to 1 as the default mult
@@ -283,25 +451,8 @@ void MonstersInit() {
         printf("Loaded %d moves.\n", MoveLibraryCount);
     }
 
-    // LOAD MONSTERS AND LINK MOVES
-    char* monData = LoadFileToString("data/monster.json");
-    if(monData) {
-        cJSON* jsonMons = cJSON_Parse(monData);
-        cJSON* entry = NULL;
-
-        cJSON_ArrayForEach(entry, jsonMons) {
-            if(monster_count >= MAX_GAME_MONSTERS) break;
-
-            // Monsters are to be indexed by ther id
-            // Makes the attributing them much easier and as the monster number is fixed it is relativelly safe
-            monster_t* mon = &ALL_MONSTERS[monster_count];
-            MonsterParseJSON(entry, mon);
-            monster_count++;
-        }
-        cJSON_Delete(jsonMons);
-        free(monData);
-        printf("Loaded %d monsters.\n", monster_count);
-    }
+    printf("\n\n ------ LOADING FROM UNOVA DEX ------ \n\n");
+    MonstersLoad();
 }
 
 // MONSTER SPAWNING LOGIC
@@ -340,14 +491,14 @@ void MonsterSetStats(monster_t* monster){
     float level_mult = ((float)monster->level + 10.0f) / 30.0f;
 
     monster->max_hp = (int)(base->max_hp * level_mult) + 10 + (rand() % 3);
-    monster->current_hp = monster->max_hp;
+    monster->hp = monster->max_hp;
 
     monster->attack = (int)(base->attack * level_mult) + (rand() % 2);
     monster->defense = (int)(base->defense * level_mult) + (rand() % 2);
     monster->speed = (int)(base->speed * level_mult) + (rand() % 2);
 
     // Quadratic growth: 10 * Level^2 + 50 * Level
-    monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
+    monster->max_xp = (monster->level * monster->level * 10) + (monster->level * 50);
 
     MonsterResetBattleStats(monster);
 }
@@ -591,7 +742,7 @@ static void MonsterLevelUpStats(monster_t* monster){
     
     int8_t hp_gain = (base->max_hp / 50) + 1 + (rand() % 3);
     monster->max_hp += hp_gain;
-    monster->current_hp = monster->max_hp;
+    monster->hp = monster->max_hp;
 
     int8_t atk_gain = (base->attack / 50) + 1 + (rand() % 2);
     monster->attack += atk_gain;
@@ -603,7 +754,7 @@ static void MonsterLevelUpStats(monster_t* monster){
     monster->speed += spd_gain;
 
     printf("%s leveled up to %d! (+%d HP, +%d Atk, +%d Def, +%d Spd)\n", 
-           monster->monster_name, monster->level, hp_gain, atk_gain, def_gain, spd_gain);
+           monster->name, monster->level, hp_gain, atk_gain, def_gain, spd_gain);
 }
 
 // Called when the monster's level coincides with it's evo1 level
@@ -618,16 +769,15 @@ static monster_t* MonsterEvolve(monster_t* monster){
     // monster's applicable stats will be replaced by the evo monster's
     monster->id = evo_monster->id;
 
-    strcpy(monster->monster_name, evo_monster->monster_name);
-    strcpy(monster->monster_description, evo_monster->monster_description);
-    strcpy(monster->sprite_path, evo_monster->sprite_path);
+    strcpy(monster->name, evo_monster->name);
+    strcpy(monster->description, evo_monster->description);
 
     monster->rarity = evo_monster->rarity;
-    monster->type_1 = evo_monster->type_1;
-    monster->type_2 = evo_monster->type_2;
+    monster->types[0] = evo_monster->types[0];
+    monster->types[1] = evo_monster->types[1];
 
-    monster->evo_1_level = evo_monster->evo_1_level;
-    monster->evo_2_level = evo_monster->evo_2_level;
+    monster->evo_table[0][0] = evo_monster->evo_table[0][0];
+    monster->evo_table[0][1] = evo_monster->evo_table[0][1];
 
     // TODO : Check for evolution unlocked moves
     for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
@@ -662,33 +812,33 @@ int32_t MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monste
 
 static void MonsterRestoreMoves(monster_t* monster){
     for(uint8_t i = 0; i < 4; i++){
-        monster->usable_moves[i].available_uses = monster->usable_moves[i].max_uses;
+        monster->moves[i].available_uses = monster->moves[i].max_uses;
     }
 }
 
 
 void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int32_t exp_amount){
-    if(defeated_monster) monster->current_exp += MonsterGetExpYield(defeated_monster, monster);
-    else monster->current_exp += exp_amount;
+    if(defeated_monster) monster->exp += MonsterGetExpYield(defeated_monster, monster);
+    else monster->exp += exp_amount;
 
-    while(monster->current_exp >= monster->exp_to_next_level){
+    while(monster->exp >= monster->max_xp){
         if(monster->level >= 100){
-            monster->current_exp = 0;
+            monster->exp = 0;
             break;
         }
 
-        monster->current_exp -= monster->exp_to_next_level;
+        monster->exp -= monster->max_xp;
         monster->level++;
 
         // Update the monster's stats to reflect the level up
         MonsterLevelUpStats(monster);
         MonsterRestoreMoves(monster);
-        monster->current_status_fx = NONE;
+        monster->current_sfx = NONE;
 
-        if(monster->level >= monster->evo_1_level) monster = MonsterEvolve(monster);
+        if(monster->level >= monster->evo_table[0][1]) monster = MonsterEvolve(monster);
 
         // Quadratic growth: 10 * Level^2 + 50 * Level
-        monster->exp_to_next_level = (monster->level * monster->level * 10) + (monster->level * 50);
+        monster->max_xp = (monster->level * monster->level * 10) + (monster->level * 50);
 
         // Check for new moves upon leveling up ig
         for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
@@ -707,7 +857,7 @@ int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* dev
     float catch_rate = BASE_CATCH_RATE;
 
     float level_debuff = catch_rate * monster->level/25;
-    float remaining_hp_buff = catch_rate * (monster->max_hp - monster->current_hp)/100;
+    float remaining_hp_buff = catch_rate * (monster->max_hp - monster->hp)/100;
 
     // Catch chance will be affected by the monster's level and remaining hp
     // Base chance will be 25%
@@ -720,7 +870,7 @@ int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* dev
     
     if(rnd_catch <= catch_rate || catch_rate >= 100){
         PlayerAddMonsterToParty(monster);
-        printf("Caught %s!\n", monster->monster_name);
+        printf("Caught %s!\n", monster->name);
         return 1;
     }
 
@@ -734,16 +884,16 @@ float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender){
 }
 
 static void MonsterAddStatusFx(monster_t* m, StatusEffects status_fx){
-    m->current_status_fx = status_fx;
+    m->current_sfx = status_fx;
     m->status_fx_durantion = 3;
 }
 
 void MonsterRemoveStatusFx(monster_t* m){
-    m->current_status_fx = NONE;
+    m->current_sfx = NONE;
 }
 
 char* MonsterGetSFXString(monster_t* m){
-    switch(m->current_status_fx){
+    switch(m->current_sfx){
     case SCORCHED:
         return "SCORCHED";
         break;
@@ -768,24 +918,24 @@ char* MonsterGetSFXString(monster_t* m){
 }
 
 int8_t MonsterCheckCanMove(monster_t* m, char* msg){
-    if(m->current_status_fx == NONE) return 1;
+    if(m->current_sfx == NONE) return 1;
     
     m->status_fx_durantion--;
     if(m->status_fx_durantion <= 0){
-        m->current_status_fx = NONE;
-        sprintf(msg, "%s recovered.", m->monster_name);
+        m->current_sfx = NONE;
+        sprintf(msg, "%s recovered.", m->name);
         return 1;
     }
 
-    switch(m->current_status_fx){
+    switch(m->current_sfx){
         case STUNNED:
-            sprintf(msg, "%s is stunned!", m->monster_name);
+            sprintf(msg, "%s is stunned!", m->name);
             return 0;
         case ASLEEP:
-            sprintf(msg, "%s is asleep!", m->monster_name);
+            sprintf(msg, "%s is asleep!", m->name);
             return 0;
         case FROZEN:
-            sprintf(msg, "%s is frozen!", m->monster_name);
+            sprintf(msg, "%s is frozen!", m->name);
             return 0;
         default:
             return 1;
@@ -793,26 +943,26 @@ int8_t MonsterCheckCanMove(monster_t* m, char* msg){
 }
 
 int8_t MonsterApplyStatusDamage(monster_t* m, char* msg){
-    if(m->current_status_fx == NONE) return 0;
+    if(m->current_sfx == NONE) return 0;
     
     float dmg = 0.0f;
-    switch(m->current_status_fx){
+    switch(m->current_sfx){
         case SCORCHED:
             dmg = (float) m->max_hp * 0.0625;
-            m->current_hp -= (int) dmg;
-            if(m->current_hp < 0) m->current_hp = 0;
-            sprintf(msg, "%s is hurt by the burn!", m->monster_name);
+            m->hp -= (int) dmg;
+            if(m->hp < 0) m->hp = 0;
+            sprintf(msg, "%s is hurt by the burn!", m->name);
             return 1;
         case POISON:
             dmg = (float) m->max_hp * 0.125;
-            m->current_hp -= (int) dmg;
-            if(m->current_hp < 0) m->current_hp = 0;
-            sprintf(msg, "%s is hurt by poison!", m->monster_name);
+            m->hp -= (int) dmg;
+            if(m->hp < 0) m->hp = 0;
+            sprintf(msg, "%s is hurt by poison!", m->name);
             return 1;
         case CORRODED:
             float debuff = (float) m->speed * 0.0625;
             m->speed -= (int) debuff;
-            sprintf(msg, "%s is corroded!", m->monster_name);
+            sprintf(msg, "%s is corroded!", m->name);
             return 1;
         default:
             return 0;
@@ -821,7 +971,7 @@ int8_t MonsterApplyStatusDamage(monster_t* m, char* msg){
 
 int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, char* return_msg){
     move->available_uses--;
-    sprintf(return_msg, "%s used %s!", attacker->monster_name, move->move_name);
+    sprintf(return_msg, "%s used %s!", attacker->name, move->move_name);
 
     int8_t move_hit = rand() % 100;
     if(move->acc_percent != 100 && move_hit >= move->acc_percent){
@@ -859,14 +1009,15 @@ int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, 
     float modifier = 1.0f;
 
     // Get type effectiveness mult
-    float type_effectiveness = MonsterGetTypeEffectiveness(move->attack_type, attacked->type_1);
-    if (attacked->type_2 != NONE_TYPE) {
-        type_effectiveness *= MonsterGetTypeEffectiveness(move->attack_type, attacked->type_2);
+    float type_effectiveness = MonsterGetTypeEffectiveness(move->attack_type, attacked->types[0]);
+    if (attacked->types[1] != NONE_TYPE) {
+        printf("Effective against type 2\n");
+        type_effectiveness *= MonsterGetTypeEffectiveness(move->attack_type, attacked->types[1]);
     }
     modifier *= type_effectiveness;
 
     // If attack and monster are of the same type apply a bonus
-    if (move->attack_type == attacker->type_1 || move->attack_type == attacker->type_2) {
+    if (move->attack_type == attacker->types[0] || move->attack_type == attacker->types[1]) {
         modifier *= 1.5f;
     }
 
@@ -885,9 +1036,9 @@ int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, 
         if (final_damage < 1) final_damage = 1;
 
         // Apply Damage
-        attacked->current_hp -= final_damage;
-        if(attacked->current_hp < 0) attacked->current_hp = 0;
-        printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->monster_name, move->move_name, final_damage, type_effectiveness);
+        attacked->hp -= final_damage;
+        if(attacked->hp < 0) attacked->hp = 0;
+        printf("%s used %s! Damage: %d (Eff: %.2fx)\n", attacker->name, move->move_name, final_damage, type_effectiveness);
 
         if(type_effectiveness > 1.0f){
             strcat(return_msg, " It's super effective!");
@@ -938,17 +1089,17 @@ int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, 
                 if(*stage < 3){
                     *stage += change;
                     if(*stage > 3) *stage = 3;
-                    sprintf(stat_msg, " %s's %s rose!", target->monster_name, stat_name);
+                    sprintf(stat_msg, " %s's %s rose!", target->name, stat_name);
                 } else {
-                    sprintf(stat_msg, " %s's %s won't go higher!", target->monster_name, stat_name);
+                    sprintf(stat_msg, " %s's %s won't go higher!", target->name, stat_name);
                 }
             } else if(change < 0){
                 if(*stage > -3){
                     *stage += change;
                     if(*stage < -3) *stage = -3;
-                    sprintf(stat_msg, " %s's %s fell!", target->monster_name, stat_name);
+                    sprintf(stat_msg, " %s's %s fell!", target->name, stat_name);
                 } else {
-                    sprintf(stat_msg, " %s's %s won't go lower!", target->monster_name, stat_name);
+                    sprintf(stat_msg, " %s's %s won't go lower!", target->name, stat_name);
                 }
             }
             strcat(return_msg, stat_msg);
@@ -960,14 +1111,14 @@ int8_t MonsterUseMoveOn(monster_t* attacker, move_t* move, monster_t* attacked, 
 
 int8_t MonsterHeal(monster_t* monster, uint16_t heal_amount){
     // Has fainted so does not heal
-    if(monster->current_hp <= 0) return 0;
+    if(monster->hp <= 0) return 0;
 
-    monster->current_hp += heal_amount;
-    if(monster->current_hp > monster->max_hp) monster->current_hp = monster->max_hp;
+    monster->hp += heal_amount;
+    if(monster->hp > monster->max_hp) monster->hp = monster->max_hp;
     return 1;
 }
 
 move_t* MonsterChooseEnemyAttack(monster_t* enemy){
     int32_t rnd = rand() % 4;
-    return &enemy->usable_moves[rnd];
+    return &enemy->moves[rnd];
 }

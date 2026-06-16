@@ -76,7 +76,7 @@ void TrainerBattleDraw(Uint32 dt){
                 .h = NOTCH_SIZE
             };
 
-            if(trainer->party[i].current_hp <= 0){
+            if(trainer->party[i].hp <= 0){
                 SDL_RenderCopy(rend, dead_notch, NULL, &notch);
                 continue;
             }
@@ -192,24 +192,24 @@ move_t* TrainerBattleChooseMove(monster_t* player_monster, monster_t* enemy){
     
     move_t* highest_dmg = NULL;
     for(int8_t i = 0; i < 4; i++){
-        if(enemy->usable_moves[i].id == -1) continue;
-        if(!highest_dmg) highest_dmg = &enemy->usable_moves[i];
+        if(enemy->moves[i].id == -1) continue;
+        if(!highest_dmg) highest_dmg = &enemy->moves[i];
         
         // Check if last move was inneficient
-        if(enemy_last_move && enemy_last_move->id == enemy->usable_moves[i].id){
-            float type_mult = MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_1);
+        if(enemy_last_move && enemy_last_move->id == enemy->moves[i].id){
+            float type_mult = MonsterGetTypeEffectiveness(enemy->moves[i].attack_type, player_monster->types[0]);
 
-            if(player_monster->type_2 != NONE_TYPE){
-                if(MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_2) > type_mult)
-                    type_mult = MonsterGetTypeEffectiveness(enemy->usable_moves[i].attack_type, player_monster->type_2);
+            if(player_monster->types[1] != NONE_TYPE){
+                if(MonsterGetTypeEffectiveness(enemy->moves[i].attack_type, player_monster->types[1]) > type_mult)
+                    type_mult = MonsterGetTypeEffectiveness(enemy->moves[i].attack_type, player_monster->types[1]);
             }
             
             // Do not let this move be used next
             if(type_mult < 1.0f) continue;
         }
 
-        if(enemy->usable_moves[i].damage > highest_dmg->damage) 
-            highest_dmg = &enemy->usable_moves[i];
+        if(enemy->moves[i].damage > highest_dmg->damage) 
+            highest_dmg = &enemy->moves[i];
     }
     
     return highest_dmg;

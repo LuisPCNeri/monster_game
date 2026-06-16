@@ -95,56 +95,41 @@ typedef struct move_t{
 
 // Monster with all it's data
 typedef struct monster_t {
-    char* monster_description;
-    char* monster_name;
-    // Path to the monter's sprite
-    char* sprite_path;
-    
-    int32_t current_exp;
-    int32_t exp_to_next_level;
-    // Monster's main type
-    MonsterTypes type_1;
-    // Monster's secondary type
-    MonsterTypes type_2;
-    // Monster's rarity affects only it's spawning chance
-    // EXISTS ONLY IN THE NUMBERS DEFINED AS COMMON, UNCOMMON, RARE, VERY_RARE, LEGENDARY
-    Rarities rarity;
-    // The current status (debuff) applied to the monster
-    // AVAILABLE VALUES DEFINED HERE AS SCORCHED, POISON, ...
-    // To specify no status applied, set current_status_fx to NONE
-    StatusEffects current_status_fx;
+    char* name;
+    char* description;
 
-    // An array that has the ids of all the moves learnable from leveling up for a monster
-    // All monsters are hardcapped to this
+    move_t moves[4];
+
+    MonsterTypes types[2];
+    Rarities rarity;
+
+    StatusEffects current_sfx;
+
     int16_t level_up_table[MAX_LEVEL][LEARNABLE_MOVES_AMOUNT_PER_LEVEL];
 
-    // Just here to keep track of what moves the monster can use in battle
-    // When a move is learned one of these 4 moves will be changed
-    // Moves the monster can currently use in battle
-    move_t usable_moves[4];
+    int16_t exp;
+    int16_t max_xp;
 
-    // id to lookup the monster
     int16_t id;
-    // Max amount of hitpoints for monster
+    int16_t sprite_idx;
+    
     int16_t max_hp;
-    // Current amount of hitpoints monster has
-    int16_t current_hp;
-    // Amount of attack points monster has
+    int16_t hp;
+
     int16_t attack;
-    // Amount of defense points monster has
+    int16_t sp_atk;
+
     int16_t defense;
-    // Amount of speed points monster has
+    int16_t sp_def;
+
     int16_t speed;
 
-    // Current monster level MAX LEVEL 100
+    /// Generally any given mon has 2 or less evos
+    uint8_t evo_table[2][2];
+
     int8_t level;
     int8_t status_fx_durantion;
-    // Level at which monster will evolve for the first time
-    // If monster has no evolution set to -1
-    int8_t evo_1_level;
-    // Level at which monster will evolve for the second time
-    // If monster has no second evolution set to -1
-    int8_t evo_2_level;
+    
     int8_t atk_stage;
     int8_t def_stage;
     int8_t spd_stage;
@@ -156,7 +141,7 @@ typedef struct monster_t {
 void MonstersInit();
 
 // Parses the JSON Entry with the monster data and puts it in the address of mon
-void MonsterParseJSON(cJSON* entry, monster_t* mon);
+uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon);
 
 // Parses the JSON Entry with the move data and puts it in the address of m 
 void MoveParseJSON(cJSON* entry, move_t* m);
@@ -257,5 +242,12 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt);
 
 // Handles the enter key input for the battle menu
 void BattleMenuHandleSelect();
+
+/// \brief Gets the SRC rect for a sprite in a sprite sheet
+/// \param sprite_sheet A pointer to the sprite sheet texture
+/// \param sprite_size Size of the sides of the SQUARE sprite
+/// \param vertical_padding The amount of vertical padding between rows in px
+/// \param horizontal_padding The amount of horizontal padding between cols in px
+SDL_Rect GetFromSpriteSheet(uint16_t sprite_size, uint16_t vertical_padding, uint16_t horizontal_padding, uint8_t col_num, uint16_t idx);
 
 #endif
