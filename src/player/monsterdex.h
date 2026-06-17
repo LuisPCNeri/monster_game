@@ -13,6 +13,6 @@
     \param screen_h Height of player's screen
     \param offset_x Horizontal offset for the whole window
 */
-void DexDrawMonsterInfo(monster_t* monster, int screen_w, int screen_h, int offset_x);
+void DexDrawMonsterInfo(player_t* player, monster_t* monster, int32_t screen_w, int32_t screen_h, int32_t offset_x);
 
 #endif

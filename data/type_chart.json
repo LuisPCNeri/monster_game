@@ -23,8 +23,6 @@
     { "attacker": "ELECTRIC",   "defender": "ROCK",     "mult": 0},
     { "attacker": "ELECTRIC",   "defender": "METAL",    "mult": 1.5},
 
-    { "attacker": "NORMAL",     "defender": "GRASS",    "mult": 1.2},
-
     { "attacker": "DRAGON",     "defender": "DARK",     "mult": 1.5},
     { "attacker": "DRAGON",     "defender": "METAL",    "mult": 0.75},
     { "attacker": "DRAGON",     "defender": "DRAGON",   "mult": 0.75},

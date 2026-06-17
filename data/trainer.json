@@ -9,18 +9,34 @@
         "y": 100,
         "party": [
             {
-                "id": 1,
-                "sprite": "resources/monster_sprites/Ignisaur.png",
-                "name": "Ignisaur",
-                "description": "Ignisaur are said to be born every time a volcano erupts. However this belief is said to be wrong by most experts, who refuse to comment on other possible origins.",
-                "rarity": 0,
-                "level": 16,
-                "evo_1": 20,
-                "evo_2": 45,
-                "type_1": "FIRE",
-                "type_2": "NULL",
-                "stats": { "hp": 51, "atk": 10, "def": 38, "spd": 62 },
-                "starting_moves": [101, 102, 201, 401] 
+                "id": 19,
+                "name": "Simisage",
+                "type": [
+                    "GRASS"
+                ],
+                "base": {
+                    "HP": 75,
+                    "Attack": 98,
+                    "Defense": 63,
+                    "Sp. Attack": 98,
+                    "Sp. Defense": 63,
+                    "Speed": 101
+                },
+                "species": "Thorn Monkey Pokemon",
+                "description": "Ill tempered, it fights by swinging its barbed tail around wildly. The leaf growing on its head is very bitter.",
+                "evolution": {
+                    "prev": [
+                        510,
+                        "use Leaf Stone"
+                    ]
+                },
+                "starting_moves": [
+                    101,
+                    102,
+                    103
+                ],
+                "level": 10,
+                "sprite_idx": 18
             }
         ]
     },
@@ -34,32 +50,64 @@
         "y": 1400,
         "party": [
             {
-                "id": 7,
-                "sprite": "resources/monster_sprites/Seallot.png",
-                "name": "Seallot",
-                "description": "Seal monster...",
-                "rarity": 2,
-                "level": 7,
-                "evo_1": 16,
-                "evo_2": 32,
-                "type_1": "WATER",
-                "type_2": "NULL",
-                "stats": { "hp": 11, "atk": 27, "def": 33, "spd": 68 },
-                "starting_moves": [101, 102, 301, 104]
+                "id": 2,
+                "name": "Snivy",
+                "type": [
+                    "GRASS"
+                ],
+                "base": {
+                    "HP": 45,
+                    "Attack": 45,
+                    "Defense": 55,
+                    "Sp. Attack": 45,
+                    "Sp. Defense": 55,
+                    "Speed": 63
+                },
+                "species": "Grass Snake Pokemon",
+                "description": "They photosynthesize by bathing their tails in sunlight. When they are not feeling well, their tails droop.",
+                "evolution": {
+                    "next": [
+                        495,
+                        "Level 17"
+                    ]
+                },
+                "starting_moves": [
+                    101,
+                    102,
+                    103
+                ],
+                "level": 10,
+                "sprite_idx": 1
             },
             {
-                "id": 1,
-                "sprite": "resources/monster_sprites/Ignisaur.png",
-                "name": "Ignisaur",
-                "description": "Ignisaur are said to be born every time a volcano erupts. However this belief is said to be wrong by most experts, who refuse to comment on other possible origins.",
-                "rarity": 0,
-                "level": 16,
-                "evo_1": 20,
-                "evo_2": 45,
-                "type_1": "FIRE",
-                "type_2": "NULL",
-                "stats": { "hp": 10, "atk": 10, "def": 38, "spd": 62 },
-                "starting_moves": [101, 102, 201, 103] 
+                "id": 5,
+                "name": "Tepig",
+                "type": [
+                    "FIRE"
+                ],
+                "base": {
+                    "HP": 65,
+                    "Attack": 63,
+                    "Defense": 45,
+                    "Sp. Attack": 45,
+                    "Sp. Defense": 45,
+                    "Speed": 45
+                },
+                "species": "Fire Pig Pokemon",
+                "description": "It loves to eat roasted berries, but sometimes it gets too excited and burns them to a crisp.",
+                "evolution": {
+                    "next": [
+                        498,
+                        "Level 17"
+                    ]
+                },
+                "starting_moves": [
+                    101,
+                    102,
+                    103
+                ],
+                "level": 20,
+                "sprite_idx": 4
             }
         ]
     }
