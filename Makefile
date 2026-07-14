@@ -22,7 +22,7 @@ ifeq ($(detected_OS),Windows)
 else
 	TARGET = main
 	SDL_CFLAGS := $(shell sdl2-config --cflags)
-	SDL_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
+	SDL_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image /usr/lib/libSDL2_ttf.so -lSDL2_mixer -lm
 	MKDIR_P = mkdir -p $(@D)
 	CLEAN_CMD = rm -rf $(BUILD_DIR) $(TARGET)
 endif

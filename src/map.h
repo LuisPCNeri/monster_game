@@ -14,12 +14,53 @@
 #define TILE_MAP_MAX_Y 100
 #define TILE_SIZE 32
 
+#define CHUNK_SIZE 16
+
 typedef struct map_t{
     SDL_Texture* tile_sheet;
     int32_t height;
     int32_t width;
     int8_t** tile_data;
 } map_t;
+
+#define MAX_SPAWN_IDS 32
+#define MAP_MAGIC_NUMBER        0x4D415031
+#define TILE_SERIALIZED_SIZE    (1 + MAX_SPAWN_IDS * 2 + 2)                         /// 67 bytes
+#define CHUNK_SERIALIZED_SIZE   (CHUNK_SIZE * CHUNK_SIZE * TILE_SERIALIZED_SIZE)    /// 17152 bytes
+#define HEADER_SERIALIZED_SIZE  (sizeof(uint32_t)*3 + sizeof(int32_t)*2)            /// 20 bytes
+
+/// 9 16x16 chunks of 32x32 tiles
+/// Total area of map in chunks
+#define MAP_SIZE_CHUNK 9
+
+typedef struct bin_tile_t {
+    uint8_t spawn_id_count;
+    int16_t spawn_ids[MAX_SPAWN_IDS];
+    uint16_t texture_id;
+    
+} bin_tile_t;
+
+typedef struct chunk_t {
+    bin_tile_t tiles[CHUNK_SIZE][CHUNK_SIZE];
+    int8_t is_visible;
+} chunk_t;
+
+typedef struct loaded_chunk_slot_t {
+    /// if slot is empty both cx, cy = -1
+    int32_t cx, cy;
+    chunk_t data;
+} loaded_chunk_slot_t;
+
+
+typedef struct chunked_map_t {
+    SDL_Texture* tile_sheet;
+    uint32_t w_chunks, h_chunks;
+    int32_t origin_x, origin_y;
+
+    FILE* bin;
+    loaded_chunk_slot_t* window;
+    int32_t window_capacity;
+} chunked_map_t;
 
 // TILE TYPE DEFENITIONS
 // This is just to prevent magic numbers and make the code more readable
@@ -61,5 +102,27 @@ void MapDestroy(map_t* map);
 // Takes int x_pos and y_pos
 // Returns the int corresponding to the type of the tile x_pos and y_pos are in or -1 if it fails
 int8_t GetCurrentTileType(int32_t x_pos, int32_t y_pos, map_t* map);
+
+/*
+    \brief Initializes a chunked_map_t struct using the map binary file at fpath. 
+    This function will not return errors and IS a cancelation point, i.e. the program will exit if there was an error.
+    \param fpath Path to the map binary file.
+    \param renderer Current SDL_Renderer*.
+    \return A pointer to a chunked_map_t variable.
+*/
+chunked_map_t* MapInit(const char* fpath, SDL_Renderer* renderer);
+
+/*
+    \brief Loads the chunks around the the player.
+    \param m Current chunked_map_t data.
+    \param p Active player.
+*/
+void MapLoadChunks(chunked_map_t* m, player_t* p);
+
+/*
+    \brief Free all memory occupied by a chunked_map_t struct.
+    \param m Map to free.
+*/
+void FreeMap(chunked_map_t* m);
 
 #endif
