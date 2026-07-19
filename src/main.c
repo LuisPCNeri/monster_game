@@ -20,6 +20,8 @@
 #define WINDOW_TITLE "WINDOW"
 #define FONT_SIZE 32
 
+#define RENDER_SCALE (RENDER_TILE_SIZE / TILE_SIZE)
+
 SDL_Renderer* rend;
 TTF_Font* game_font;
 int32_t screen_w;
@@ -39,7 +41,7 @@ int main()
     SDL_Window* win = SDL_CreateWindow("GAME",
                                        SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOWPOS_CENTERED,
-                                       1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                       1280, 960, /*SDL_WINDOW_MAXIMIZED*/ SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     // Frame rate is capped at the monitor's refresh rate because of SDL_RENDERER_PRESENTVSYNC
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC;
@@ -54,9 +56,6 @@ int main()
     MonstersInit();
     TrainersInit();
     player_t* player = PlayerInit();
-    
-    // Player's absolute position in the world
-    int32_t world_x = 0, world_y = 0;
 
     catch_device_t ball = { 1, 0, 1, "Ball", "" };
     union item_t ball_union = {.catch_device = &ball};
@@ -70,11 +69,16 @@ int main()
     map_t* map = MapCreateFromFile(map_file, rend);
     fclose(map_file);
 
-    SDL_Rect viewport = { 0, 0, screen_w, screen_h };
-    MapUpdateViewport(&viewport, player, map->width * TILE_SIZE, map->height * TILE_SIZE, screen_w, screen_h);
+    chunked_map_t* cm = MapInit(rend);
 
-    int32_t map_w = map->width * TILE_SIZE;
-    int32_t map_h = map->height * TILE_SIZE;
+    int32_t map_w = cm->w_chunks * CHUNK_SIZE * TILE_SIZE;
+    int32_t map_h = cm->h_chunks * CHUNK_SIZE * TILE_SIZE;
+
+    int32_t render_map_w = cm->w_chunks * CHUNK_SIZE * RENDER_TILE_SIZE;
+    int32_t render_map_h = cm->h_chunks * CHUNK_SIZE * RENDER_TILE_SIZE;
+
+    // Player's absolute position in the world
+    int32_t world_x = 0, world_y = 0;
 
     SDL_GetRendererOutputSize(rend, &screen_w, &screen_h);
 
@@ -90,6 +94,9 @@ int main()
     Uint32 last_time = SDL_GetTicks();
     int32_t frame_count = 0;
     Uint32 last_frame_time = SDL_GetTicks();
+
+    /// --- Set up FPS Box ---
+
     int32_t fps = 0;
     char fps_str[32] = "0";
 
@@ -103,6 +110,8 @@ int main()
     SDL_QueryTexture(fps_text, NULL, NULL, &fps_rect.w, &fps_rect.h);
     fps_box.w = fps_rect.w + 10;
     fps_box.h = fps_rect.h + 10;
+
+    /// --- Main game Loop ---
 
     while (running) {
         Uint32 current_frame_time = SDL_GetTicks();
@@ -184,43 +193,56 @@ int main()
             }
         }
 
-        viewport.w = screen_w;
-        viewport.h = screen_h;
-
-        // Clamp player to map boundaries
+        /// Logical units 32x32 tiles
         if (world_x < 0) world_x = 0;
-        if (world_x > map_w - player->sprite_rect.w) world_x = map_w - player->sprite_rect.w;
+        if (world_x > map_w - TILE_SIZE) world_x = map_w - TILE_SIZE;
         if (world_y < 0) world_y = 0;
-        if (world_y > map_h - player->sprite_rect.h) world_y = map_h - player->sprite_rect.h;
+        if (world_y > map_h - TILE_SIZE) world_y = map_h - TILE_SIZE;
 
-        // Calculate camera offset to center the player
-        int32_t offset_x = (screen_w / 2) - (player->sprite_rect.w / 2) - world_x;
-        int32_t offset_y = (screen_h / 2) - (player->sprite_rect.h / 2) - world_y;
+        /// Render space 96x96 tiles
+        int32_t render_x = world_x * RENDER_SCALE;
+        int32_t render_y = world_y * RENDER_SCALE;
 
-        // Set boundaries for the camera
+        int32_t offset_x = (screen_w / 2) - (player->sprite_rect.w / 2) - render_x;
+        int32_t offset_y = (screen_h / 2) - (player->sprite_rect.h / 2) - render_y;
+
         if (offset_x > 0) offset_x = 0;
-        if (offset_x < screen_w - map_w) offset_x = screen_w - map_w;
+        if (offset_x < screen_w - render_map_w) offset_x = screen_w - render_map_w;
         if (offset_y > 0) offset_y = 0;
-        if (offset_y < screen_h - map_h) offset_y = screen_h - map_h;
+        if (offset_y < screen_h - render_map_h) offset_y = screen_h - render_map_h;
 
-        // Calculate player screen position based on world position and camera offset
-        player->sprite_rect.x = world_x + offset_x;
-        player->sprite_rect.y = world_y + offset_y;
+        player->sprite_rect.x = render_x + offset_x;
+        player->sprite_rect.y = render_y + offset_y;
 
-        // Set player's position to the center of it's sprite
-        player->x_pos = world_x + (player->sprite_rect.w / 2);
-        player->y_pos = world_y + (player->sprite_rect.h / 2);
-        
-        MapUpdateViewport(&viewport, player, map->width * TILE_SIZE, map->height * TILE_SIZE, screen_w, screen_h);
+        player->x_pos = world_x + (PLAYER_SPRITE_SIZE / (RENDER_SCALE * 2));
+        player->y_pos = world_y + (PLAYER_SPRITE_SIZE / (RENDER_SCALE * 2));
+
+    
+        MapUpdateStreaming(cm, player);
         SDL_RenderClear(rend);
 
         if(player->game_state == STATE_EXPLORING || player->game_state == STATE_AGGRO){
-            MapDraw(map, rend, viewport);
+
+            SDL_Rect render_viewport = {
+                -offset_x,
+                -offset_y,
+                screen_w, screen_h
+            };
+
+            MapRender(cm, rend, render_viewport);
 
             // Render player
             SDL_Rect window = PlayerGetSheetWindow(player);
             SDL_RenderCopy(rend, player->sprite_sheet, &window, &player->sprite_rect);
+
+            /* For debug purposes only
+
+            SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+            SDL_RenderDrawRect(rend, &player->sprite_rect);
+            SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             
+            */
+
             TrainerDraw(offset_x, offset_y);
 
             if(player->game_state == STATE_AGGRO){
@@ -240,6 +262,7 @@ int main()
 
         frame_count++;
         Uint32 current_time = SDL_GetTicks();
+        
         if (current_time - last_time >= 1000) {
             fps = frame_count;
             frame_count = 0;
@@ -268,6 +291,8 @@ int main()
     PlayerDestroy(player);
 
     MapDestroy(map);
+    FreeMap(cm);
+
     SDL_DestroyRenderer(rend);
     TTF_CloseFont(game_font);
     SDL_DestroyWindow(win);

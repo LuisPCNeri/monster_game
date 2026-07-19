@@ -13,6 +13,7 @@
 #define TILE_MAP_MAX_X 100
 #define TILE_MAP_MAX_Y 100
 #define TILE_SIZE 32
+#define RENDER_TILE_SIZE 96
 
 #define CHUNK_SIZE 16
 
@@ -31,7 +32,9 @@ typedef struct map_t{
 
 /// 9 16x16 chunks of 32x32 tiles
 /// Total area of map in chunks
-#define MAP_SIZE_CHUNK 9
+#define MAP_SIZE_CHUNK 25
+#define RENDERED_MAP_SIZE_CHUNK 9
+#define STREAM_MARGIN_CHUNKS 2
 
 typedef struct bin_tile_t {
     uint8_t spawn_id_count;
@@ -110,14 +113,16 @@ int8_t GetCurrentTileType(int32_t x_pos, int32_t y_pos, map_t* map);
     \param renderer Current SDL_Renderer*.
     \return A pointer to a chunked_map_t variable.
 */
-chunked_map_t* MapInit(const char* fpath, SDL_Renderer* renderer);
+chunked_map_t* MapInit(SDL_Renderer* renderer);
 
 /*
     \brief Loads the chunks around the the player.
     \param m Current chunked_map_t data.
     \param p Active player.
 */
-void MapLoadChunks(chunked_map_t* m, player_t* p);
+void MapUpdateStreaming(chunked_map_t* m, player_t* p);
+
+void MapRender(chunked_map_t* m, SDL_Renderer* r, SDL_Rect v);
 
 /*
     \brief Free all memory occupied by a chunked_map_t struct.
