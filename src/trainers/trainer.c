@@ -22,7 +22,9 @@
 #define TRAINER_FILE "data/trainer.json"
 // Max ditance trainer can aggro from in TILES
 #define MAX_AGGRO_DIST 10
-#define AGGRO_LENIENCE 10
+#define AGGRO_LENIENCE 15
+
+#define RENDER_SCALE (RENDER_TILE_SIZE / TILE_SIZE)
 
 extern SDL_Renderer* rend;
 
@@ -118,8 +120,8 @@ int8_t TrainerIsVisible(trainer_t* t, int32_t offset_x, int32_t offset_y){
     int32_t screen_w, screen_h;
     SDL_GetRendererOutputSize(rend , &screen_w, &screen_h);
 
-    int32_t draw_x = t->x_pos + offset_x;
-    int32_t draw_y = t->y_pos + offset_y;
+    int32_t draw_x = (t->x_pos * RENDER_SCALE) + offset_x;
+    int32_t draw_y = (t->y_pos * RENDER_SCALE) + offset_y;
 
     return (draw_x + TRAINER_SPRITE_SIZE > 0 && draw_x < screen_w &&
             draw_y + TRAINER_SPRITE_SIZE > 0 && draw_y < screen_h);
@@ -145,8 +147,21 @@ void TrainerDraw(int32_t offset_x, int32_t offset_y){
         SDL_Rect src_rect;
         src_rect.w = 256;
         src_rect.h = 256;
-        SDL_Rect dst_rect = { TRAINERS[i].x_pos + offset_x, TRAINERS[i].y_pos + offset_y, TRAINER_SPRITE_SIZE, TRAINER_SPRITE_SIZE};
+        SDL_Rect dst_rect = { 
+            (TRAINERS[i].x_pos * RENDER_SCALE) + offset_x, 
+            (TRAINERS[i].y_pos * RENDER_SCALE) + offset_y, 
+            TRAINER_SPRITE_SIZE, 
+            TRAINER_SPRITE_SIZE
+        };
 
+        /* For debug porpuses only
+
+        SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+        SDL_RenderDrawRect(rend, &dst_rect);
+        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+        
+        */
+        
         switch (TRAINERS[i].facing_direction){
         case FRONT:
             src_rect.x = 0;
@@ -203,17 +218,25 @@ int8_t TrainerCheckAggro(player_t* player){
     if(closest->was_defeated) return 0;
     if(PlayerCheckIsPartyDead(player)) return 0;
 
+    // Player bounding box
+    int32_t player_half = PLAYER_SPRITE_SIZE / (RENDER_SCALE * 2);
+    int32_t player_left = player->x_pos - player_half;
+    int32_t player_right = player->x_pos + player_half;
+    int32_t player_top = player->y_pos - player_half;
+    int32_t player_bottom = player->y_pos + player_half;
+
     int32_t dist = sqrt(pow(player->x_pos - closest->x_pos, 2) + pow(player->y_pos - closest->y_pos, 2));
 
     // Position of the center of the closest trainer's sprite
-    int32_t trainer_CoM_x = closest->x_pos + (TRAINER_SPRITE_SIZE / 2);
-    int32_t trainer_CoM_y = closest->y_pos + (TRAINER_SPRITE_SIZE / 2);
+    int32_t trainer_half = TRAINER_SPRITE_SIZE / (RENDER_SCALE * 2);
+    int32_t trainer_CoM_x = closest->x_pos + trainer_half;
+    int32_t trainer_CoM_y = closest->y_pos + trainer_half;
 
     if(dist / TILE_SIZE > MAX_AGGRO_DIST) return 0;
 
     if(closest->facing_direction == FRONT){
-        if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
-        && player->y_pos > trainer_CoM_y){
+        if(player_right > trainer_CoM_x - AGGRO_LENIENCE && player_left < trainer_CoM_x + AGGRO_LENIENCE
+        && player_top > trainer_CoM_y){
             
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -222,8 +245,8 @@ int8_t TrainerCheckAggro(player_t* player){
         }
     }
     else if(closest->facing_direction == BACK){
-        if(trainer_CoM_x + AGGRO_LENIENCE > player->x_pos && trainer_CoM_x - AGGRO_LENIENCE < player->x_pos
-        && player->y_pos < trainer_CoM_y){
+        if(player_right > trainer_CoM_x - AGGRO_LENIENCE && player_left < trainer_CoM_x + AGGRO_LENIENCE
+        && player_bottom < trainer_CoM_y){
 
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -232,8 +255,8 @@ int8_t TrainerCheckAggro(player_t* player){
         }
     }
     else if(closest->facing_direction == LEFT){
-        if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
-        && player->x_pos < trainer_CoM_x){
+        if(player_bottom > trainer_CoM_y - AGGRO_LENIENCE && player_top < trainer_CoM_y + AGGRO_LENIENCE
+        && player_right < trainer_CoM_x){
 
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -242,8 +265,8 @@ int8_t TrainerCheckAggro(player_t* player){
         }
     }
     else if(closest->facing_direction == RIGHT){
-        if(trainer_CoM_y + AGGRO_LENIENCE > player->y_pos && trainer_CoM_y - AGGRO_LENIENCE < player->y_pos 
-        && player->x_pos > trainer_CoM_x){
+        if(player_bottom > trainer_CoM_y - AGGRO_LENIENCE && player_top < trainer_CoM_y + AGGRO_LENIENCE
+        && player_left > trainer_CoM_x){
 
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -311,25 +334,28 @@ void TrainerRenderNotifBox(trainer_t* t, int32_t offset_x, int32_t offset_y, Uin
     if ((blink_timer / BLINK_FRAMES) % 2 != 0) return;
 
     SDL_Rect notif_box = {
-        .x = t->x_pos + offset_x + (TRAINER_SPRITE_SIZE/2) - 32/2, 
-        .y = t->y_pos + offset_y + (TRAINER_SPRITE_SIZE/2) - 32 - 20, 
-        .w = 32, .h = 32};
+        .x = (t->x_pos * RENDER_SCALE) + offset_x + (TRAINER_SPRITE_SIZE / 2) - (32 / 2), 
+        .y = (t->y_pos * RENDER_SCALE) + offset_y - 32, 
+        .w = 32, .h = 32
+    };
+
     if(notif_text) SDL_RenderCopy(rend, notif_text, NULL, &notif_box);
 }
 
 int8_t TrainerIsCollingWithPlayer(player_t* player){
     trainer_t* closest = TrainerGetClosest(player);
     
-    int32_t player_half = PLAYER_SPRITE_SIZE / 2;
+    int32_t player_half = PLAYER_SPRITE_SIZE / (RENDER_SCALE * 2);
     int32_t player_bottom = player->y_pos + player_half;
     int32_t player_right = player->x_pos + player_half;
     int32_t player_left = player->x_pos - player_half;
     int32_t player_top = player->y_pos - player_half;
 
-    int32_t trainer_right = closest->x_pos + TRAINER_SPRITE_SIZE;
-    int32_t trainer_bottom = closest->y_pos + TRAINER_SPRITE_SIZE;
+    int32_t trainer_logical = TRAINER_SPRITE_SIZE / RENDER_SCALE;
+    int32_t trainer_right = closest->x_pos + trainer_logical;
+    int32_t trainer_bottom = closest->y_pos + trainer_logical;
 
-    if(player_left < closest->x_pos || player_top <= closest->y_pos || player_right >= trainer_right || player_bottom >= trainer_bottom )
+    if(player_right < closest->x_pos || player_left > trainer_right || player_bottom < closest->y_pos || player_top > trainer_bottom)
         return 5;
 
     int32_t overlap_left = player_right - closest->x_pos;
