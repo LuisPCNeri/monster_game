@@ -13,6 +13,7 @@
 #include "monster.h"
 #include "battle/battle.h"
 #include "utils/glbl_asset_manager.h"
+#include "utils/term_colors.h"
 
 #define MAX_GAME_MOVES 500
 #define MAX_GAME_MONSTERS 160
@@ -31,8 +32,6 @@ static move_t ALL_MOVES[MAX_GAME_MOVES];
 static int16_t MoveLibraryCount = 0;
 
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
-
-static int32_t old_x, old_y = 0;
 
 static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
 static Mix_Music* notif_sound = NULL;
@@ -455,25 +454,6 @@ void MonstersInit() {
     MonstersLoad();
 }
 
-// MONSTER SPAWNING LOGIC
-
-int8_t CheckMonsterCanSpawn(int8_t tile_type){
-    switch (tile_type)
-    {
-    case SPAWNABLE_TALL_GRASS:
-        return 1;
-        break;
-
-    case SPAWNABLE_ROCK_GROUND:
-        return 1;
-        break;
-    
-    default:
-        return 0;
-        break;
-    }
-}
-
 void MonsterResetBattleStats(monster_t* monster){
     if(!monster) return;
     monster->atk_stage = 0;
@@ -529,153 +509,17 @@ static int8_t MonsterSetSpawnLevel(int8_t avg_player_level){
     return spawn_level;
 }
 
-monster_t SpawnMonster(int8_t tile_type, int8_t avg_player_level){
-    printf("MONSTER SPAWNED\n");
-    
-    char* tiles_file_data = LoadFileToString("data/tile_data.json");
-    if (!tiles_file_data) return ALL_MONSTERS[0];
-
-    // Array to store the id of all the spawnable monsters on this tile
-    int16_t spawnable_mons_ids[150];
-    int16_t count = 0;
-
-    cJSON* tiles_json = cJSON_Parse(tiles_file_data);
-    if (!tiles_json) {
-        free(tiles_file_data);
-        return ALL_MONSTERS[0];
-    }
-    cJSON* tile_data = NULL; 
-
-    cJSON_ArrayForEach(tile_data, tiles_json){
-
-        cJSON* t_item = cJSON_GetObjectItem(tile_data, "tile_type");
-        if (!t_item) continue;
-
-        int8_t tile_type_json = t_item->valueint;
-        if(tile_type_json == tile_type){
-            // Load the spawnable monsters to the array
-            cJSON* spawnable_mons = cJSON_GetObjectItem(tile_data, "spawnable_monsters");
-            cJSON* mon_id = NULL;
-
-            // Iterate through all items from JSON array
-            cJSON_ArrayForEach(mon_id, spawnable_mons){
-                if (count < 150) {
-                    spawnable_mons_ids[count] = mon_id->valueint;
-                    count++;
-                }
-            }
-        }
-
-    }
-
-    if (count == 0) {
-        cJSON_Delete(tiles_json);
-        free(tiles_file_data);
-        return ALL_MONSTERS[0];
-    }
-
-    //=================================================================
-    //= ALL SPAWN POOLS MUST HAVE AT LEAST ONE MONSTER OF EACH RARITY =
-    //=================================================================
-
-    // This number will represent the rarity of the spawned monster
-    int8_t spawned_rarity = rand() % (100 + 1);
-    printf("RARITY: %d\n", spawned_rarity);
-    if(spawned_rarity < 70){
-        // COMMON SPAWN
-        // Infinite loop to try to keep spawning
-        while(1){
-            int16_t random_id = rand() % (count + 1);
-            int16_t rndm_m_id = spawnable_mons_ids[random_id];
-
-            monster_t* monster = GetMonsterById(rndm_m_id);
-            if(monster && monster->rarity == COMMON){
-                count = 0;
-                free(tiles_file_data);
-                cJSON_Delete(tiles_json);
-
-                monster_t return_mons = *monster;
-                
-                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
-                MonsterSetStats(&return_mons);
-
-                return return_mons;
-            }
-        }
-    }
-    else if(spawned_rarity < 90){
-        // UNCOMMON SPAWN
-        // Infinite loop to try to keep spawning
-        while(1){
-            int16_t random_id = rand() % (count + 1);
-            int16_t rndm_m_id = spawnable_mons_ids[random_id];
-
-            monster_t* monster = GetMonsterById(rndm_m_id);
-            if(monster && monster->rarity == UNCOMMON){
-                count = 0;
-                free(tiles_file_data);
-                cJSON_Delete(tiles_json);
-
-                monster_t return_mons = *monster;
-                
-                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
-                MonsterSetStats(&return_mons);
-
-                return return_mons;
-            }
-        }
-    }
-    else if (spawned_rarity < 98){
-        // RARE SPAWN
-        // Infinite loop to try to keep spawning
-        while(1){
-            int16_t random_id = rand() % (count + 1);
-            int16_t rndm_m_id = spawnable_mons_ids[random_id];
-
-            monster_t* monster = GetMonsterById(rndm_m_id);
-            if(monster && monster->rarity == RARE){
-                count = 0;
-                free(tiles_file_data);
-                cJSON_Delete(tiles_json);
-
-                monster_t return_mons = *monster;
-                
-                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
-                MonsterSetStats(&return_mons);
-                return return_mons;
-            }
-        }
-    }
-    else {
-        // VERY RARE SPAWN (Mostly evolutions of starters or starters themselves)
-        // Infinite loop to try to keep spawning
-        while(1){
-            int16_t random_id = rand() % (count + 1);
-            int16_t rndm_m_id = spawnable_mons_ids[random_id];
-
-            monster_t* monster = GetMonsterById(rndm_m_id);
-            if(monster && monster->rarity == VERY_RARE){
-                count = 0;
-                free(tiles_file_data);
-                cJSON_Delete(tiles_json);
-
-                monster_t return_mons = *monster;
-                
-                return_mons.level = MonsterSetSpawnLevel(avg_player_level);
-                MonsterSetStats(&return_mons);
-                return return_mons;
-            }
-        }
-    }
-
-    return ALL_MONSTERS[0];
-}
-
 void MonsterUpdateAggro(player_t* player, Uint32 dt){
     if(player->aggro_timer > 0){
         player->aggro_timer -= dt;
     } else {
         if(notif_sound) {
+            Mix_HaltMusic();
+
+            printf("Mixer: %d channels, music decoder count: %d\n", 
+                Mix_AllocateChannels(-1), 
+                Mix_GetNumMusicDecoders());
+
             Mix_FreeMusic(notif_sound);
             notif_sound = NULL;
         }
@@ -686,48 +530,65 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
     }
 }
 
-int8_t TrySpawnMonster(player_t* player, map_t* map){            
-    int32_t current_x = player->x_pos / 32;
-    int32_t current_y = player->y_pos / 32;
+static monster_t* MonsterSpawn(bin_tile_t* t, int32_t avg_level) {
 
-    int8_t new_tile_type = GetCurrentTileType(current_x, current_y, map);
+    /// BUG this assumes all mons have the same rarity
+    int16_t mon_idx = rand() % t->spawn_id_count;
+    int16_t mon_id  = t->spawn_ids[mon_idx];
 
-    if( (old_x != current_x || old_y != current_y) && CheckMonsterCanSpawn(new_tile_type)){
-        printf("NEW TILE TYPE: %d\n", new_tile_type);
-
-        // Every time player changes tile 20% chance to spawn
-        int8_t spawn_num = rand() % (100 + 1);
-
-        if(spawn_num <= 20){
-            int16_t total_level = 0;
-            int8_t count = 0;
-            for(int8_t i = 0; i < 5; i++){
-                if(player->monster_party[i]){
-                    total_level += player->monster_party[i]->level;
-                    count++;
-                }
-            }
-            int8_t avg_level = (count > 0) ? total_level / count : 5;
-
-            printf("AVG LEVEL DONE\n");
-
-            monster_t* spawned_mons = (monster_t*) malloc(sizeof(monster_t));
-
-            if(!notif_sound) notif_sound = Mix_LoadMUS(NOTIF_SOUND_LOC);
-            Mix_PlayMusic(notif_sound, 1);
-
-            *spawned_mons = SpawnMonster(new_tile_type, avg_level);
-            player->aggro_timer = PLAYER_AGGRO_TIMER;
-            player->aggro_monster = spawned_mons;
-            player->game_state = STATE_AGGRO;
-            return 1;
-        }
+    monster_t* template_mon = GetMonsterById(mon_id);
+    if(!template_mon) {
+        printf(ANSI_COLOR_RED"[!] No mon with Id: %d!\n"ANSI_COLOR_RESET, mon_id);
+        return NULL;
     }
 
-    // Set the current_tile value to the new one
-    old_x = current_x;
-    old_y = current_y; 
-    return -1;
+    monster_t* spawnable_mon = (monster_t*) malloc(sizeof(monster_t));
+
+    /// Copy of the template mon
+    *spawnable_mon = *template_mon;
+    spawnable_mon->level = MonsterSetSpawnLevel(avg_level);
+    MonsterSetStats(spawnable_mon);
+
+    return spawnable_mon;
+}
+
+void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
+    
+    bin_tile_t* tile = MapGetCurrentTile(m, p->x_pos, p->y_pos);
+    if(!tile) {
+        printf(ANSI_COLOR_RED"Non existing tile.\n"ANSI_COLOR_RESET);
+        return;
+    }
+
+    if(tile->spawn_id_count <= 0) {
+        printf(ANSI_COLOR_YELLOW"No spawnable mons for current tile.\n"ANSI_COLOR_RESET);
+        return;
+    }
+
+    int8_t spawn_int = rand() % (100 + 1);
+    if(spawn_int > 1) return;
+    
+    int16_t total_level = 0;
+    int8_t count = 0;
+
+    for(int8_t i = 0; i < 5; i++){
+        if(p->monster_party[i]){
+            total_level += p->monster_party[i]->level;
+            count++;
+        }
+    }
+    int8_t avg_level = (count > 0) ? total_level / count : 5;
+
+    if(!notif_sound) notif_sound = Mix_LoadMUS(NOTIF_SOUND_LOC);
+    if(Mix_PlayMusic(notif_sound, 1) < 0) {
+        printf(ANSI_COLOR_RED "[!] Mix_PlayMusic failed: %s\n" ANSI_COLOR_RESET, Mix_GetError());
+    }
+
+    monster_t* spawned_mon = MonsterSpawn(tile, avg_level);
+    
+    p->aggro_timer = PLAYER_AGGRO_TIMER;
+    p->aggro_monster = spawned_mon;
+    p->game_state = STATE_AGGRO;
 }
 
 // Updates the monster's stats to reflect the level up

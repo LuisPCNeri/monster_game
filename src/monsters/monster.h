@@ -10,7 +10,7 @@
 
 #define USBALE_MOVES_AMOUNT 4
 
-typedef struct map_t map_t;
+typedef struct chunked_map_t chunked_map_t; 
 
 // MONSTER RARITIES
 // These affect only the monster's spawning rate
@@ -146,18 +146,12 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon);
 // Parses the JSON Entry with the move data and puts it in the address of m 
 void MoveParseJSON(cJSON* entry, move_t* m);
 
-// Returns 1 if a monster can spawn and 0 if not
-// The monster spawning or not depends on the tile_type
-int8_t CheckMonsterCanSpawn(int8_t tile_type);
-
-// "Spawns" a monster that immediatly tries to fight the player
-// Takes in an int representing the tile_type to choose the monster's type
-// Returns a pointer to the monster's data
-monster_t SpawnMonster(int8_t tile_type, int8_t avg_player_level);
-
-// Every time the player changes tiles it checks the tile_type
-// If monsters can spawn in that tile it tries to spawn one
-int8_t TrySpawnMonster(player_t* player, map_t* map);
+/*
+    \brief Checks if a monster can spawn in the players current tile, if so the monster is spawned.
+    \param player The current player.
+    \param map The current chunked_map_t obj.
+*/
+void MonsterTrySpawn(player_t* player, chunked_map_t* map);
 
 // Returns the float multiplier for the corresponding effectiveness of attacker's attack type on the defender's type
 float MonsterGetTypeEffectiveness(MonsterTypes attacker, MonsterTypes defender);

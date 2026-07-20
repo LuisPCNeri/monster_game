@@ -64,10 +64,6 @@ int main()
     restore_item_t potion = {4, 1, 10, "Potion", ""};
     union item_t pot_union = {.restore_item = &potion};
     InventoryAddItem(player->inv, pot_union, 5);
-    
-    FILE* map_file = fopen("map_file.txt", "r");
-    map_t* map = MapCreateFromFile(map_file, rend);
-    fclose(map_file);
 
     chunked_map_t* cm = MapInit(rend);
 
@@ -133,22 +129,22 @@ int main()
                         case SDL_SCANCODE_UP:
                             if(TrainerIsCollingWithPlayer(player) == NORTH) break;
                             PlayerMove(player, NORTH, &world_y);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
+                            if(!TrainerCheckAggro(player)) MonsterTrySpawn(player, cm);
                             break;
                         case SDL_SCANCODE_LEFT:
                             if(TrainerIsCollingWithPlayer(player) == WEST) break;
                             PlayerMove(player, WEST, &world_x);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
+                            if(!TrainerCheckAggro(player)) MonsterTrySpawn(player, cm);
                             break;
                         case SDL_SCANCODE_DOWN:
                             if(TrainerIsCollingWithPlayer(player) == SOUTH) break;
                             PlayerMove(player, SOUTH, &world_y);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
+                            if(!TrainerCheckAggro(player)) MonsterTrySpawn(player, cm);
                             break;
                         case SDL_SCANCODE_RIGHT:
                             if(TrainerIsCollingWithPlayer(player) == EAST) break;
                             PlayerMove(player, EAST, &world_x);
-                            if(!TrainerCheckAggro(player)) TrySpawnMonster(player, map);
+                            if(!TrainerCheckAggro(player)) MonsterTrySpawn(player, cm);
                             break;
                         case SDL_SCANCODE_ESCAPE:
                             running = 0;
@@ -250,6 +246,7 @@ int main()
                     TrainerRenderNotifBox(player->aggro_trainer, offset_x, offset_y, dt);
                     TrainerUpdateAggro(player, dt);
                 }
+
                 if(player->aggro_monster){
                     PlayerRenderNotifBox(player, offset_x, offset_y, dt);
                     MonsterUpdateAggro(player, dt);
@@ -290,7 +287,6 @@ int main()
     BattleQuit();
     PlayerDestroy(player);
 
-    MapDestroy(map);
     FreeMap(cm);
 
     SDL_DestroyRenderer(rend);
