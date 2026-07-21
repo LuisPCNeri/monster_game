@@ -8,6 +8,7 @@
 #include "player/player.h"
 #include "trainers/trainer.h"
 #include "monsters/battle/battle.h"
+#include "handlers/text/text_gradual_render_handler.h"
 
 extern SDL_Renderer* rend;
 extern TTF_Font* game_font;
@@ -91,18 +92,27 @@ void TrainerBattleDraw(Uint32 dt){
 static SDL_Texture* intro_msg_tex = NULL;
 static SDL_Texture* intro_name_tex = NULL;
 static SDL_Texture* intro_sprite_tex = NULL;
+static int32_t last_frame_time = -1;
 
 void TrainerBattleInitMessageDraw(){
+
+    int32_t current_frame_time = SDL_GetTicks();
+    int32_t dt = (last_frame_time < 0) ? 0 : current_frame_time - last_frame_time;
+    last_frame_time = current_frame_time;
+
     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(rend, &player->current_menu->menu_items[0]);
 
+    SDL_Rect text_rect = {.x = 50 + 20, .y = player->current_menu->menu_items[0].y + 20, .w = 0, .h = 0};
+    RenderTextByChar(trainer->intro_msg, &text_rect, game_font, dt, rend);
+
     // Message from the trainer when starting the battle
-    if(intro_msg_tex){
+    /*if(intro_msg_tex){
         int32_t w, h;
         SDL_QueryTexture(intro_msg_tex, NULL, NULL, &w, &h);
         SDL_Rect text_rect = {.x = 50 + 20, .y = player->current_menu->menu_items[0].y + 20, .w = w, .h = h};
         SDL_RenderCopy(rend, intro_msg_tex, NULL, &text_rect);
-    }
+    }*/
 
     // This just renders the trainer's name to the box where usually the enemy monster's info is
     SDL_Rect trainer_info_rect = {.x = 1450, .y = 50, .w = 400, .h = 100};
