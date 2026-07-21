@@ -516,9 +516,11 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
         if(notif_sound) {
             Mix_HaltMusic();
 
+            /*
             printf("Mixer: %d channels, music decoder count: %d\n", 
                 Mix_AllocateChannels(-1), 
                 Mix_GetNumMusicDecoders());
+            */
 
             Mix_FreeMusic(notif_sound);
             notif_sound = NULL;
@@ -561,7 +563,7 @@ void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
     }
 
     if(tile->spawn_id_count <= 0) {
-        printf(ANSI_COLOR_YELLOW"No spawnable mons for current tile.\n"ANSI_COLOR_RESET);
+        /// printf(ANSI_COLOR_YELLOW"No spawnable mons for current tile.\n"ANSI_COLOR_RESET);
         return;
     }
 

@@ -265,9 +265,11 @@ bin_tile_t* MapGetCurrentTile(chunked_map_t* map, int32_t px, int32_t py) {
         return NULL;
     }
 
+    /*
     printf(ANSI_COLOR_GREEN "Found tile (%d,%d) in chunk (%d,%d) local (%d,%d) textureId: %d\n" ANSI_COLOR_RESET,
            tile_x, tile_y, cx, cy, local_x, local_y,
            slot->data.tiles[local_x][local_y].texture_id);
+    */
 
     return &slot->data.tiles[local_x][local_y];
 }
