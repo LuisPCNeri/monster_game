@@ -5,6 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
+#include "map.h"
 #include "monsters/monster.h"
 #include "menus/menu.h"
 #include "player/inventory.h"
@@ -20,6 +21,8 @@ static player_t* active_player = NULL;
 
 static int8_t starting_sprite_stage = 0;
 static int8_t max_sprite_stage = 0;
+
+#define RENDER_SCALE (RENDER_TILE_SIZE / TILE_SIZE)
 
 player_t* PlayerInit(){
     player_t* player = (player_t*) calloc(1, sizeof(player_t));
@@ -231,19 +234,19 @@ void PlayerMove(player_t* player, Orientation direction, int* world_pos){
     switch (player->facing_direction){
         case NORTH:
         *world_pos -= CHARACTER_SPEED / 30;
-        player->y_pos = *world_pos + (player->sprite_rect.h / 2);
+        player->y_pos = *world_pos + (player->sprite_rect.h / (RENDER_SCALE * 2));
         break;
         case SOUTH:
         *world_pos += CHARACTER_SPEED / 30;
-        player->y_pos = *world_pos + (player->sprite_rect.h / 2);
+        player->y_pos = *world_pos + (player->sprite_rect.h / (RENDER_SCALE * 2));
         break;
         case WEST:
         *world_pos -= CHARACTER_SPEED / 30;
-        player->x_pos = *world_pos + (player->sprite_rect.h / 2);
+        player->x_pos = *world_pos + (player->sprite_rect.w / (RENDER_SCALE * 2));
         break;
         case EAST:
         *world_pos += CHARACTER_SPEED / 30;
-        player->x_pos = *world_pos + (player->sprite_rect.h / 2);
+        player->x_pos = *world_pos + (player->sprite_rect.w / (RENDER_SCALE * 2));
         break;
     }
 }

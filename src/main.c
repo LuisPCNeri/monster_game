@@ -230,13 +230,11 @@ int main()
             // Render player
             SDL_Rect window = PlayerGetSheetWindow(player);
             SDL_RenderCopy(rend, player->sprite_sheet, &window, &player->sprite_rect);
-
-            /* For debug purposes only
-
+            
+            /* DEBUG
             SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
             SDL_RenderDrawRect(rend, &player->sprite_rect);
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-            
             */
 
             TrainerDraw(offset_x, offset_y);

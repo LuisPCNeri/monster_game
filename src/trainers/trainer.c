@@ -14,6 +14,7 @@
 #include <SDL2/SDL_mixer.h>
 
 #include "trainer.h"
+#include "SDL_render.h"
 #include "map.h"
 #include "monsters/battle/battle.h"
 #include "trainer_battle/trainer_battle.h"
@@ -22,7 +23,7 @@
 #define TRAINER_FILE "data/trainer.json"
 // Max ditance trainer can aggro from in TILES
 #define MAX_AGGRO_DIST 10
-#define AGGRO_LENIENCE 15
+#define AGGRO_LENIENCE (15 / RENDER_SCALE)
 
 #define RENDER_SCALE (RENDER_TILE_SIZE / TILE_SIZE)
 
@@ -127,6 +128,26 @@ int8_t TrainerIsVisible(trainer_t* t, int32_t offset_x, int32_t offset_y){
             draw_y + TRAINER_SPRITE_SIZE > 0 && draw_y < screen_h);
 }
 
+static void TrainerDebugDrawAggroLine(trainer_t* t) {
+    int32_t t_half = TRAINER_SPRITE_SIZE / (RENDER_SCALE * 2);
+    
+    int32_t screen_x = (t->x_pos * RENDER_SCALE) + world_offset_x + (t_half * RENDER_SCALE);
+    int32_t screen_y = (t->y_pos * RENDER_SCALE) + world_offset_y + (t_half * RENDER_SCALE);
+
+    int32_t aggro_px = MAX_AGGRO_DIST * TILE_SIZE * RENDER_SCALE;
+
+    SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+
+    switch(t->facing_direction) {
+        case FRONT: SDL_RenderDrawLine(rend, screen_x, screen_y, screen_x, screen_y + aggro_px); break;
+        case BACK:  SDL_RenderDrawLine(rend, screen_x, screen_y, screen_x, screen_y - aggro_px); break;
+        case RIGHT: SDL_RenderDrawLine(rend, screen_x, screen_y, screen_x + aggro_px, screen_y); break;
+        case LEFT:  SDL_RenderDrawLine(rend, screen_x, screen_y, screen_x - aggro_px, screen_y); break;
+    }
+
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+}
+
 void TrainerDraw(int32_t offset_x, int32_t offset_y){
     world_offset_x = offset_x;
     world_offset_y = offset_y;
@@ -153,15 +174,15 @@ void TrainerDraw(int32_t offset_x, int32_t offset_y){
             TRAINER_SPRITE_SIZE, 
             TRAINER_SPRITE_SIZE
         };
-
-        /* For debug porpuses only
-
+        
+        /* DEBUG
         SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
         SDL_RenderDrawRect(rend, &dst_rect);
         SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
         
+        TrainerDebugDrawAggroLine(&TRAINERS[i]);
         */
-        
+
         switch (TRAINERS[i].facing_direction){
         case FRONT:
             src_rect.x = 0;
@@ -218,25 +239,17 @@ int8_t TrainerCheckAggro(player_t* player){
     if(closest->was_defeated) return 0;
     if(PlayerCheckIsPartyDead(player)) return 0;
 
-    // Player bounding box
-    int32_t player_half = PLAYER_SPRITE_SIZE / (RENDER_SCALE * 2);
-    int32_t player_left = player->x_pos - player_half;
-    int32_t player_right = player->x_pos + player_half;
-    int32_t player_top = player->y_pos - player_half;
-    int32_t player_bottom = player->y_pos + player_half;
-
     int32_t dist = sqrt(pow(player->x_pos - closest->x_pos, 2) + pow(player->y_pos - closest->y_pos, 2));
 
     // Position of the center of the closest trainer's sprite
-    int32_t trainer_half = TRAINER_SPRITE_SIZE / (RENDER_SCALE * 2);
+    int32_t trainer_half = (TRAINER_SPRITE_SIZE / RENDER_SCALE) / 2;
     int32_t trainer_CoM_x = closest->x_pos + trainer_half;
     int32_t trainer_CoM_y = closest->y_pos + trainer_half;
 
-    if(dist / TILE_SIZE > MAX_AGGRO_DIST) return 0;
+    if(dist > MAX_AGGRO_DIST * TILE_SIZE) return 0;
 
     if(closest->facing_direction == FRONT){
-        if(player_right > trainer_CoM_x - AGGRO_LENIENCE && player_left < trainer_CoM_x + AGGRO_LENIENCE
-        && player_top > trainer_CoM_y){
+        if( abs(player->x_pos - trainer_CoM_x) <= AGGRO_LENIENCE && player->y_pos > trainer_CoM_y ) {
             
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -245,8 +258,7 @@ int8_t TrainerCheckAggro(player_t* player){
         }
     }
     else if(closest->facing_direction == BACK){
-        if(player_right > trainer_CoM_x - AGGRO_LENIENCE && player_left < trainer_CoM_x + AGGRO_LENIENCE
-        && player_bottom < trainer_CoM_y){
+        if( abs(player->x_pos - trainer_CoM_x) <= AGGRO_LENIENCE && player->y_pos < trainer_CoM_y ) {
 
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -255,8 +267,7 @@ int8_t TrainerCheckAggro(player_t* player){
         }
     }
     else if(closest->facing_direction == LEFT){
-        if(player_bottom > trainer_CoM_y - AGGRO_LENIENCE && player_top < trainer_CoM_y + AGGRO_LENIENCE
-        && player_right < trainer_CoM_x){
+        if( abs(player->y_pos - trainer_CoM_y) <= AGGRO_LENIENCE && player->x_pos < trainer_CoM_x ) {
 
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
@@ -265,8 +276,7 @@ int8_t TrainerCheckAggro(player_t* player){
         }
     }
     else if(closest->facing_direction == RIGHT){
-        if(player_bottom > trainer_CoM_y - AGGRO_LENIENCE && player_top < trainer_CoM_y + AGGRO_LENIENCE
-        && player_left > trainer_CoM_x){
+        if( abs(player->y_pos - trainer_CoM_y) <= AGGRO_LENIENCE && player->x_pos > trainer_CoM_x ) {
 
             TrainerPrint(closest);
             MonsterPrint(&closest->party[0]);
