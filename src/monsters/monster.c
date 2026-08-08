@@ -8,14 +8,15 @@
 #include "libraries/cJSON.h"
 
 #include "map.h"
+#include "monsters/moves/moves.h"
 #include "player/player.h"
 #include "items/item.h"
 #include "monster.h"
 #include "battle/battle.h"
 #include "utils/glbl_asset_manager.h"
 #include "utils/term_colors.h"
+#include "utils/utils.h"
 
-#define MAX_GAME_MOVES 500
 #define MAX_GAME_MONSTERS 160
 
 #define BASE_CATCH_RATE 25
@@ -28,9 +29,6 @@ static monster_t ALL_MONSTERS[MAX_GAME_MONSTERS];
 
 static int16_t monster_count = 0;
 
-static move_t ALL_MOVES[MAX_GAME_MOVES];
-static int16_t MoveLibraryCount = 0;
-
 static float TypeChart[TYPE_COUNT][TYPE_COUNT];
 
 static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
@@ -39,44 +37,11 @@ static Mix_Music* notif_sound = NULL;
 extern SDL_Renderer* rend;
 extern glbl_asset_manager* asset_manager;
 
-move_t* GetMoveById(int16_t id) {
-    for(int16_t i = 0; i < MoveLibraryCount; i++) {
-        if(ALL_MOVES[i].id == id) {
-            return &ALL_MOVES[i];
-        }
-    }
-    return NULL;
-}
-
 monster_t* GetMonsterById(int16_t id){
     for(int16_t i=0; i < monster_count; i++){
         if(ALL_MONSTERS[i].id == id) return &ALL_MONSTERS[i];
     }
     return NULL;
-}
-
-// Takes in the path to a file and reads it to a string
-// Returns a pointer to the string or NULL if it fails
-// The caller is responsible for freeing the string
-static char* LoadFileToString(const char* file_path){
-    FILE* fptr;
-    if(!(fptr = fopen(file_path, "r"))){
-        perror("Open JSON Monster File: ");
-        return NULL;
-    }
-
-    // Count file size
-    fseek(fptr, 0 , SEEK_END);
-    long file_size = ftell(fptr);
-    fseek(fptr, 0, SEEK_SET);
-
-    char* buffer = (char*) malloc((size_t) file_size + 1);
-    size_t out = fread(buffer, 1, file_size, fptr);
-    if(out == 0) perror("fread");
-    buffer[file_size] = '\0';
-
-    fclose(fptr);
-    return buffer;
 }
 
 void MonsterPrint(monster_t* m){
@@ -248,40 +213,6 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
             evo_idx++;
         }
     }
-            
-    // Load the USABLE MOVES for this monster
-    cJSON* movesArray = cJSON_GetObjectItem(entry, "starting_moves");
-    if(!movesArray) {
-        printf("NO MOVES ARRAY\n");
-        return 0;
-    }
-
-    cJSON* moveIdVal = NULL;
-    int8_t slot = 0;
-
-    // Initialize slots to empty values first
-    for(int8_t k=0; k<4; k++) {
-        // -1 FOR EMPTY SLOT
-        mon->moves[k].id = -1;
-        mon->moves[k].damage = 0;
-    }
-
-    // Loop through the JSON array
-    cJSON_ArrayForEach(moveIdVal, movesArray) {
-        if(slot >= 4) break;
-        int16_t idToFind = moveIdVal->valueint;
-                
-        move_t* foundMove = GetMoveById(idToFind);
-        if(foundMove != NULL) {
-            mon->moves[slot] = *foundMove;         
-            mon->moves[slot].available_uses = foundMove->max_uses;
-                    
-            slot++;
-        } 
-        else {
-            printf("Warning: Monster %s tries to use unknown Move ID %d\n", mon->name, idToFind);
-        }
-    }
 
     for(int8_t i = 0; i < MAX_LEVEL; i++){
         for(int8_t k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
@@ -291,11 +222,10 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
 
     cJSON* lvl_up_table = cJSON_GetObjectItem(entry, "level_up_table");
     if(!lvl_up_table) {
-        printf("NO LVL UP TABLE\n");
+        printf(ANSI_COLOR_YELLOW"[!] No level up table for mon with id %d\n"ANSI_COLOR_RESET, mon->id);
         return 0;
     }
 
-    slot = 0;
     for(int8_t i = 0; i < MAX_LEVEL; i++){
         char lvl[8];
         sprintf(lvl, "%d", i);
@@ -314,47 +244,10 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
     return 1;
 }
 
-void MoveParseJSON(cJSON* entry, move_t* m){
-    // Load basic data
-    m->id = cJSON_GetObjectItem(entry, "id")->valueint;
-    m->move_name = SDL_strdup(cJSON_GetObjectItem(entry, "name")->valuestring);
-    m->required_level = cJSON_GetObjectItem(entry, "req_level")->valueint;
-    m->damage = cJSON_GetObjectItem(entry, "power")->valueint;
-    m->max_uses = cJSON_GetObjectItem(entry, "max_pp")->valueint;
-    m->status_effect = cJSON_GetObjectItem(entry, "status_fx")->valueint;
-
-    char* type = cJSON_GetObjectItem(entry, "type")->valuestring;
-    m->attack_type = MonsterGetTypeFromString(type);
-
-    cJSON* acc_item = cJSON_GetObjectItem(entry, "accuracy");
-    m->acc_percent = acc_item ? acc_item->valueint : 100;
-            
-    // Load Stat Modifiers
-    cJSON* stat_item = cJSON_GetObjectItem(entry, "stat_target");
-    if(stat_item){
-        char* s = stat_item->valuestring;
-        if(     strcmp(s, "ATTACK")  == 0) m->stat_to_modify = STAT_ATTACK;
-        else if(strcmp(s, "DEFENSE") == 0) m->stat_to_modify = STAT_DEFENSE;
-        else if(strcmp(s, "SPEED")   == 0) m->stat_to_modify = STAT_SPEED;
-        else m->stat_to_modify = STAT_NONE;
-    }
-    else {
-        m->stat_to_modify = STAT_NONE;
-    }
-
-    cJSON* stage_item = cJSON_GetObjectItem(entry, "stage_change");
-    m->stat_stage_change = stage_item ? stage_item->valueint : 0;
-    cJSON* self_item = cJSON_GetObjectItem(entry, "target_self");
-    m->is_modify_self = self_item ? self_item->valueint : 0;
-
-    // Initialize current state
-    m->available_uses = m->max_uses; 
-}
-
 /// \brief Loads the Unova Dex into and array in memory. Mons are indexed by ther id - 1.
 /// \return 0 On failure, 1 on success
 static uint8_t MonstersLoad() {
-    const char* fpath = "data/unova_pokedex_indexed.json";
+    const char* fpath = "data/unova_pokedex.json";
 
     char* monster_data = LoadFileToString(fpath);
     if(!monster_data) return 0;
@@ -373,7 +266,9 @@ static uint8_t MonstersLoad() {
     }
     cJSON_Delete(jsonMons);
     free(monster_data);
-    printf("Loaded %d monsters.\n", monster_count);
+    printf(ANSI_COLOR_GREEN"Loaded %d monsters.\n"ANSI_COLOR_RESET, monster_count);
+
+    MovesInit();
 
     return 1;
 }
@@ -432,24 +327,6 @@ void MonstersInit() {
 
     printf("Loaded TYPE CHART\n");
 
-    // LOAD ALL MOVES INTO THE LIBRARY
-    char* moveData = LoadFileToString("data/moves.json");
-    if(moveData) {
-        cJSON* jsonMoves = cJSON_Parse(moveData);
-        cJSON* entry = NULL;
-
-        cJSON_ArrayForEach(entry, jsonMoves) {
-            if(MoveLibraryCount >= MAX_GAME_MOVES) break;
-            
-            move_t* m = &ALL_MOVES[MoveLibraryCount];
-            MoveParseJSON(entry, m);
-            MoveLibraryCount++;
-        }
-        cJSON_Delete(jsonMoves);
-        free(moveData);
-        printf("Loaded %d moves.\n", MoveLibraryCount);
-    }
-
     printf("\n\n ------ LOADING FROM UNOVA DEX ------ \n\n");
     MonstersLoad();
 }
@@ -459,6 +336,17 @@ void MonsterResetBattleStats(monster_t* monster){
     monster->atk_stage = 0;
     monster->def_stage = 0;
     monster->spd_stage = 0;
+}
+
+void MonsterSetMoves(monster_t* m) {
+    int16_t* move_ids = GetLearnedMovesIdPermutation(m);
+
+    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++) {
+        move_t* move = GetMoveById(move_ids[i]);
+        if (move) m->moves[i] = *move;
+    }
+
+    free(move_ids);
 }
 
 void MonsterSetStats(monster_t* monster){
@@ -515,17 +403,10 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
     } else {
         if(notif_sound) {
             Mix_HaltMusic();
-
-            /*
-            printf("Mixer: %d channels, music decoder count: %d\n", 
-                Mix_AllocateChannels(-1), 
-                Mix_GetNumMusicDecoders());
-            */
-
             Mix_FreeMusic(notif_sound);
             notif_sound = NULL;
         }
-        
+
         BattleInit(player, player->aggro_monster, NULL);
         free(player->aggro_monster);
         player->aggro_monster = NULL;
@@ -550,12 +431,13 @@ static monster_t* MonsterSpawn(bin_tile_t* t, int32_t avg_level) {
     *spawnable_mon = *template_mon;
     spawnable_mon->level = MonsterSetSpawnLevel(avg_level);
     MonsterSetStats(spawnable_mon);
+    MonsterSetMoves(spawnable_mon);
 
     return spawnable_mon;
 }
 
 void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
-    
+ 
     bin_tile_t* tile = MapGetCurrentTile(m, p->x_pos, p->y_pos);
     if(!tile) {
         printf(ANSI_COLOR_RED"Non existing tile.\n"ANSI_COLOR_RESET);

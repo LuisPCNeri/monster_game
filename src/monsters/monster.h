@@ -4,6 +4,8 @@
 #include <SDL2/SDL.h>
 #include "items/item.h"
 #include "libraries/cJSON.h"
+#include "monsters/monster_enums.h"
+#include "monsters/moves/moves.h"
 
 #define MAX_LEVEL 100
 #define LEARNABLE_MOVES_AMOUNT_PER_LEVEL 5
@@ -11,87 +13,6 @@
 #define USBALE_MOVES_AMOUNT 4
 
 typedef struct chunked_map_t chunked_map_t; 
-
-// MONSTER RARITIES
-// These affect only the monster's spawning rate
-typedef enum Rarities{
-    COMMON,
-    UNCOMMON,
-    RARE,
-    VERY_RARE,
-    LEGENDARY
-} Rarities;
-
-// STATUS EFFECTS
-typedef enum StatusEffects{
-    NONE,
-    // Takes damage every turn
-    SCORCHED,
-    // Takes damage every turn
-    POISON,
-    // Has a chance to be unnable to move every turn
-    STUNNED,
-    // Cannot move
-    ASLEEP,
-    // Cannot move
-    FROZEN,
-    // Speed Debuff, damage debuff
-    // Chance to happen when water interacts with metal
-    CORRODED
-} StatusEffects;
-
-typedef enum StatType{
-    STAT_NONE,
-    STAT_ATTACK,
-    STAT_DEFENSE,
-    STAT_SPEED
-} StatType;
-
-typedef enum MonsterTypes{
-    NONE_TYPE,
-    FIRE_TYPE,
-    WATER_TYPE,
-    GRASS_TYPE,
-    ROCK_TYPE,
-    POISON_TYPE,
-    ELECTRIC_TYPE,
-    NORMAL_TYPE,
-    DRAGON_TYPE,
-    METAL_TYPE,
-    DARK_TYPE,
-    FLYING_TYPE,
-    FIGHTING_TYPE,
-    BUG_TYPE,
-    ICE_TYPE,
-    TYPE_COUNT
-} MonsterTypes;
-
-// A move that can be used by a monster
-typedef struct move_t{
-    char* move_description;
-    char* move_name;
-    StatType stat_to_modify;
-    // Moves can only have one type
-    MonsterTypes attack_type;
-    // Status effect the move may apply on hit
-    StatusEffects status_effect;
-    // id to lookup the move
-    int16_t id;
-    int16_t damage;
-    // The level at which a monster can learn this move
-    // If it is 0 the monster can always learn it
-    int16_t required_level;
-    // Max amount of times move can be use => PP
-    int8_t max_uses;
-    // Amount of times move can still be used
-    int8_t available_uses;
-    // Percentage of times move will hit enemy
-    int8_t acc_percent;
-    // Amount of damage enemy will take (can be 0)
-    // States if this move's modifier applies to self or enemy
-    int8_t is_modify_self;
-    int8_t stat_stage_change;
-} move_t;
 
 // Monster with all it's data
 typedef struct monster_t {
@@ -187,15 +108,6 @@ move_t* MonsterChooseEnemyAttack(monster_t* enemy);
 void MonsterPrint(monster_t* monster);
 
 /*
-    Returns a pointer to the base template of the move with a given id.
-    To make changes to this monster or create a new instance of it create a copy of the struct.
-    DO NOT ALTER THE VALUES IN THE STRUCT GIVE BY THE POINTER
-
-    \param id Id of the move to get
-*/
-move_t* GetMoveById(int16_t id); 
-
-/*
     Returns a pointer to the base template of the monster with a given id.
     To make changes to this monster or create a new instance of it create a copy of the struct.
     DO NOT ALTER THE VALUES IN THE STRUCT GIVE BY THE POINTER
@@ -219,6 +131,12 @@ int32_t MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monste
 // Uses the rarity modifiers to calculate the chance.
 // If it hits the monster will go to the player's party. If the party is full goes to the storage.
 int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device);
+
+/*
+ *  \brief Sets the moves of a monster randomly based on the moves it has learned up to its level.
+ *  \param m The monster whose moves will be set
+ * */
+void MonsterSetMoves(monster_t* m);
 
 // Sets the stats of a monster to have some rng
 // Used when a monster spawns and when choosing a starter
