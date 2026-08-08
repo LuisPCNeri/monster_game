@@ -19,6 +19,8 @@
 #include "monsters/battle/battle.h"
 #include "trainer_battle/trainer_battle.h"
 #include "monsters/monster.h"
+#include "utils/term_colors.h"
+#include "utils/utils.h"
 
 #define TRAINER_FILE "data/trainer.json"
 // Max ditance trainer can aggro from in TILES
@@ -36,27 +38,6 @@ static u_int32_t current_trainers = 0;
 
 static const char* NOTIF_SOUND_LOC = "resources/sfx/notif_sfx.mp3";
 static Mix_Music* notif_sound = NULL;
-
-static char* LoadFileToString(char* file_path){
-    FILE* fptr;
-    if(!(fptr = fopen(file_path, "r"))){
-        perror("Open JSON Monster File: ");
-        return NULL;
-    }
-
-    // Count file size
-    fseek(fptr, 0 , SEEK_END);
-    long file_size = ftell(fptr);
-    fseek(fptr, 0, SEEK_SET);
-
-    char* buffer = (char*) malloc((size_t) file_size + 1);
-    size_t out = fread(buffer, 1, file_size, fptr);
-    if(out == 0) perror("fread");
-    buffer[file_size] = '\0';
-
-    fclose(fptr);
-    return buffer;
-}
 
 static void TrainerPrint(trainer_t* t){
     printf(
@@ -81,6 +62,8 @@ static FacingDirection GetOrientationFromString(const char* orientation){
 void TrainersInit(){
     char* file = LoadFileToString(TRAINER_FILE);
     if(!file) exit(EXIT_FAILURE);
+
+    printf("\n*** Loading Trainers ***\n");
 
     cJSON* trainers = cJSON_Parse(file);
     cJSON* entry = NULL;
@@ -112,7 +95,7 @@ void TrainersInit(){
         current_trainers++;
     };
 
-    printf("LOADED %d TRAINERS\n", current_trainers);
+    printf(ANSI_COLOR_GREEN"LOADED %d TRAINERS\n"ANSI_COLOR_RESET, current_trainers);
     cJSON_Delete(trainers);
     free(file);
 }
@@ -130,7 +113,7 @@ int8_t TrainerIsVisible(trainer_t* t, int32_t offset_x, int32_t offset_y){
 
 static void TrainerDebugDrawAggroLine(trainer_t* t) {
     int32_t t_half = TRAINER_SPRITE_SIZE / (RENDER_SCALE * 2);
-    
+
     int32_t screen_x = (t->x_pos * RENDER_SCALE) + world_offset_x + (t_half * RENDER_SCALE);
     int32_t screen_y = (t->y_pos * RENDER_SCALE) + world_offset_y + (t_half * RENDER_SCALE);
 

@@ -114,16 +114,16 @@ void PlayerMenuHandleSelect(){
     selected_mon->level = 5;
 
     MonsterSetStats(selected_mon);
+    MonsterSetMoves(selected_mon);
 
     // Adds the chosen starter to the player's party at the first position
     active_player->monster_party[0] = selected_mon;
-
     active_player->game_state = STATE_EXPLORING;
-    
+
     MenuDestroy(starter_select_menu);
     active_player->current_menu = NULL;
 
-    // Prints the level up table for the chosen starter for debug purposes
+    /* DEBUG
     for(int16_t i = 0; i < MAX_LEVEL; i++){
         for(int16_t k = 0; k < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; k++){
             if(active_player->monster_party[0]->level_up_table[i][k] != -1)
@@ -132,6 +132,7 @@ void PlayerMenuHandleSelect(){
     }
 
     MonsterPrint(active_player->monster_party[0]);
+    */
 }
 
 int8_t PlayerAddMonsterToParty(monster_t* monster){
