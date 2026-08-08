@@ -127,10 +127,14 @@ void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int32_t exp);
 
 int32_t MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster);
 
-// Has the player try to catch a monster.
-// Uses the rarity modifiers to calculate the chance.
-// If it hits the monster will go to the player's party. If the party is full goes to the storage.
-int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device);
+/*
+ *  \brief Based on rarity, level difference and remaining hp calculates if a mon was caught or not.
+ *  On success immediatly adds the mon to the current active player party, if no space it adds to the players PC.
+ *  \param monster The monster the current player is trying to catch.
+ *  \param device The catching device used for trying to capture the mon.
+ *  \returns 1 on successful atempt and 0 on failed atempt.
+ * */
+int8_t MonsterTryCatch(monster_t* monster, catch_device_t* device);
 
 /*
  *  \brief Sets the moves of a monster randomly based on the moves it has learned up to its level.

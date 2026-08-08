@@ -818,7 +818,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
                 
         InventoryRemoveItem(active_player->inv, item->item, 1);
         catch_device_t* device = item->item.catch_device;
-        int8_t has_caught = MonsterTryCatch(active_player, enemy_mon, device);
+        int8_t has_caught = MonsterTryCatch(enemy_mon, device);
         if(has_caught){
             sprintf(message,"You caught a(n) %s!", enemy_mon->name);
 

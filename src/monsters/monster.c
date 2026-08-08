@@ -8,6 +8,7 @@
 #include "libraries/cJSON.h"
 
 #include "map.h"
+#include "monsters/monster_enums.h"
 #include "monsters/moves/moves.h"
 #include "player/player.h"
 #include "items/item.h"
@@ -414,21 +415,42 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
 }
 
 static monster_t* MonsterSpawn(bin_tile_t* t, int32_t avg_level) {
+    if(t->spawn_id_count <= 0) return NULL;
 
-    /// BUG this assumes all mons have the same rarity
-    int16_t mon_idx = rand() % t->spawn_id_count;
-    int16_t mon_id  = t->spawn_ids[mon_idx];
+    int32_t rarity_roll = rand() % 100;
+    Rarities target_rarity = COMMON;
 
-    monster_t* template_mon = GetMonsterById(mon_id);
-    if(!template_mon) {
+    if(rarity_roll > 70 && rarity_roll < 85) target_rarity = UNCOMMON;
+    else if(rarity_roll < 93) target_rarity = RARE;
+    else if(rarity_roll < 99) target_rarity = VERY_RARE;
+    else target_rarity = LEGENDARY;
+
+    int16_t pool[MAX_SPAWN_IDS];
+    int8_t pool_count = 0;
+
+    for(int i = 0; i < t->spawn_id_count; i++) {
+        monster_t* m = GetMonsterById(t->spawn_ids[i]);
+        if(m && m->rarity == target_rarity) {
+            pool[pool_count++] = t->spawn_ids[i];
+        }
+    }
+
+    if(pool_count == 0) {
+        for(int i = 0; i < t->spawn_id_count; i++) {
+            pool[pool_count++] = t->spawn_ids[i];
+        }
+    }
+
+    int16_t mon_id = pool[rand() % pool_count];
+    monster_t* temp = GetMonsterById(mon_id);
+    if(!temp) {
         printf(ANSI_COLOR_RED"[!] No mon with Id: %d!\n"ANSI_COLOR_RESET, mon_id);
         return NULL;
     }
 
     monster_t* spawnable_mon = (monster_t*) malloc(sizeof(monster_t));
 
-    /// Copy of the template mon
-    *spawnable_mon = *template_mon;
+    *spawnable_mon = *temp;
     spawnable_mon->level = MonsterSetSpawnLevel(avg_level);
     MonsterSetStats(spawnable_mon);
     MonsterSetMoves(spawnable_mon);
@@ -440,7 +462,7 @@ void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
  
     bin_tile_t* tile = MapGetCurrentTile(m, p->x_pos, p->y_pos);
     if(!tile) {
-        printf(ANSI_COLOR_RED"Non existing tile.\n"ANSI_COLOR_RESET);
+        printf(ANSI_COLOR_RED"[Error] Non existing tile.\n"ANSI_COLOR_RESET);
         return;
     }
 
@@ -465,7 +487,7 @@ void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
 
     if(!notif_sound) notif_sound = Mix_LoadMUS(NOTIF_SOUND_LOC);
     if(Mix_PlayMusic(notif_sound, 1) < 0) {
-        printf(ANSI_COLOR_RED "[!] Mix_PlayMusic failed: %s\n" ANSI_COLOR_RESET, Mix_GetError());
+        printf(ANSI_COLOR_RED "[Error] Mix_PlayMusic failed: %s\n" ANSI_COLOR_RESET, Mix_GetError());
     }
 
     monster_t* spawned_mon = MonsterSpawn(tile, avg_level);
@@ -596,7 +618,7 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int32_t exp_
     }
 }
 
-int8_t MonsterTryCatch(player_t* player, monster_t* monster, catch_device_t* device){
+int8_t MonsterTryCatch(monster_t* monster, catch_device_t* device){
 
     // Initially set the catch_rate to the default
     float catch_rate = BASE_CATCH_RATE;
