@@ -8,6 +8,9 @@
 *.png
 *.mp3
 
+# data scripts
+*.py
+
 TO-DO.md
 
 # The main executable file
