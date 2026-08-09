@@ -3,6 +3,10 @@
 
 #include <SDL2/SDL.h>
 
+#define MON_FRONT_SPRITE_SIZE 96
+#define SHEET_VERT_PADDING 7
+#define SHEET_COLS 8
+
 typedef struct glbl_asset_manager
 {
     SDL_Texture* mon_front_sheet;
