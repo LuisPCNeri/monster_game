@@ -1,8 +1,10 @@
 #ifndef __MONSTER_DEX_H__
 #define __MONSTER_DEX_H__
 
-#define HORIZONTAL_MARGIN 250
-#define VERTICAL_MARGIN 250
+#define HORIZONTAL_MARGIN 100
+#define VERTICAL_MARGIN 100
+
+#include "menus/menu.h"
 
 /*
     This draws the monster dex window for the current monster_t* monster. The usage of this function with offset_x is intended for the move learn replacement
@@ -14,5 +16,11 @@
     \param offset_x Horizontal offset for the whole window
 */
 void DexDrawMonsterInfo(player_t* player, monster_t* monster, int32_t screen_w, int32_t screen_h, int32_t offset_x);
+
+/*
+ *  \brief Getter for the dex entry menu used for learning and forgetting moves.
+ *  \returns A pointer to the active menu. This pointer may be NULL.
+ * */
+menu_t* MonsterDexGetActiveMenu();
 
 #endif
