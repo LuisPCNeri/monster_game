@@ -62,4 +62,21 @@ void MoveParseJSON(cJSON* entry, move_t* m);
  * */
 move_t* GetMoveById(int16_t id);
 
-#endif // !__MOVES__
+/*
+ *  \brief Replaces the first empty slot on a mons moves array with the move with move_id.
+ *  If move_id is invalid, nothing happens and the function returns early.
+ *  \param move_id the Id of the move to learn
+ *  \param monster The monster learning the move
+ * */
+void MoveLearnIntoEmptySlot(int16_t move_id, monster_t* monster);
+
+/*
+ *  \brief Replaces the move at idx_to_replace in the monsters moves array with the move with id move_id.
+ *  If move_id is invalid, nothing happens and the function returns early.
+ *  \param move_id The id of the move to learn
+ *  \param m The monster learning the move
+ *  \param idx_to_replace The idx of the forgotten move in the monsters moves array
+ * */
+void MoveLearnReplace(int16_t move_id, monster_t* m, int8_t idx_to_replace);
+
+#endif

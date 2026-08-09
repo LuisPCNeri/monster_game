@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "moves.h"
+#include "items/item.h"
 #include "monsters/monster.h"
 #include "utils/utils.h"
 #include "utils/term_colors.h"
@@ -18,7 +19,7 @@ void MovesInit() {
 
         cJSON_ArrayForEach(entry, jsonMoves) {
             if(MoveLibraryCount >= MAX_GAME_MOVES) break;
-            
+ 
             move_t* m = &ALL_MOVES[MoveLibraryCount];
             MoveParseJSON(entry, m);
             MoveLibraryCount++;
@@ -111,4 +112,35 @@ void MoveParseJSON(cJSON* entry, move_t* m){
 
     // Initialize current state
     m->available_uses = m->max_uses; 
+}
+
+void MoveLearnIntoEmptySlot(int16_t move_id, monster_t* m) {
+    move_t* move = GetMoveById(move_id);
+    if(!move) {
+        printf(ANSI_COLOR_YELLOW
+               "[!] Coud not find move with id %d while trying to learn it.\n"
+                ANSI_COLOR_RESET, move_id);
+
+        return;
+    }
+
+    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++) {
+        if( m->moves[i].id != -1 ) continue;
+
+        m->moves[i] = *move;
+        return;
+    }
+}
+
+void MoveLearnReplace(int16_t move_id, monster_t* m, int8_t idx_to_replace) {
+    move_t* move = GetMoveById(move_id);
+    if(!move) {
+        printf(ANSI_COLOR_YELLOW
+               "[!] Coud not find move with id %d while trying to learn it.\n"
+                ANSI_COLOR_RESET, move_id);
+
+        return;
+    }
+
+    m->moves[idx_to_replace] = *move;
 }
