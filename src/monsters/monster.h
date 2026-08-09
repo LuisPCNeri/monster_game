@@ -122,8 +122,9 @@ monster_t* GetMonsterById(int16_t id);
     \param *monster Monster that will receive the exp.
     \param *enemy_monster Either a pointer to the defeated monster that will be used for exp calculations or NULL to use the int exp parameter.
     \param exp Amount of exp to add to monster. Will only be used if enemy_monster is NULL.
+    \param msg Pointer to set the message saying the monster learned a move if necessary.
 */
-void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int32_t exp);
+void MonsterAddExp(monster_t* monster, monster_t* enemy_monster, int32_t exp, char* msg);
 
 int32_t MonsterGetExpYield(monster_t* defeated_monster, monster_t* player_monster);
 

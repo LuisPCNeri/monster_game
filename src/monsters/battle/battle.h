@@ -44,7 +44,7 @@ void BattleMenuBack();
 
     \param monster A pointer to the monster that just leveld up.
 */
-void BattleSetupLearnMove(monster_t* monster, move_t* move_to_learn);
+void BattleSetupLearnMove(move_t* move_to_learn);
 
 // Cleans up resources used by the battle system
 void BattleQuit(void);

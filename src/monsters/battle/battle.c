@@ -6,6 +6,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #include "monsters/monster.h"
+#include "monsters/moves/moves.h"
 #include "player/player.h"
 #include "trainers/trainer.h"
 #include "trainers/trainer_battle/trainer_battle.h"
@@ -24,10 +25,6 @@ extern TTF_Font* game_font;
 extern int32_t screen_w;
 extern int32_t screen_h;
 extern glbl_asset_manager* asset_manager;
-
-#define MON_FRONT_SPRITE_SIZE 96
-#define SHEET_VERT_PADDING 7
-#define SHEET_COLS 8
 
 static TTF_Font* info_font = NULL;
 
@@ -261,7 +258,9 @@ static int8_t BattleCheckIsOver(){
     if(enemy_mon->hp <= 0){
 
         InitExpAnimation();
-        MonsterAddExp(active_mon, enemy_mon, 0);
+
+        char learn_msg[128] = "";
+        MonsterAddExp(active_mon, enemy_mon, 0, learn_msg);
 
         if(act_trainer && TrainerCheckPartyIsDead(act_trainer)){
             act_trainer->was_defeated = 1;
@@ -271,23 +270,33 @@ static int8_t BattleCheckIsOver(){
 
         if(act_trainer && act_trainer->was_defeated){
             printf("TRAINER BATTLE OVER\n");
-            sprintf(message, "Trainer %s was defeated!", act_trainer->name);
+            sprintf(message, "Trainer %s was defeated!\n", act_trainer->name);
+            if(learn_msg[0] != '\0') strcat(message, learn_msg);
+
             battle_state = BATTLE_END_MSG;
             return 0;
         } else if (act_trainer) {
             for(int8_t i = 0; i < PARTY_SIZE; i++){
                 if(act_trainer->party[i].hp <= 0) continue;
+
                 SDL_DestroyTexture(enemy_mon_tex);
                 enemy_mon_tex = NULL;
+
                 enemy_mon = &act_trainer->party[i];
                 MonsterResetBattleStats(enemy_mon);
                 enemy_displayed_hp = (float)enemy_mon->hp;
-                sprintf(message, "%s sent out %s!", act_trainer->name, enemy_mon->name);
+
+                sprintf(message, "%s sent out %s!\n", act_trainer->name, enemy_mon->name);
+                if(learn_msg[0] != '\0') strcat(message, learn_msg);
+
                 battle_state = TRAINER_SWITCH;
+
                 return 0;
             }
         } else {
-            sprintf(message, "Wild %s fainted!", enemy_mon->name);
+            sprintf(message, "Wild %s fainted!\n", enemy_mon->name);
+            if(learn_msg[0] != '\0') strcat(message, learn_msg);
+
             battle_state = BATTLE_END_MSG;
             return 0;
         }
@@ -308,7 +317,7 @@ static int8_t BattleCheckIsOver(){
     return 0;
 }
 
-void BattleSetupLearnMove(monster_t* monster, move_t* move){
+void BattleSetupLearnMove(move_t* move){
     battle_state = LEARN_MOVE;
     move_to_learn = move;
     active_player->selected_menu_itm = 0;
@@ -692,7 +701,7 @@ void BattleDraw(Uint32 dt){
     if(anim_level[i] < active_mon->level || (anim_level[i] == active_mon->level && anim_exp[i] < active_mon->exp)){
         float growth_speed = (float)anim_max_exp[i] * 0.7f;
         anim_exp[i] += growth_speed * (dt / 1000.0f);
-            
+
         if(anim_exp[i] >= anim_max_exp[i]){
             if(anim_level[i] < active_mon->level){
                 anim_level[i]++;
@@ -731,7 +740,7 @@ void BattleDraw(Uint32 dt){
     }
 
     RenderMonInfo(active_mon);
-    
+
     if(battle_state == SWITCH_MENU) SwitchMenuDraw();
     if(battle_state == INV_OPEN)    InventoryDraw(active_player->inv);
     if(battle_state == LEARN_MOVE && !BattleIsExpAnimating()){
@@ -741,9 +750,9 @@ void BattleDraw(Uint32 dt){
 
         sprintf(message, "%s wants to learn %s! Would you like %s to forget an old move and learn %s?", 
             active_mon->name, move_to_learn->move_name, active_mon->name, move_to_learn->move_name);
-        
+
         BattleRenderInfo(message, &status_rect, 20, 20, 0);
-        
+
         BattleRenderMenuItem("YES", &learn_move_menu->menu_items[0], info_font, 1, 0);
         BattleRenderMenuItem("NO", &learn_move_menu->menu_items[1], info_font, 1, 0);
 
@@ -815,17 +824,20 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         // Cannot catch other trainer's monsters lol
         if(act_trainer) return;
         printf("Used catch_device with id: %d\n", item->id);
-                
+
         InventoryRemoveItem(active_player->inv, item->item, 1);
         catch_device_t* device = item->item.catch_device;
         int8_t has_caught = MonsterTryCatch(enemy_mon, device);
         if(has_caught){
-            sprintf(message,"You caught a(n) %s!", enemy_mon->name);
+            sprintf(message,"You caught a(n) %s!\n", enemy_mon->name);
 
             fflush(stdout);
 
             // Battle over add exp
-            MonsterAddExp(active_mon, enemy_mon, 0);
+            char learn_msg[128] = "";
+            MonsterAddExp(active_mon, enemy_mon, 0, learn_msg);
+            if(learn_msg[0] != '\0') strcat(message, learn_msg);
+
             printf("Battle Won! Current Exp: %d/%d\n", 
             active_player->monster_party[active_player->active_mon_index]->exp,
             active_player->monster_party[active_player->active_mon_index]->max_xp);
@@ -849,7 +861,7 @@ static void HandleInvOpenSelect(monster_t* active_mon){
         if(has_healed){
             InventoryRemoveItem(active_player->inv, item->item, 1);
             sprintf(message, "Used a %s on %s", pot->name, active_mon->name);
-                    
+
             battle_state = MESSAGE_DISPLAYED;
         }
 
@@ -890,7 +902,7 @@ void BattleMenuHandleSelect(){
     else if(battle_state == INV_OPEN)    HandleInvOpenSelect(active_mon);
     else if(battle_state == SWITCH_MENU){
         int8_t has_switched = HandleSwitchMenuSelect(active_mon);
-        
+ 
         if(has_switched){
             MenuDeHighlightBox(&active_player->current_menu->menu_items[active_player->selected_menu_itm]);
             active_player->selected_menu_itm = SWITCH;
@@ -925,20 +937,30 @@ void BattleMenuHandleSelect(){
         battle_state = EXECUTING_TURN;
         turn_stage = 0;
 
-        if(!message[0] == '\0') message[0] = '\0';
+        if(message[0] != '\0') message[0] = '\0';
     }
     else if(battle_state == LEARN_MOVE && !BattleIsExpAnimating()){
         // IMPORTANT : Either give control to the monsterdex function and have it change the move or do it here
         // Player has selected the YES option
         if(active_player->selected_menu_itm == 0){
             battle_state = LEARN_MOVE_MENU;
+
+            menu_t* m = MonsterDexGetActiveMenu();
+            if(m) active_player->current_menu = m;
         }
         // Player has selected the NO option
         else if(active_player->selected_menu_itm == 1){
             sprintf(message, "%s gave up on learning %s!", 
                 active_mon->name, move_to_learn->move_name);
+
             battle_state = BATTLE_END_MSG;
         }
+    }
+    else if(battle_state == LEARN_MOVE_MENU) {
+        MoveLearnReplace(move_to_learn->id, active_mon, active_player->selected_menu_itm);
+        sprintf(message, "%s learned %s!", active_mon->name, move_to_learn->move_name);
+
+        battle_state = BATTLE_END_MSG;
     }
     else if(battle_state == BATTLE_END_MSG) BattleQuit();
 }
@@ -948,6 +970,8 @@ void BattleMenuBack(){
     if(battle_state == EXECUTING_TURN)  return;
     if(battle_state == LEARN_MOVE)      return;
     if(battle_state == LEARN_MOVE_MENU) {
+        active_player->selected_menu_itm = 0;
+        active_player->current_menu = learn_move_menu;
         battle_state = LEARN_MOVE;
         return;
     }

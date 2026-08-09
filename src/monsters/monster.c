@@ -101,7 +101,7 @@ SDL_Rect GetFromSpriteSheet(uint16_t sprite_size, uint16_t vertical_padding, uin
 /// \param mon The pointer to the mon in the array
 uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
         if (!entry || !mon) return 0;
-    
+
     // Load Basic Info
     cJSON *id_item = cJSON_GetObjectItem(entry, "id");
     if (id_item && id_item->type == cJSON_Number) mon->id = id_item->valueint;
@@ -109,11 +109,11 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
 
     cJSON* sprite_idx_item = cJSON_GetObjectItem(entry, "sprite_idx");
     if(sprite_idx_item && sprite_idx_item->type == cJSON_Number) mon->sprite_idx = sprite_idx_item->valueint;
-    
+ 
     cJSON *name_item = cJSON_GetObjectItem(entry, "name");
     if (name_item && name_item->type == cJSON_String) mon->name = SDL_strdup(name_item->valuestring);
     else return 0;
-    
+ 
     cJSON *desc_item = cJSON_GetObjectItem(entry, "description");
     if (desc_item && desc_item->type == cJSON_String) mon->description = SDL_strdup(desc_item->valuestring);
     else return 0;
@@ -169,17 +169,17 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
     cJSON *evolution = cJSON_GetObjectItem(entry, "evolution");
     if (evolution && evolution->type == cJSON_Object) {
         int evo_idx = 0;
-        
+
         // Check for "next" evolution (evolves into)
         cJSON *next_evo = cJSON_GetObjectItem(evolution, "next");
         if (next_evo && next_evo->type == cJSON_Array && evo_idx < 2) {
             cJSON *evo_id = cJSON_GetArrayItem(next_evo, 0);
             cJSON *evo_method = cJSON_GetArrayItem(next_evo, 1);
-            
+
             if (evo_id && evo_id->type == cJSON_Number) {
                 mon->evo_table[evo_idx][0] = evo_id->valueint;
             }
-            
+
             if (evo_method && evo_method->type == cJSON_String) {
                 int level = 0;
                 int matched = sscanf(evo_method->valuestring, "Level %d", &level);
@@ -191,17 +191,17 @@ uint8_t MonsterParseJSON(cJSON* entry, monster_t* mon) {
             }
             evo_idx++;
         }
-        
+
         // Check for "prev" evolution (evolved from)
         cJSON *prev_evo = cJSON_GetObjectItem(evolution, "prev");
         if (prev_evo && prev_evo->type == cJSON_Array && evo_idx < 2) {
             cJSON *evo_id = cJSON_GetArrayItem(prev_evo, 0);
             cJSON *evo_method = cJSON_GetArrayItem(prev_evo, 1);
-            
+
             if (evo_id && evo_id->type == cJSON_Number) {
                 mon->evo_table[evo_idx][0] = evo_id->valueint;
             }
-            
+
             if (evo_method && evo_method->type == cJSON_String) {
                 int level = 0;
                 int matched = sscanf(evo_method->valuestring, "Level %d", &level);
@@ -341,6 +341,8 @@ void MonsterResetBattleStats(monster_t* monster){
 
 void MonsterSetMoves(monster_t* m) {
     int16_t* move_ids = GetLearnedMovesIdPermutation(m);
+
+    for(int i = 0; i < USBALE_MOVES_AMOUNT; i++) m->moves[i].id = -1;
 
     for(int i = 0; i < USBALE_MOVES_AMOUNT; i++) {
         move_t* move = GetMoveById(move_ids[i]);
@@ -524,12 +526,43 @@ static void MonsterLevelUpStats(monster_t* monster){
            monster->name, monster->level, hp_gain, atk_gain, def_gain, spd_gain);
 }
 
+void MonsterHandleLevelUpMoves(monster_t* monster, char* msg) {
+    for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
+        int16_t move_id = monster->level_up_table[monster->level][i];
+        if( move_id == -1) break;
+ 
+        int8_t is_moves_array_full = 1;
+        for(int i = 0; i < USBALE_MOVES_AMOUNT; i++) {
+            if(monster->moves[i].id != -1) continue;
+            is_moves_array_full = 0;
+
+            break;
+        }
+
+        if(!is_moves_array_full) {
+            MoveLearnIntoEmptySlot(move_id, monster);
+            printf(ANSI_COLOR_GREEN
+                    "[DEBUG] %s learned move with id: %d\n"
+                   ANSI_COLOR_RESET, monster->name, move_id);
+
+            move_t* m = GetMoveById(move_id);
+            if(!m) break;
+
+            if(msg) sprintf(msg, "%s learned %s!", monster->name, m->move_name);
+        }
+        else {
+            move_t* move_to_learn = GetMoveById(monster->level_up_table[monster->level][i]);
+            BattleSetupLearnMove(move_to_learn);
+        }
+    }
+}
+
 // Called when the monster's level coincides with it's evo1 level
 // Changes the monster to a new copy of it's evolution whilst increasing it's stats significantly
 // Keeps it's moves as well
 // Returns the new monster struct
-static monster_t* MonsterEvolve(monster_t* monster){
-    
+static monster_t* MonsterEvolve(monster_t* monster, char* msg){
+
     // The next monster in the evolution line should be the one with monster->id + 1
     monster_t* evo_monster = GetMonsterById(monster->id + 1);
 
@@ -547,14 +580,7 @@ static monster_t* MonsterEvolve(monster_t* monster){
     monster->evo_table[0][1] = evo_monster->evo_table[0][1];
 
     // TODO : Check for evolution unlocked moves
-    for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
-        printf("%d", monster->level_up_table[monster->level][i]);
-        if(monster->level_up_table[monster->level][i] == -1) break;
-
-        printf("STARTING LEARN MOVE...\n");
-        move_t* move_to_learn = GetMoveById(monster->level_up_table[monster->level][i]);
-        BattleSetupLearnMove(monster, move_to_learn);
-    }
+    MonsterHandleLevelUpMoves(monster, msg);
 
     return monster;
 }
@@ -584,7 +610,7 @@ static void MonsterRestoreMoves(monster_t* monster){
 }
 
 
-void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int32_t exp_amount){
+void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int32_t exp_amount, char* msg){
     if(defeated_monster) monster->exp += MonsterGetExpYield(defeated_monster, monster);
     else monster->exp += exp_amount;
 
@@ -602,19 +628,12 @@ void MonsterAddExp(monster_t* monster, monster_t* defeated_monster, int32_t exp_
         MonsterRestoreMoves(monster);
         monster->current_sfx = NONE;
 
-        if(monster->level >= monster->evo_table[0][1]) monster = MonsterEvolve(monster);
+        if(monster->level >= monster->evo_table[0][1]) monster = MonsterEvolve(monster, msg);
 
         // Quadratic growth: 10 * Level^2 + 50 * Level
         monster->max_xp = (monster->level * monster->level * 10) + (monster->level * 50);
 
-        // Check for new moves upon leveling up ig
-        for(int8_t i = 0; i < LEARNABLE_MOVES_AMOUNT_PER_LEVEL; i++){
-            if(monster->level_up_table[monster->level][i] == -1) break;
-
-            printf("STARTING LEARN MOVE...\n");
-            move_t* move_to_learn = GetMoveById(monster->level_up_table[monster->level][i]);
-            BattleSetupLearnMove(monster, move_to_learn);
-        }
+        MonsterHandleLevelUpMoves(monster, msg);
     }
 }
 
