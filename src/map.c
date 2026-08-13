@@ -10,6 +10,7 @@
 #include <SDL2/SDL_timer.h>
 
 #include "map.h"
+#include "SDL_render.h"
 #include "player/player.h"
 #include "utils/term_colors.h"
 #include "utils/glbl_asset_manager.h"
@@ -32,6 +33,25 @@ typedef struct map_header_t {
     int32_t origin_y;
 
 } map_header_t;
+
+#define ATLAS_TILE_SIZE 32
+
+/*
+ *  \brief Calculates the size of the atlas in amount of textures. If an atlas is a square with an area of
+ *  4 textures, then it returns 2.
+ *  \param atlas The atlas to calculate the dimensions for.
+ *  \returns 0 if there was an error, the size of one side of the atlas if otherwise.
+ * */
+static int8_t AtlasQuerySize(SDL_Texture* atlas) {
+
+    int32_t w,h;
+    if( SDL_QueryTexture(atlas, NULL, NULL, &w, &h) < 0 ) {
+        printf(ANSI_COLOR_RED"[ERROR] %s\n"ANSI_COLOR_RESET, SDL_GetError());
+        return 0;
+    }
+
+    return (w / ATLAS_TILE_SIZE);
+}
 
 static int64_t chunk_file_offset(uint32_t cx, uint32_t cy, uint32_t w_chunks) {
     return HEADER_SERIALIZED_SIZE + (int64_t)(cy * w_chunks + cx) * CHUNK_SERIALIZED_SIZE;
@@ -112,6 +132,15 @@ chunked_map_t* MapInit(SDL_Renderer* renderer) {
         map->window[i].cx = -1;
         map->window[i].cy = -1;
     }
+ 
+    int8_t atlas_size = AtlasQuerySize(map->tile_sheet);
+    if(!atlas_size) {
+        printf(ANSI_COLOR_RED"[ERROR] Could not compute atlas size.\n"ANSI_COLOR_RESET);
+        exit(EXIT_FAILURE);
+    }
+
+    map->tid_to_sp_map = (spawn_pool_data*) calloc(atlas_size * atlas_size, sizeof(spawn_pool_data));
+    free(header);
 
     return map;
 }
@@ -122,14 +151,27 @@ chunked_map_t* MapInit(SDL_Renderer* renderer) {
 /// \param f File to read chunk from.
 /// \param chunk Pointer to an address to store the chunk data.
 /// \return 0 on FAILURE 1 on SUCCESS
-static int8_t read_chunk(FILE* f, chunk_t* chunk) {
+static int8_t read_chunk(FILE* f, chunk_t* chunk, chunked_map_t* cm) {
     for (int32_t x = 0; x < CHUNK_SIZE; x++) {
         for (int32_t y = 0; y < CHUNK_SIZE; y++) {
-            bin_tile_t* t = &chunk->tiles[x][y];
 
-            if (fread(&t->spawn_id_count, sizeof(uint8_t), 1, f) != 1) return 0;
-            if (fread(t->spawn_ids, sizeof(int16_t), MAX_SPAWN_IDS, f) != MAX_SPAWN_IDS) return 0;
-            if (fread(&t->texture_id, sizeof(uint16_t), 1, f) != 1) return 0;
+            disk_tile_t t;
+
+            if (fread(&t.spawn_id_count, sizeof(uint8_t), 1, f) != 1) return 0;
+            if (fread(t.spawn_ids, sizeof(int16_t), MAX_SPAWN_IDS, f) != MAX_SPAWN_IDS) return 0;
+            if (fread(&t.texture_id, sizeof(uint16_t), 1, f) != 1) return 0;
+
+            if(t.texture_id > 0) {
+                int32_t idx = t.texture_id - 1;
+                spawn_pool_data* entry = &cm->tid_to_sp_map[idx];
+
+                if(entry->count == 0 && t.spawn_id_count > 0) {
+                    entry->count = t.spawn_id_count;
+                    memcpy(entry->ids, t.spawn_ids, t.spawn_id_count * sizeof(int16_t));
+                }
+            }
+
+            chunk->tiles[x][y].texture_id = t.texture_id;
         }
     }
 
@@ -147,7 +189,7 @@ static loaded_chunk_slot_t* MapFindSlot(chunked_map_t* m, int32_t cx, int32_t cy
 void MapUpdateStreaming(chunked_map_t* m, player_t* p) {
     int32_t pcx = COORDS_TO_CHUNK_COORD(p->x_pos);
     int32_t pcy = COORDS_TO_CHUNK_COORD(p->y_pos);
-    
+ 
     int32_t visible_min_cx = pcx, visible_max_cx = pcx;
     int32_t visible_min_cy = pcy, visible_max_cy = pcy;
 
@@ -193,7 +235,7 @@ void MapUpdateStreaming(chunked_map_t* m, player_t* p) {
             int64_t byte_offset = chunk_file_offset((uint32_t)cx, (uint32_t)cy, m->w_chunks);
             fseek(m->bin, (long)byte_offset, SEEK_SET);
 
-            if (read_chunk(m->bin, &slot->data)) {
+            if (read_chunk(m->bin, &slot->data, m)) {
                 slot->cx = cx;
                 slot->cy = cy;
                 slot->data.is_visible = (cx >= visible_min_cx && cx <= visible_max_cx &&
@@ -206,11 +248,13 @@ void MapUpdateStreaming(chunked_map_t* m, player_t* p) {
     }
 }
 
-/// TODO Calculate Atlas size automatically
-#define ATLAS_SIZE 2
-#define ATLAS_TILE_SIZE 32
-
 void MapRender(chunked_map_t* m, SDL_Renderer* r, SDL_Rect v) {
+    int8_t atlas_size = AtlasQuerySize(m->tile_sheet);
+    if(!atlas_size) {
+        printf(ANSI_COLOR_RED"[ERROR] Could not compute atlas size, does it exist?"ANSI_COLOR_RESET);
+        return;
+    }
+
     for(int32_t i = 0; i < m->window_capacity; i++) {
         loaded_chunk_slot_t* chunk = &m->window[i];
 
@@ -221,12 +265,12 @@ void MapRender(chunked_map_t* m, SDL_Renderer* r, SDL_Rect v) {
 
         for(int32_t x = 0; x < CHUNK_SIZE; x++) {
             for(int32_t y = 0; y < CHUNK_SIZE; y++) {
-                
+ 
                 int32_t idx = chunk->data.tiles[x][y].texture_id - 1;
 
                 SDL_Rect src = {
-                    .x = (idx % ATLAS_SIZE) * ATLAS_TILE_SIZE,
-                    .y = (idx / ATLAS_SIZE) * ATLAS_TILE_SIZE,
+                    .x = (idx % atlas_size) * ATLAS_TILE_SIZE,
+                    .y = (idx / atlas_size) * ATLAS_TILE_SIZE,
                     .w = ATLAS_TILE_SIZE, 
                     .h = ATLAS_TILE_SIZE
                 };
@@ -277,7 +321,7 @@ bin_tile_t* MapGetCurrentTile(chunked_map_t* map, int32_t px, int32_t py) {
 /// TODO FreeMap
 void FreeMap(chunked_map_t* m){
     free(m->window);
-
+    if (m->tid_to_sp_map) free(m->tid_to_sp_map);
     fclose(m->bin);
     SDL_DestroyTexture(m->tile_sheet);
 

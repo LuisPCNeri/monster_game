@@ -29,11 +29,22 @@
 #define RENDERED_MAP_SIZE_CHUNK 9
 #define STREAM_MARGIN_CHUNKS 2
 
-typedef struct bin_tile_t {
+typedef struct spawn_pool_data {
+    int8_t count;
+    int16_t ids[MAX_SPAWN_IDS];
+
+} spawn_pool_data;
+
+typedef struct disk_tile_t {
     uint8_t spawn_id_count;
     int16_t spawn_ids[MAX_SPAWN_IDS];
     uint16_t texture_id;
-    
+
+} disk_tile_t;
+
+typedef struct bin_tile_t {
+    uint16_t texture_id;
+
 } bin_tile_t;
 
 typedef struct chunk_t {
@@ -50,6 +61,8 @@ typedef struct loaded_chunk_slot_t {
 
 typedef struct chunked_map_t {
     SDL_Texture* tile_sheet;
+    spawn_pool_data* tid_to_sp_map;
+
     uint32_t w_chunks, h_chunks;
     int32_t origin_x, origin_y;
 

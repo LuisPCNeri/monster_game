@@ -314,7 +314,7 @@ void MonstersInit() {
             char* atck = cJSON_GetObjectItem(entry, "attacker")->valuestring;
             char* def  = cJSON_GetObjectItem(entry, "defender")->valuestring;
             double mult = cJSON_GetObjectItem(entry, "mult")->valuedouble;
-            
+
             MonsterTypes atck_type = MonsterGetTypeFromString(atck);
             MonsterTypes def_type  = MonsterGetTypeFromString(def);
 
@@ -416,8 +416,8 @@ void MonsterUpdateAggro(player_t* player, Uint32 dt){
     }
 }
 
-static monster_t* MonsterSpawn(bin_tile_t* t, int32_t avg_level) {
-    if(t->spawn_id_count <= 0) return NULL;
+static monster_t* MonsterSpawn(spawn_pool_data* data, int32_t avg_level) {
+    if(data->count <= 0) return NULL;
 
     int32_t rarity_roll = rand() % 100;
     Rarities target_rarity = COMMON;
@@ -430,16 +430,16 @@ static monster_t* MonsterSpawn(bin_tile_t* t, int32_t avg_level) {
     int16_t pool[MAX_SPAWN_IDS];
     int8_t pool_count = 0;
 
-    for(int i = 0; i < t->spawn_id_count; i++) {
-        monster_t* m = GetMonsterById(t->spawn_ids[i]);
+    for(int i = 0; i < data->count; i++) {
+        monster_t* m = GetMonsterById(data->ids[i]);
         if(m && m->rarity == target_rarity) {
-            pool[pool_count++] = t->spawn_ids[i];
+            pool[pool_count++] = data->ids[i];
         }
     }
 
     if(pool_count == 0) {
-        for(int i = 0; i < t->spawn_id_count; i++) {
-            pool[pool_count++] = t->spawn_ids[i];
+        for(int i = 0; i < data->count; i++) {
+            pool[pool_count++] = data->ids[i];
         }
     }
 
@@ -468,7 +468,9 @@ void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
         return;
     }
 
-    if(tile->spawn_id_count <= 0) {
+    spawn_pool_data* data = &m->tid_to_sp_map[tile->texture_id - 1];
+
+    if(data->count <= 0) {
         /// printf(ANSI_COLOR_YELLOW"No spawnable mons for current tile.\n"ANSI_COLOR_RESET);
         return;
     }
@@ -492,7 +494,7 @@ void MonsterTrySpawn(player_t* p, chunked_map_t* m) {
         printf(ANSI_COLOR_RED "[Error] Mix_PlayMusic failed: %s\n" ANSI_COLOR_RESET, Mix_GetError());
     }
 
-    monster_t* spawned_mon = MonsterSpawn(tile, avg_level);
+    monster_t* spawned_mon = MonsterSpawn(data, avg_level);
     
     p->aggro_timer = PLAYER_AGGRO_TIMER;
     p->aggro_monster = spawned_mon;
