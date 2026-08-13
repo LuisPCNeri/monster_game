@@ -11,6 +11,9 @@
 # data scripts
 *.py
 
+# debug file
+asan.txt
+
 TO-DO.md
 
 # The main executable file

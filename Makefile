@@ -39,13 +39,14 @@ LDFLAGS = $(SDL_LDFLAGS)
 release: CFLAGS += -O3
 release: all
 
-debug: CFLAGS += -g -O0
+debug: CFLAGS += -g -O0 -fsanitize=address,leak
+debug: LDFLAGS += -fsanitize=address,leak
 debug: all
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS) $(CFLAGS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@$(MKDIR_P)
